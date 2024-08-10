@@ -233,6 +233,13 @@ class _ExerciseTile extends StatefulWidget {
 class __ExerciseTileState extends State<_ExerciseTile> {
   List<Map<String, String>> sets = [];
 
+  @override
+  void initState() {
+    super.initState();
+    // Add 1 set by default when the exercise is added
+    sets.add({'reps': '', 'weight': ''});
+  }
+
   void _addSet() {
     setState(() {
       sets.add({'reps': '', 'weight': ''});
