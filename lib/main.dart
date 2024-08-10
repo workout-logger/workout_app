@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'home_body.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'exercise_model.dart'; // Import the ExerciseModel
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   WakelockPlus.enable();
-  runApp(const NavigationBarApp());
+  
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ExerciseModel(), // Provide the ExerciseModel to the app
+      child: const NavigationBarApp(),
+    ),
+  );
 }
+
 class NavigationBarApp extends StatelessWidget {
   const NavigationBarApp({super.key});
-  
 
   @override
   Widget build(BuildContext context) {

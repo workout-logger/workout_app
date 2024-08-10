@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'exercise_model.dart'; // Import your ExerciseModel
+import 'package:workout_logger/exercise.dart';
+
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({super.key});
@@ -13,7 +17,6 @@ class WorkoutPage extends StatefulWidget {
 class _WorkoutPageState extends State<WorkoutPage> {
   bool _isLoading = false;
   final List<String> muscleGroups = ['Biceps', 'Triceps', 'Back', 'Chest', 'Legs', 'Shoulders'];
-  List<Exercise> _selectedExercises = [];
 
   void _showWorkoutExercises() async {
     setState(() {
@@ -55,9 +58,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
                       return _WorkoutExercisesList(
                         exercises: snapshot.data!,
                         onExerciseSelected: (selectedExercise) {
-                          setState(() {
-                            _selectedExercises.add(selectedExercise);
-                          });
+                          Provider.of<ExerciseModel>(context, listen: false).addExercise(selectedExercise);
                           Navigator.of(context).pop(); // Close the bottom sheet after selection
                         },
                       );
@@ -116,49 +117,25 @@ class _WorkoutPageState extends State<WorkoutPage> {
         foregroundColor: Theme.of(context).colorScheme.primary,
         child: _isLoading ? CircularProgressIndicator() : const Icon(Icons.add),
       ),
-      body: Center(
-        child: _selectedExercises.isEmpty
-            ? Text(
-                'No exercises selected',
-                style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-              )
-            : ListView.builder(
-                itemCount: _selectedExercises.length,
-                itemBuilder: (context, index) {
-                  final exercise = _selectedExercises[index];
-                  return _ExerciseTile(exercise: exercise);
-                },
-              ),
+      body: Consumer<ExerciseModel>(
+        builder: (context, model, child) {
+          return Center(
+            child: model.selectedExercises.isEmpty
+                ? Text(
+                    'No exercises selected',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+                  )
+                : ListView.builder(
+                    itemCount: model.selectedExercises.length,
+                    itemBuilder: (context, index) {
+                      final exercise = model.selectedExercises[index];
+                      return _ExerciseTile(exercise: exercise);
+                    },
+                  ),
+          );
+        },
       ),
     );
-  }
-}
-
-class Exercise {
-  final String name;
-  final String description;
-  final String? equipment;
-  final List<String> images;
-
-  Exercise({
-    required this.name,
-    required this.description,
-    this.equipment,
-    required this.images,
-  });
-
-  factory Exercise.fromJson(Map<String, dynamic> json) {
-    return Exercise(
-      name: json['name'],
-      description: _removeHtmlTags(json['description']),
-      equipment: json['equipment'],
-      images: List<String>.from(json['images']),
-    );
-  }
-
-  static String _removeHtmlTags(String htmlString) {
-    final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
-    return htmlString.replaceAll(exp, '');
   }
 }
 
@@ -236,13 +213,19 @@ class __ExerciseTileState extends State<_ExerciseTile> {
   @override
   void initState() {
     super.initState();
-    // Add 1 set by default when the exercise is added
-    sets.add({'reps': '', 'weight': ''});
+    final model = Provider.of<ExerciseModel>(context, listen: false);
+    sets = model.getSets(widget.exercise.name);
+    // Add 1 set by default if no sets exist
+    if (sets.isEmpty) {
+      sets.add({'reps': '', 'weight': ''});
+      model.updateSets(widget.exercise.name, sets);
+    }
   }
 
   void _addSet() {
     setState(() {
       sets.add({'reps': '', 'weight': ''});
+      Provider.of<ExerciseModel>(context, listen: false).updateSets(widget.exercise.name, sets);
     });
   }
 
@@ -288,7 +271,9 @@ class __ExerciseTileState extends State<_ExerciseTile> {
                         style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
                         onChanged: (value) {
                           sets[index]['reps'] = value;
+                          Provider.of<ExerciseModel>(context, listen: false).updateSets(widget.exercise.name, sets);
                         },
+                        controller: TextEditingController(text: set['reps']),
                       ),
                     ),
                     SizedBox(width: 16),
@@ -310,7 +295,9 @@ class __ExerciseTileState extends State<_ExerciseTile> {
                         style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
                         onChanged: (value) {
                           sets[index]['weight'] = value;
+                          Provider.of<ExerciseModel>(context, listen: false).updateSets(widget.exercise.name, sets);
                         },
+                        controller: TextEditingController(text: set['weight']),
                       ),
                     ),
                   ],
