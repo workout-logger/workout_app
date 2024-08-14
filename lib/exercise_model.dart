@@ -8,10 +8,8 @@ import 'package:workout_logger/exercise.dart';
 class ExerciseModel extends ChangeNotifier {
   Map<String, List<Map<String, String>>> _exerciseSets = {};
 
-  // Getter to return a list of selected exercises
   List<Exercise> get selectedExercises {
     return _exerciseSets.keys.map((exerciseName) {
-      // Assuming you have a method to retrieve Exercise objects by their name
       return _getExerciseByName(exerciseName);
     }).toList();
   }

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 import 'exercise_model.dart'; // Import your ExerciseModel
 import 'package:workout_logger/exercise.dart';
+import 'fitness_app_theme.dart';
 
 
 class WorkoutPage extends StatefulWidget {
@@ -31,6 +32,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
           length: muscleGroups.length,
           child: Scaffold(
             appBar: AppBar(
+              backgroundColor: FitnessAppTheme.background,
               bottom: TabBar(
                 isScrollable: true,
                 labelColor: Colors.white,
@@ -42,7 +44,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
               ),
             ),
             body: Container(
-              color: const Color.fromARGB(255, 0, 0, 0),
+              color: FitnessAppTheme.background,
               child: TabBarView(
                 children: muscleGroups.map((muscle) {
                   return FutureBuilder<List<Exercise>>(
@@ -80,7 +82,7 @@ class _WorkoutPageState extends State<WorkoutPage> {
   }
 
   Future<List<Exercise>> _fetchWorkoutExercises(String muscleType) async {
-    final String baseUrl = Platform.isAndroid ? 'https://5548-2601-249-4300-56f0-f166-9de1-1bba-43b9.ngrok-free.app' : 'http://localhost:8000';
+    final String baseUrl = Platform.isAndroid ? 'https://jaybird-exciting-merely.ngrok-free.app' : 'http://localhost:8000';
     final response = await http.get(Uri.parse('$baseUrl/exercise/?muscle_type=$muscleType'));
 
     if (response.statusCode == 200) {
@@ -110,11 +112,11 @@ class _WorkoutPageState extends State<WorkoutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: FitnessAppTheme.background,
       floatingActionButton: FloatingActionButton(
         onPressed: _showWorkoutExercises,
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        foregroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: FitnessAppTheme.white,
+        foregroundColor: FitnessAppTheme.background,
         child: _isLoading ? CircularProgressIndicator() : const Icon(Icons.add),
       ),
       body: Consumer<ExerciseModel>(
@@ -209,30 +211,52 @@ class _ExerciseTile extends StatefulWidget {
 
 class __ExerciseTileState extends State<_ExerciseTile> {
   List<Map<String, String>> sets = [];
+  List<TextEditingController> repsControllers = [];
+  List<TextEditingController> weightControllers = [];
 
   @override
   void initState() {
     super.initState();
     final model = Provider.of<ExerciseModel>(context, listen: false);
     sets = model.getSets(widget.exercise.name);
+
+    // Initialize the controllers and set initial values
+    for (var set in sets) {
+      repsControllers.add(TextEditingController(text: set['reps']));
+      weightControllers.add(TextEditingController(text: set['weight']));
+    }
+
     // Add 1 set by default if no sets exist
     if (sets.isEmpty) {
-      sets.add({'reps': '', 'weight': ''});
-      model.updateSets(widget.exercise.name, sets);
+      _addSet();
     }
   }
 
   void _addSet() {
     setState(() {
       sets.add({'reps': '', 'weight': ''});
+      repsControllers.add(TextEditingController());
+      weightControllers.add(TextEditingController());
       Provider.of<ExerciseModel>(context, listen: false).updateSets(widget.exercise.name, sets);
     });
   }
 
   @override
+  void dispose() {
+    // Dispose of the controllers when the widget is disposed
+    for (var controller in repsControllers) {
+      controller.dispose();
+    }
+    for (var controller in weightControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Card(
-      color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+      color: FitnessAppTheme.background.withOpacity(0.1),
       margin: const EdgeInsets.all(8.0),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -269,11 +293,11 @@ class __ExerciseTileState extends State<_ExerciseTile> {
                         ),
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+                        controller: repsControllers[index],
                         onChanged: (value) {
                           sets[index]['reps'] = value;
                           Provider.of<ExerciseModel>(context, listen: false).updateSets(widget.exercise.name, sets);
                         },
-                        controller: TextEditingController(text: set['reps']),
                       ),
                     ),
                     SizedBox(width: 16),
@@ -293,11 +317,11 @@ class __ExerciseTileState extends State<_ExerciseTile> {
                         ),
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+                        controller: weightControllers[index],
                         onChanged: (value) {
                           sets[index]['weight'] = value;
                           Provider.of<ExerciseModel>(context, listen: false).updateSets(widget.exercise.name, sets);
                         },
-                        controller: TextEditingController(text: set['weight']),
                       ),
                     ),
                   ],

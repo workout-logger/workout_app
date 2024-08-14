@@ -1,107 +1,82 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'exercise_model.dart';
 import 'home_body.dart';
+import 'fitness_app_theme.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'exercise_model.dart'; // Import the ExerciseModel
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   WakelockPlus.enable();
-  
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => ExerciseModel(), // Provide the ExerciseModel to the app
-      child: const NavigationBarApp(),
-    ),
-  );
+  runApp(MyApp());
 }
 
-class NavigationBarApp extends StatelessWidget {
-  const NavigationBarApp({super.key});
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          primary: const Color.fromARGB(255, 0, 0, 0),
-          secondary: const Color.fromARGB(255, 255, 255, 255),
-          surface: const Color.fromARGB(255, 0, 0, 0),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ExerciseModel>(
+          create: (context) => ExerciseModel(),
         ),
-        useMaterial3: true,
+      ],
+      child: MaterialApp(
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: HomeScreen(),
       ),
-      home: const MyHomePage(title: 'Workout Logger'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
+class HomeScreen extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int currentPageIndex = 0;
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  late AnimationController _animationController;
+  int _currentPageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Color.fromARGB(255, 179, 177, 177),  // Border color
-              width: 0.5,  // Border width
-            ),
-          ),
-        ),
-        child: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            labelTextStyle: MaterialStateProperty.resolveWith<TextStyle>(
-              (Set<MaterialState> states) => states.contains(MaterialState.selected)
-                  ? const TextStyle(color: Colors.white54)
-                  : const TextStyle(color: Colors.white54),
-            ),
-          ),
-          child: NavigationBar(
-            indicatorColor: const Color.fromARGB(255, 255, 255, 255),
-            indicatorShape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            selectedIndex: currentPageIndex,
-            onDestinationSelected: (int index) {
-              setState(() {
-                currentPageIndex = index;
-              });
-            },
-            destinations: [
-              NavigationDestination(
-                icon: const Icon(Icons.history, color: Colors.white),
-                selectedIcon: Icon(Icons.history, color: Theme.of(context).colorScheme.primary),
-                label: 'History',
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.fitness_center, color: Colors.white),
-                selectedIcon: Icon(Icons.fitness_center, color: Theme.of(context).colorScheme.primary),
-                label: 'Workout',
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.list, color: Colors.white),
-                selectedIcon: Icon(Icons.list, color: Theme.of(context).colorScheme.primary),
-                label: 'Exercises',
-              ),
-            ],
-          ),
-        ),
+      body: HomeBody(
+        currentPageIndex: _currentPageIndex,
+        animationController: _animationController,
       ),
-      body: HomeBody(currentPageIndex: currentPageIndex),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentPageIndex,
+        onTap: (index) {
+          setState(() {
+            _currentPageIndex = index;
+          });
+        },
+        backgroundColor: FitnessAppTheme.background,
+        selectedItemColor: FitnessAppTheme.darkText,
+        unselectedItemColor: FitnessAppTheme.deactivatedText,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Workout'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+        ],
+      ),
     );
   }
 }
