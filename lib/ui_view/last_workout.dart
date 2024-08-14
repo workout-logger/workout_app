@@ -47,7 +47,7 @@ class LastWorkoutView extends StatelessWidget {
                   children: <Widget>[
                     Padding(
                       padding: const EdgeInsets.only(
-                          top: 16, right: 16),
+                          top: 16, right: 16, left: 24),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
@@ -127,7 +127,10 @@ class LastWorkoutView extends StatelessWidget {
                     Row(
                       children: <Widget>[
                         Expanded(
-                          child: Column(
+                          child: Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 24, right: 24, top: 4),
+                            child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Row(
@@ -308,6 +311,7 @@ class LastWorkoutView extends StatelessWidget {
                               ),
                             ],
                           ),
+                          )
                         ),
                         Padding(
                           padding: const EdgeInsets.only(right: 16, bottom: 70),
@@ -372,9 +376,9 @@ class LastWorkoutView extends StatelessWidget {
                                   child: CustomPaint(
                                     painter: CurvePainter(
                                       colors: [
-                                        FitnessAppTheme.nearlyDarkBlue,
-                                        HexColor("#f6ff00"),
-                                        HexColor("#f6ff00"),
+                                        const Color.fromARGB(255, 255, 255, 255),
+                                        HexColor("#fdfd96"),
+                                        HexColor("#fdfd96"),
                                       ],
                                       angle: 140 +
                                           (360 - 140) *
