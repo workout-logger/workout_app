@@ -141,7 +141,7 @@ class LastWorkoutView extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: HexColor('#F56E98')
                                           .withOpacity(0.5),
-                                      borderRadius: BorderRadius.all(
+                                      borderRadius: const BorderRadius.all(
                                           Radius.circular(4.0)),
                                     ),
                                   ),
@@ -167,7 +167,7 @@ class LastWorkoutView extends StatelessWidget {
                                             ),
                                           ),
                                         ),
-                                        Row(
+                                        const Row(
                                           children: <Widget>[
                                             Icon(Icons.timer,
                                                 color: FitnessAppTheme
@@ -191,7 +191,7 @@ class LastWorkoutView extends StatelessWidget {
                                   )
                                 ],
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Row(
                                 children: <Widget>[
                                   Container(
@@ -200,7 +200,7 @@ class LastWorkoutView extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: HexColor('#F56E98')
                                           .withOpacity(0.5),
-                                      borderRadius: BorderRadius.all(
+                                      borderRadius: const BorderRadius.all(
                                           Radius.circular(4.0)),
                                     ),
                                   ),
@@ -226,7 +226,7 @@ class LastWorkoutView extends StatelessWidget {
                                             ),
                                           ),
                                         ),
-                                        Row(
+                                        const Row(
                                           children: <Widget>[
                                             Icon(Icons.favorite,
                                                 color: FitnessAppTheme
@@ -250,7 +250,7 @@ class LastWorkoutView extends StatelessWidget {
                                   )
                                 ],
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Row(
                                 children: <Widget>[
                                   Container(
@@ -259,7 +259,7 @@ class LastWorkoutView extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: HexColor('#F56E98')
                                           .withOpacity(0.5),
-                                      borderRadius: BorderRadius.all(
+                                      borderRadius: const BorderRadius.all(
                                           Radius.circular(4.0)),
                                     ),
                                   ),
@@ -285,7 +285,7 @@ class LastWorkoutView extends StatelessWidget {
                                             ),
                                           ),
                                         ),
-                                        Row(
+                                        const Row(
                                           children: <Widget>[
                                             Icon(Icons.mood,
                                                 color: FitnessAppTheme
@@ -327,7 +327,7 @@ class LastWorkoutView extends StatelessWidget {
                                     height: 100,
                                     decoration: BoxDecoration(
                                       color: FitnessAppTheme.white,
-                                      borderRadius: BorderRadius.all(
+                                      borderRadius: const BorderRadius.all(
                                         Radius.circular(100.0),
                                       ),
                                       border: Border.all(
@@ -344,7 +344,7 @@ class LastWorkoutView extends StatelessWidget {
                                         Text(
                                           '${(1200 * animation!.value).toInt()}',
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontFamily: FitnessAppTheme
                                                 .fontName,
                                             fontWeight: FontWeight.normal,
@@ -384,7 +384,7 @@ class LastWorkoutView extends StatelessWidget {
                                           (360 - 140) *
                                               (1.0 - animation!.value),
                                     ),
-                                    child: SizedBox(
+                                    child: const SizedBox(
                                       width: 130,
                                       height: 130,
                                     ),
@@ -504,15 +504,15 @@ class CurvePainter extends CustomPainter {
       paint,
     );
 
-    final gradient1 = SweepGradient(
+    const gradient1 = SweepGradient(
       tileMode: TileMode.repeated,
       colors: [Colors.white, Colors.white],
     );
 
     var cPaint = Paint();
-    cPaint..shader = gradient1.createShader(rect);
-    cPaint..color = Colors.white;
-    cPaint..strokeWidth = 14 / 2;
+    cPaint.shader = gradient1.createShader(rect);
+    cPaint.color = Colors.white;
+    cPaint.strokeWidth = 14 / 2;
     canvas.save();
 
     final centerToCircle = size.width / 2;
@@ -523,7 +523,7 @@ class CurvePainter extends CustomPainter {
 
     canvas.save();
     canvas.translate(0.0, -centerToCircle + 14 / 2);
-    canvas.drawCircle(Offset(0, 0), 14 / 5, cPaint);
+    canvas.drawCircle(const Offset(0, 0), 14 / 5, cPaint);
 
     canvas.restore();
     canvas.restore();
