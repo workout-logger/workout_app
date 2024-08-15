@@ -289,7 +289,7 @@ class MediterranesnDietView extends StatelessWidget {
                                             ),
                                           ),
                                           Text(
-                                            'Kcal left',
+                                            'Cal left',
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
                                               fontFamily:
@@ -311,8 +311,10 @@ class MediterranesnDietView extends StatelessWidget {
                                       painter: CurvePainter(
                                           colors: [
                                             FitnessAppTheme.nearlyDarkBlue,
-                                            HexColor("#8A98E8"),
-                                            HexColor("#8A98E8")
+                                            HexColor('#fdfd96'),
+                                            HexColor('#fdfd96'),
+                                            HexColor('#fdfd96'),
+                                            HexColor('#fdfd96'),
                                           ],
                                           angle: 140 +
                                               (360 - 140) *

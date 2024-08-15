@@ -110,7 +110,7 @@ class LastWorkoutView extends StatelessWidget {
                             ],
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(right: 30.0, top: 5), // Adjust the value as needed
+                            padding: const EdgeInsets.only(right: 40.0, top: 5), // Adjust the value as needed
                             child: Text(
                               workoutDate,
                               style: TextStyle(
@@ -355,7 +355,7 @@ class LastWorkoutView extends StatelessWidget {
                                           ),
                                         ),
                                         Text(
-                                          'Kcal Burned',
+                                          'Cal Burned',
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontFamily: FitnessAppTheme
@@ -372,7 +372,7 @@ class LastWorkoutView extends StatelessWidget {
                                   ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.all(4.0),
+                                  padding: const EdgeInsets.all(8.0),
                                   child: CustomPaint(
                                     painter: CurvePainter(
                                       colors: [
@@ -435,15 +435,19 @@ class CurvePainter extends CustomPainter {
       colorsList.addAll([Colors.yellow, Colors.yellow]);
     }
 
+    final double strokeWidth = 14.0;
+    final Offset center = Offset(size.width / 2, size.height / 2);
+    final double radius = math.min(size.width / 2, size.height / 2) - strokeWidth*1.2;
+
+    // Draw shadow arcs (optional, but included here for completeness)
     final shadowPaint = Paint()
       ..color = Colors.black.withOpacity(0.4)
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 14;
-    final shadowPaintCenter = Offset(size.width / 2, size.height / 2);
-    final shadowPaintRadius = math.min(size.width / 2, size.height / 2) - (14 / 2);
+      ..strokeWidth = strokeWidth;
+
     canvas.drawArc(
-      Rect.fromCircle(center: shadowPaintCenter, radius: shadowPaintRadius),
+      Rect.fromCircle(center: center, radius: radius),
       degreeToRadians(278),
       degreeToRadians(360 - (365 - angle!)),
       false,
@@ -453,7 +457,7 @@ class CurvePainter extends CustomPainter {
     shadowPaint.color = Colors.grey.withOpacity(0.3);
     shadowPaint.strokeWidth = 16;
     canvas.drawArc(
-      Rect.fromCircle(center: shadowPaintCenter, radius: shadowPaintRadius),
+      Rect.fromCircle(center: center, radius: radius),
       degreeToRadians(278),
       degreeToRadians(360 - (365 - angle!)),
       false,
@@ -463,7 +467,7 @@ class CurvePainter extends CustomPainter {
     shadowPaint.color = Colors.grey.withOpacity(0.2);
     shadowPaint.strokeWidth = 20;
     canvas.drawArc(
-      Rect.fromCircle(center: shadowPaintCenter, radius: shadowPaintRadius),
+      Rect.fromCircle(center: center, radius: radius),
       degreeToRadians(278),
       degreeToRadians(360 - (365 - angle!)),
       false,
@@ -473,14 +477,15 @@ class CurvePainter extends CustomPainter {
     shadowPaint.color = Colors.grey.withOpacity(0.1);
     shadowPaint.strokeWidth = 22;
     canvas.drawArc(
-      Rect.fromCircle(center: shadowPaintCenter, radius: shadowPaintRadius),
+      Rect.fromCircle(center: center, radius: radius),
       degreeToRadians(278),
       degreeToRadians(360 - (365 - angle!)),
       false,
       shadowPaint,
     );
 
-    final rect = Rect.fromLTWH(0.0, 0.0, size.width, size.width);
+    // Draw the gradient arc
+    final rect = Rect.fromCircle(center: center, radius: radius + strokeWidth / 2);
     final gradient = SweepGradient(
       startAngle: degreeToRadians(268),
       endAngle: degreeToRadians(270.0 + 360),
@@ -488,13 +493,12 @@ class CurvePainter extends CustomPainter {
       colors: colorsList,
       stops: [0.0, angle! / 360, 1.0], // Ensure the stops match the colors length
     );
+
     final paint = Paint()
       ..shader = gradient.createShader(rect)
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 14;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width / 2, size.height / 2) - (14 / 2);
+      ..strokeWidth = strokeWidth;
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
@@ -504,30 +508,19 @@ class CurvePainter extends CustomPainter {
       paint,
     );
 
-    const gradient1 = SweepGradient(
-      tileMode: TileMode.repeated,
-      colors: [Colors.white, Colors.white],
+    // Draw the little circle at the end of the arc
+    final circlePaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    final double circleRadius = strokeWidth / 2;
+    final double endAngle = degreeToRadians(278 + (360 - (365 - angle!)));
+    final Offset circleCenter = Offset(
+      center.dx + radius * math.cos(endAngle),
+      center.dy + radius * math.sin(endAngle),
     );
 
-    var cPaint = Paint();
-    cPaint.shader = gradient1.createShader(rect);
-    cPaint.color = Colors.white;
-    cPaint.strokeWidth = 14 / 2;
-    canvas.save();
-
-    final centerToCircle = size.width / 2;
-    canvas.save();
-
-    canvas.translate(centerToCircle, centerToCircle);
-    canvas.rotate(degreeToRadians(angle! + 2));
-
-    canvas.save();
-    canvas.translate(0.0, -centerToCircle + 14 / 2);
-    canvas.drawCircle(const Offset(0, 0), 14 / 5, cPaint);
-
-    canvas.restore();
-    canvas.restore();
-    canvas.restore();
+    canvas.drawCircle(circleCenter, circleRadius, circlePaint);
   }
 
   @override

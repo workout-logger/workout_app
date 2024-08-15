@@ -2,6 +2,7 @@ import 'ui_view/body_measurement.dart';
 import 'ui_view/mediterranean_diet_view.dart';
 import 'ui_view/last_workout.dart';
 import 'ui_view/title_view.dart';
+import 'ui_view/workout_duration_chart.dart';  // Import your new chart
 import 'package:flutter/material.dart';
 
 class MyDiaryScreen extends StatefulWidget {
@@ -50,10 +51,10 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
   }
 
   void addAllListData() {
-    const int count = 9;
+    const int count = 11; // Adjust the count if needed
     listViews.addAll([
       TitleView(
-        titleTxt: 'Workout',
+        titleTxt: 'Last Workout',
         subTxt: 'Details',
         animation: createAnimation(0, count),
         animationController: widget.animationController!,
@@ -64,27 +65,38 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
         workoutDate: '15 May',
       ),
       TitleView(
+        titleTxt: 'Workout Duration',
+        subTxt: 'Last 7 days',
+        animation: createAnimation(4, count),
+        animationController: widget.animationController!,
+      ),
+      WorkoutDurationChart(
+        durations: [35, 55, 60, 40, 30, 45, 90],
+        streakCount: 7, // Pass the streak count here
+      ),
+      TitleView(
         titleTxt: 'Diet',
         subTxt: 'Details',
-        animation: createAnimation(2, count),
+        animation: createAnimation(6, count),
         animationController: widget.animationController!,
       ),
       MediterranesnDietView(
-        animation: createAnimation(3, count),
+        animation: createAnimation(7, count),
         animationController: widget.animationController!,
       ),
       TitleView(
         titleTxt: 'Body measurement',
         subTxt: 'Today',
-        animation: createAnimation(4, count),
+        animation: createAnimation(8, count),
         animationController: widget.animationController!,
       ),
       BodyMeasurementView(
-        animation: createAnimation(5, count),
+        animation: createAnimation(9, count),
         animationController: widget.animationController!,
       ),
     ]);
   }
+
 
   Animation<double> createAnimation(int index, int count) {
     return Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -160,13 +172,13 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
                       0.0, 30 * (1.0 - topBarAnimation.value), 0.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(topBarOpacity),
+                      color: const Color.fromARGB(255, 0, 0, 0).withOpacity(topBarOpacity),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(32.0),
                       ),
                       boxShadow: <BoxShadow>[
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.4 * topBarOpacity),
+                          color: const Color.fromARGB(255, 68, 68, 68).withOpacity(0.4 * topBarOpacity),
                           offset: const Offset(1.1, 1.1),
                           blurRadius: 10.0,
                         ),
