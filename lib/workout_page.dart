@@ -17,7 +17,7 @@ class WorkoutPage extends StatefulWidget {
 
 class _WorkoutPageState extends State<WorkoutPage> {
   bool _isLoading = false;
-  final List<String> muscleGroups = ['Biceps', 'Triceps', 'Back', 'Chest', 'Legs', 'Shoulders'];
+  final List<String> muscleGroups = ['Biceps', 'Triceps', 'Chest', 'Shoulders', 'Lats', 'Calves', 'Shoulders', 'Abs','Quads','Hamstrings','Glutes'];
 
   void _showWorkoutExercises() async {
     setState(() {
@@ -149,48 +149,87 @@ class _WorkoutExercisesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return GridView.builder(
+      padding: const EdgeInsets.all(8.0),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2, // Number of cards per row
+        crossAxisSpacing: 16.0, // Increased space between cards horizontally
+        mainAxisSpacing: 16.0, // Increased space between cards vertically
+        childAspectRatio: 1, // Adjusted to make the box more square
+      ),
       itemCount: exercises.length,
       itemBuilder: (context, index) {
         final exercise = exercises[index];
         return GestureDetector(
           onTap: () => onExerciseSelected(exercise),
-          child: Card(
-            color: Colors.white,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color.fromARGB(255, 3, 3, 3), Color.fromARGB(255, 36, 36, 36)], // Fancy gradient background
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(30), // Increased corner radius for a smoother look
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.6), // Dark shadow for depth
+                  blurRadius: 5,
+                  offset: Offset(2, 2),
+                ),
+                BoxShadow(
+                  color: Color.fromARGB(255, 255, 255, 255).withOpacity(0.3), // Glowing shadow effect
+                  blurRadius: 2,
+                  spreadRadius: 0.1,
+                ),
+              ],
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2), // Thin white border for a more defined look
+                width: 1.5,
+              ),
+            ),
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: DefaultTextStyle(
-                style: const TextStyle(color: Colors.black),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            exercise.name,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    exercise.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20), // Rounded corners for the image container
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.1), // Inner shadow for a subtle glow
+                            blurRadius: 15,
+                            spreadRadius: 1,
                           ),
-                          const SizedBox(height: 8),
-                          Text(exercise.description),
-                          const SizedBox(height: 8),
-                          if (exercise.equipment != null)
-                            Text('Equipment: ${exercise.equipment}'),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 100,
-                      height: 100,
-                      child: Image.network(
-                        exercise.images.isNotEmpty ? exercise.images[0] : '',
-                        fit: BoxFit.scaleDown,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20), // Clip the image to the rounded container
+                        child: Stack(
+                          children: [
+                            Image.network(
+                              exercise.images.isNotEmpty ? exercise.images[0] : '',
+                              fit: BoxFit.contain,
+                              width: double.infinity,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -199,6 +238,7 @@ class _WorkoutExercisesList extends StatelessWidget {
     );
   }
 }
+
 
 class _ExerciseTile extends StatefulWidget {
   final Exercise exercise;
@@ -300,7 +340,7 @@ class __ExerciseTileState extends State<_ExerciseTile> {
                         },
                       ),
                     ),
-                    SizedBox(width: 16),
+                    SizedBox(width: 10),
                     Expanded(
                       child: TextField(
                         decoration: InputDecoration(

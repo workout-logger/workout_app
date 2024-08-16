@@ -8,10 +8,10 @@ class WorkoutDurationChart extends StatelessWidget {
   final int streakCount; // Streak count to display
 
   const WorkoutDurationChart({
-    Key? key,
+    super.key,
     required this.durations,
     required this.streakCount,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +85,7 @@ class WorkoutDurationChart extends StatelessWidget {
                     child: BarChart(
                       BarChartData(
                         backgroundColor: const Color.fromARGB(0, 0, 0, 0), // Transparent background color
-                        gridData: FlGridData(show: false), // Hide grid lines
+                        gridData: const FlGridData(show: false), // Hide grid lines
                         titlesData: FlTitlesData(
                           bottomTitles: AxisTitles(
                             sideTitles: SideTitles(
@@ -128,10 +128,10 @@ class WorkoutDurationChart extends StatelessWidget {
                               },
                             ),
                           ),
-                          rightTitles: AxisTitles(
+                          rightTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false), // Hide right titles
                           ),
-                          topTitles: AxisTitles(
+                          topTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false), // Hide top titles
                           ),
                         ),
@@ -175,9 +175,9 @@ class WorkoutDurationChart extends StatelessWidget {
                             barRods: [
                               BarChartRodData(
                                 toY: durations[index].toDouble(),
-                                color: HexColor('#fdfd96'), // Use a minimal, contrasting color
-                                width: 16, // Set the bar width
-                                borderRadius: BorderRadius.circular(4), // Round bar edges
+                                color: HexColor('#fdfd96'),
+                                width: 16,
+                                borderRadius: BorderRadius.circular(4),
                                 backDrawRodData: BackgroundBarChartRodData(
                                   show: true,
                                   color: Colors.white.withOpacity(0.2),

@@ -3,11 +3,9 @@ import 'package:provider/provider.dart';
 import 'exercise_model.dart';
 import 'home_body.dart';
 import 'fitness_app_theme.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  WakelockPlus.enable();
+
   runApp(MyApp());
 }
 
@@ -74,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Workout'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Profile'),
         ],
       ),
     );
