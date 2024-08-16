@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import 'exercise_model.dart';
 import 'home_body.dart';
 import 'fitness_app_theme.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 void main() {
-
+  WidgetsFlutterBinding.ensureInitialized();
+  WakelockPlus.enable();
   runApp(MyApp());
 }
 
