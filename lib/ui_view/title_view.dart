@@ -8,18 +8,17 @@ class TitleView extends StatelessWidget {
   final Animation<double>? animation;
 
   const TitleView({
-    Key? key,
+    super.key,
     this.titleTxt = "",
     this.subTxt = "",
     this.animationController,
     this.animation,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Ensure animation and animationController are not null before building
     if (animationController == null || animation == null) {
-      return SizedBox.shrink(); // Return an empty widget if they are null
+      return const SizedBox.shrink();
     }
 
     return AnimatedBuilder(
@@ -41,7 +40,7 @@ class TitleView extends StatelessWidget {
                     child: Text(
                       titleTxt,
                       textAlign: TextAlign.left,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: FitnessAppTheme.fontName,
                         fontWeight: FontWeight.w500,
                         fontSize: 18,
@@ -52,7 +51,7 @@ class TitleView extends StatelessWidget {
                   ),
                   InkWell(
                     highlightColor: Colors.transparent,
-                    borderRadius: BorderRadius.all(Radius.circular(4.0)),
+                    borderRadius: const BorderRadius.all(Radius.circular(4.0)),
                     onTap: () {},
                     child: Padding(
                       padding: const EdgeInsets.only(left: 8),
@@ -61,7 +60,7 @@ class TitleView extends StatelessWidget {
                           Text(
                             subTxt,
                             textAlign: TextAlign.left,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: FitnessAppTheme.fontName,
                               fontWeight: FontWeight.normal,
                               fontSize: 16,
@@ -69,7 +68,7 @@ class TitleView extends StatelessWidget {
                               color: FitnessAppTheme.nearlyDarkBlue,
                             ),
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 38,
                             width: 26,
                             child: Icon(

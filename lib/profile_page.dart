@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'fitness_app_theme.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: FitnessAppTheme.background,
       appBar: AppBar(
-        title: Text('Profile',style: TextStyle(color: FitnessAppTheme.darkText)),
+        title: const Text('Profile',style: TextStyle(color: FitnessAppTheme.darkText)),
         backgroundColor: FitnessAppTheme.background,
       ),
       body: Column(
@@ -75,15 +75,15 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildProfileHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24.0),
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 24.0),
       child: Column(
         children: [
           CircleAvatar(
             radius: 50,
             backgroundImage: NetworkImage('https://workoutappconcept.s3.us-east-2.amazonaws.com/profile_pic.jpg'), // Replace with actual profile image URL
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             'Jonathan Baghirov', // Replace with actual user name
             style: TextStyle(
@@ -103,9 +103,9 @@ class ProfilePage extends StatelessWidget {
       leading: Icon(icon, color: FitnessAppTheme.darkText),
       title: Text(
         title,
-        style: TextStyle(color: FitnessAppTheme.darkText),
+        style: const TextStyle(color: FitnessAppTheme.darkText),
       ),
-      trailing: Icon(Icons.arrow_forward_ios, color: FitnessAppTheme.darkText),
+      trailing: const Icon(Icons.arrow_forward_ios, color: FitnessAppTheme.darkText),
       onTap: onTap,
     );
   }

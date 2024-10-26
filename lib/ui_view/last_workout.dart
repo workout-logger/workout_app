@@ -9,11 +9,11 @@ class LastWorkoutView extends StatelessWidget {
   final String workoutDate;
 
   const LastWorkoutView({
-    Key? key,
+    super.key,
     this.animationController,
     this.animation,
     required this.workoutDate,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class LastWorkoutView extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: FitnessAppTheme.white,
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(8.0),
                       bottomLeft: Radius.circular(8.0),
                       bottomRight: Radius.circular(8.0),
@@ -39,7 +39,7 @@ class LastWorkoutView extends StatelessWidget {
                   boxShadow: <BoxShadow>[
                     BoxShadow(
                         color: FitnessAppTheme.grey.withOpacity(0.2),
-                        offset: Offset(1.1, 1.1),
+                        offset: const Offset(1.1, 1.1),
                         blurRadius: 10.0),
                   ],
                 ),
@@ -59,7 +59,7 @@ class LastWorkoutView extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: HexColor('#87A0E5')
                                       .withOpacity(0.5),
-                                  borderRadius: BorderRadius.all(
+                                  borderRadius: const BorderRadius.all(
                                       Radius.circular(4.0)),
                                 ),
                               ),
@@ -85,7 +85,7 @@ class LastWorkoutView extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    Row(
+                                    const Row(
                                       children: <Widget>[
                                         Icon(Icons.fitness_center,
                                             color: FitnessAppTheme
@@ -113,7 +113,7 @@ class LastWorkoutView extends StatelessWidget {
                             padding: const EdgeInsets.only(right: 40.0, top: 5), // Adjust the value as needed
                             child: Text(
                               workoutDate,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontFamily: FitnessAppTheme.fontName,
                                 fontSize: 18,
                                 color: FitnessAppTheme.deactivatedText,
@@ -123,7 +123,7 @@ class LastWorkoutView extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Row(
                       children: <Widget>[
                         Expanded(
@@ -435,7 +435,7 @@ class CurvePainter extends CustomPainter {
       colorsList.addAll([Colors.yellow, Colors.yellow]);
     }
 
-    final double strokeWidth = 14.0;
+    const double strokeWidth = 14.0;
     final Offset center = Offset(size.width / 2, size.height / 2);
     final double radius = math.min(size.width / 2, size.height / 2) - strokeWidth*1.2;
 
@@ -513,7 +513,7 @@ class CurvePainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.fill;
 
-    final double circleRadius = strokeWidth / 2;
+    const double circleRadius = strokeWidth / 2;
     final double endAngle = degreeToRadians(278 + (360 - (365 - angle!)));
     final Offset circleCenter = Offset(
       center.dx + radius * math.cos(endAngle),

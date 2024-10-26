@@ -3,10 +3,11 @@ import 'ui_view/mediterranean_diet_view.dart';
 import 'ui_view/last_workout.dart';
 import 'ui_view/title_view.dart';
 import 'ui_view/workout_duration_chart.dart';  // Import your new chart
+import 'ui_view/character_stats.dart';
 import 'package:flutter/material.dart';
 
 class MyDiaryScreen extends StatefulWidget {
-  const MyDiaryScreen({Key? key, this.animationController}) : super(key: key);
+  const MyDiaryScreen({super.key, this.animationController});
 
   final AnimationController? animationController;
 
@@ -53,47 +54,54 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
   void addAllListData() {
     const int count = 11; // Adjust the count if needed
     listViews.addAll([
+      SizedBox(
+        height: 450, // Adjust the height to suit your design
+        child: CharacterStatsView(
+          animation: createAnimation(0, count),
+          animationController: widget.animationController!,
+        ),
+      ),
       TitleView(
         titleTxt: 'Last Workout',
         subTxt: 'Details',
-        animation: createAnimation(0, count),
+        animation: createAnimation(1, count),
         animationController: widget.animationController!,
       ),
       LastWorkoutView(
-        animation: createAnimation(1, count),
+        animation: createAnimation(2, count),
         animationController: widget.animationController!,
         workoutDate: '15 May',
       ),
       TitleView(
         titleTxt: 'Workout Duration',
         subTxt: 'Last 7 days',
-        animation: createAnimation(4, count),
+        animation: createAnimation(3, count),
         animationController: widget.animationController!,
       ),
-      WorkoutDurationChart(
+      const WorkoutDurationChart(
         durations: [35, 55, 60, 40, 30, 45, 90],
         streakCount: 7, // Pass the streak count here
       ),
       TitleView(
         titleTxt: 'Diet',
         subTxt: 'Details',
-        animation: createAnimation(6, count),
+        animation: createAnimation(4, count),
         animationController: widget.animationController!,
       ),
       MediterranesnDietView(
-        animation: createAnimation(7, count),
+        animation: createAnimation(5, count),
         animationController: widget.animationController!,
       ),
       TitleView(
         titleTxt: 'Body measurement',
         subTxt: 'Today',
-        animation: createAnimation(8, count),
+        animation: createAnimation(6, count),
         animationController: widget.animationController!,
       ),
       BodyMeasurementView(
-        animation: createAnimation(9, count),
+        animation: createAnimation(7, count),
         animationController: widget.animationController!,
-      ),
+      )
     ]);
   }
 
@@ -218,16 +226,16 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
                                 color: Colors.grey,
                                 onPressed: () {},
                               ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8.0),
                                 child: Row(
                                   children: <Widget>[
-                                    const Icon(
+                                    Icon(
                                       Icons.calendar_today,
                                       color: Colors.grey,
                                       size: 18,
                                     ),
-                                    const SizedBox(width: 8),
+                                    SizedBox(width: 8),
                                     Text(
                                       '15 May',
                                       style: TextStyle(

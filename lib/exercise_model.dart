@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -7,17 +9,78 @@ import 'package:workout_logger/exercise.dart';
 
 class ExerciseModel extends ChangeNotifier {
   Map<String, List<Map<String, String>>> _exerciseSets = {};
+  final Stopwatch _stopwatch = Stopwatch();
+  Timer? _timer;
+  String _formattedTime = "0:00";
+  String get formattedTime => _formattedTime;
+
+
+
+  void startTimer() {
+    if (!_stopwatch.isRunning) {
+      _stopwatch.start();
+      _timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
+        _updateFormattedTime();
+      });
+      notifyListeners();
+    }
+  }
+
+  // Pause the workout timer
+  void pauseTimer() {
+    if (_stopwatch.isRunning) {
+      _stopwatch.stop();
+      _timer?.cancel();
+      _saveTimerState();
+      notifyListeners();
+    }
+  }
+
+  // Reset the workout timer
+  void resetTimer() {
+    _stopwatch.reset();
+    _formattedTime = "0:00";
+    _timer?.cancel();
+    _saveTimerState();
+    notifyListeners();
+  }
+
+  // Convert stopwatch time to a readable format (MM:SS)
+  void _updateFormattedTime() {
+    final elapsed = _stopwatch.elapsed;
+    _formattedTime = '${elapsed.inMinutes}:${(elapsed.inSeconds % 60).toString().padLeft(2, '0')}';
+    notifyListeners();
+  }
+
+  // Load timer state from shared preferences
+  void _loadTimerState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int? elapsedMilliseconds = prefs.getInt('workoutTimer');
+    if (elapsedMilliseconds != null) {
+      _stopwatch.start();
+      _stopwatch.elapsedMilliseconds;  // restore elapsed time
+      _updateFormattedTime();
+    }
+  }
+
+  // Save the current timer state to shared preferences
+  void _saveTimerState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt('workoutTimer', _stopwatch.elapsedMilliseconds);
+  }
 
   List<Exercise> get selectedExercises {
     return _exerciseSets.keys.map((exerciseName) {
       return _getExerciseByName(exerciseName);
     }).toList();
-  }
+  } 
 
   Map<String, List<Map<String, String>>> get exerciseSets => _exerciseSets;
 
   ExerciseModel() {
     _loadExerciseSets();
+    _loadTimerState();
+
   }
 
   void addExercise(Exercise exercise) {
