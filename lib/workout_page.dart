@@ -1,12 +1,54 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'exercise_model.dart';
+import 'stopwatch_provider.dart';
 import 'package:workout_logger/exercise.dart';
 import 'fitness_app_theme.dart';
+import 'package:http/http.dart' as http;
+
+
+class _ExerciseTile extends StatelessWidget {
+  final Exercise exercise;
+
+  const _ExerciseTile({required this.exercise});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: FitnessAppTheme.background.withOpacity(0.1),
+      margin: const EdgeInsets.all(8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              exercise.name,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              exercise.description,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+                fontSize: 14,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({super.key});
@@ -18,8 +60,6 @@ class WorkoutPage extends StatefulWidget {
 class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
   bool _isLoading = false;
   bool _workoutStarted = false;
-  final Stopwatch _stopwatch = Stopwatch();
-  Timer? _timer;
   final List<Map<String, dynamic>> _muscleGroups = [
     {'name': 'Biceps', 'color': const Color(0xFFFF6B6B), 'icon': Icons.fitness_center},
     {'name': 'Triceps', 'color': const Color(0xFF4ECDC4), 'icon': Icons.fitness_center},
@@ -32,52 +72,81 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     {'name': 'Hamstrings', 'color': const Color(0xFFFF8C94), 'icon': Icons.fitness_center},
     {'name': 'Glutes', 'color': const Color(0xFFA6D1E6), 'icon': Icons.fitness_center},
   ];
-
+  late StopwatchProvider stopwatchProvider;
+  late ExerciseModel exerciseModel;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadWorkoutState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+    exerciseModel = Provider.of<ExerciseModel>(context, listen: false);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _saveWorkoutState();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _pauseTimer();
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _saveWorkoutState();
     } else if (state == AppLifecycleState.resumed) {
-      _resumeTimer();
+      _loadWorkoutState();
     }
   }
 
-  void _startWorkout() {
+  Future<void> _saveWorkoutState() async {
+    if (!mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('workoutStarted', _workoutStarted);
+    prefs.setInt('elapsedMilliseconds', stopwatchProvider.elapsedMilliseconds);
+
+    final exercisesJson = json.encode(exerciseModel.selectedExercises.map((e) => e.toJson()).toList());
+    prefs.setString('selectedExercises', exercisesJson);
+  }
+
+  Future<void> _loadWorkoutState() async {
+    final prefs = await SharedPreferences.getInstance();
+    _workoutStarted = prefs.getBool('workoutStarted') ?? false;
+
+    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+    final savedElapsedMilliseconds = prefs.getInt('elapsedMilliseconds') ?? 0;
+
+    if (_workoutStarted) {
+      stopwatchProvider.startStopwatch(initialMilliseconds: savedElapsedMilliseconds);
+    }
+
+    final exercisesJson = prefs.getString('selectedExercises');
+    if (exercisesJson != null) {
+      final exercisesList = (json.decode(exercisesJson) as List)
+          .map((e) => Exercise.fromJson(e as Map<String, dynamic>))
+          .toList();
+      Provider.of<ExerciseModel>(context, listen: false).setExercises(exercisesList);
+    }
+    setState(() {});
+  }
+
+  Future<void> _startWorkout() async {
+    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
     setState(() {
       _workoutStarted = true;
-      _stopwatch.start();
+      stopwatchProvider.startStopwatch();
     });
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
   }
 
-  void _pauseTimer() {
-    _timer?.cancel();
-    _stopwatch.stop();
-  }
-
-  void _resumeTimer() {
-    if (_workoutStarted && !_stopwatch.isRunning) {
-      _stopwatch.start();
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
-    }
-  }
-
-  String _formattedTime() {
-    final elapsed = _stopwatch.elapsed;
-    return '${elapsed.inHours.toString().padLeft(2, '0')}:${(elapsed.inMinutes % 60).toString().padLeft(2, '0')}:${(elapsed.inSeconds % 60).toString().padLeft(2, '0')}';
+  String _formattedTime(int elapsedMilliseconds) {
+    final duration = Duration(milliseconds: elapsedMilliseconds);
+    return '${duration.inHours.toString().padLeft(2, '0')}:${(duration.inMinutes % 60).toString().padLeft(2, '0')}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}';
   }
 
   Future<void> _showWorkoutExercises() async {
@@ -147,7 +216,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                   ),
                   Expanded(
                     child: TabBarView(
-                      children: _muscleGroups.map((muscle) => 
+                      children: _muscleGroups.map((muscle) =>
                         _buildExerciseList(muscle['name'] as String)
                       ).toList(),
                     ),
@@ -201,7 +270,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
             ),
           );
         }
-        
+
         return GridView.builder(
           padding: const EdgeInsets.all(16),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -333,9 +402,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
   }
 
   Future<List<Exercise>> _fetchWorkoutExercises(String muscleType) async {
-    final String baseUrl = Platform.isAndroid
-        ? 'https://jaybird-exciting-merely.ngrok-free.app'
-        : 'http://localhost:8000';
+    const String baseUrl = 'https://jaybird-exciting-merely.ngrok-free.app';
     final response = await http.get(Uri.parse('$baseUrl/exercise/?muscle_type=$muscleType'));
 
     if (response.statusCode == 200) {
@@ -369,12 +436,24 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: FitnessAppTheme.background,
-      floatingActionButton: _workoutStarted
-          ? FloatingActionButton.extended(
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (_workoutStarted)
+            FloatingActionButton.extended(
+              onPressed: _discardWorkout,
+              backgroundColor: Colors.red,
+              icon: const Icon(Icons.delete),
+              label: const Text('Discard Workout'),
+            ),
+          const SizedBox(height: 10),
+          if (_workoutStarted)
+            FloatingActionButton.extended(
               onPressed: _showWorkoutExercises,
               backgroundColor: FitnessAppTheme.white,
               foregroundColor: FitnessAppTheme.background,
@@ -388,8 +467,9 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                     )
                   : const Icon(Icons.add),
               label: const Text('Add Exercise'),
-            )
-          : null,
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -398,7 +478,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                   ? Center(
                       child: GestureDetector(
                         onTap: _startWorkout,
-                        child: Container(
+                        child: SizedBox(
                           width: 200,
                           height: 200,
                           child: const Column(
@@ -423,282 +503,68 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                         ),
                       ),
                     )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              'Workout Time: ${_formattedTime()}',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Consumer<StopwatchProvider>(
+                          builder: (context, stopwatchProvider, child) {
+                            return Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                'Workout Time: ${_formattedTime(stopwatchProvider.elapsedMilliseconds)}',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Consumer<ExerciseModel>(
-                              builder: (context, model, child) {
-                                return model.selectedExercises.isEmpty
-                                    ? Center(
-                                        child: Text(
-                                          'No exercises selected',
-                                          style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+                            );
+                          },
+                        ),
+                        Expanded(
+                          child: Consumer<ExerciseModel>(
+                            builder: (context, model, child) {
+                              return model.selectedExercises.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        'No exercises selected',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onPrimary,
                                         ),
-                                      )
-                                    : ListView.builder(
-                                        itemCount: model.selectedExercises.length,
-                                        itemBuilder: (context, index) {
-                                          final exercise = model.selectedExercises[index];
-                                          return _ExerciseTile(exercise: exercise);
-                                        },
-                                      );
-                              },
-                            ),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: model.selectedExercises.length,
+                                      itemBuilder: (context, index) {
+                                        final exercise = model.selectedExercises[index];
+                                        return _ExerciseTile(exercise: exercise);
+                                      },
+                                    );
+                            },
                           ),
-                        ],
-                      ),
-              ),
-            
-          ],
-        ),
-      ),
-    );
-  }
-
-}
-
-class _WorkoutExercisesList extends StatelessWidget {
-  final List<Exercise> exercises;
-  final Function(Exercise) onExerciseSelected;
-
-  const _WorkoutExercisesList({super.key, required this.exercises, required this.onExerciseSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(8.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 16.0,
-        childAspectRatio: 1,
-      ),
-      itemCount: exercises.length,
-      itemBuilder: (context, index) {
-        final exercise = exercises[index];
-        return GestureDetector(
-          onTap: () => onExerciseSelected(exercise),
-          child: _buildExerciseCard(context, exercise),
-        );
-      },
-    );
-  }
-
-  Widget _buildExerciseCard(BuildContext context, Exercise exercise) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF030303), Color(0xFF242424)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.6),
-            blurRadius: 5,
-            offset: const Offset(2, 2),
-          ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.3),
-            blurRadius: 2,
-            spreadRadius: 0.1,
-          ),
-        ],
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1.5,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              exercise.name,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.1),
-                      blurRadius: 15,
-                      spreadRadius: 1,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    exercise.images.isNotEmpty ? exercise.images[0] : '',
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                  ),
-                ),
-              ),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _ExerciseTile extends StatefulWidget {
-  final Exercise exercise;
-
-  const _ExerciseTile({super.key, required this.exercise});
-
-  @override
-  __ExerciseTileState createState() => __ExerciseTileState();
-}
-
-class __ExerciseTileState extends State<_ExerciseTile> {
-  late List<Map<String, String>> sets;
-  late List<TextEditingController> repsControllers;
-  late List<TextEditingController> weightControllers;
-
-  @override
-  void initState() {
-    super.initState();
-    final model = Provider.of<ExerciseModel>(context, listen: false);
-    sets = model.getSets(widget.exercise.name);
-
-    repsControllers = sets.map((set) => TextEditingController(text: set['reps'])).toList();
-    weightControllers = sets.map((set) => TextEditingController(text: set['weight'])).toList();
-
-    if (sets.isEmpty) {
-      _addSet();
-    }
-  }
-
-  void _addSet() {
+  Future<void> _discardWorkout() async {
+    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+    stopwatchProvider.stopStopwatch();
+    
     setState(() {
-      sets.add({'reps': '', 'weight': ''});
-      repsControllers.add(TextEditingController());
-      weightControllers.add(TextEditingController());
-      Provider.of<ExerciseModel>(context, listen: false).updateSets(widget.exercise.name, sets);
+      _workoutStarted = false;
     });
-  }
 
-  @override
-  void dispose() {
-    for (var controller in [...repsControllers, ...weightControllers]) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
+    Provider.of<ExerciseModel>(context, listen: false).setExercises([]);
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: FitnessAppTheme.background.withOpacity(0.1),
-      margin: const EdgeInsets.all(8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.exercise.name,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            ...sets.asMap().entries.map((entry) {
-              final index = entry.key;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: repsControllers[index],
-                        labelText: 'Reps',
-                        onChanged: (value) => _updateSet(index, 'reps', value),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildTextField(
-                        controller: weightControllers[index],
-                        labelText: 'Weight',
-                        onChanged: (value) => _updateSet(index, 'weight', value),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: _addSet,
-                icon: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
-                label: Text(
-                  'Add Set',
-                  style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String labelText,
-    required Function(String) onChanged,
-  }) {
-    return TextField(
-      decoration: InputDecoration(
-        labelText: labelText,
-        labelStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-        hintText: 'Enter $labelText',
-        hintStyle: TextStyle(color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.5)),
-        enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.onPrimary),
-        ),
-        focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.secondary),
-        ),
-      ),
-      keyboardType: TextInputType.number,
-      style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-      controller: controller,
-      onChanged: onChanged,
-    );
-  }
-
-  void _updateSet(int index, String field, String value) {
-    sets[index][field] = value;
-    Provider.of<ExerciseModel>(context, listen: false).updateSets(widget.exercise.name, sets);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('workoutStarted');
+    await prefs.remove('elapsedMilliseconds');
+    await prefs.remove('selectedExercises');
   }
 }

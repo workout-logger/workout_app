@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'workout_page.dart';
 import 'home_diary.dart';
 import 'profile_page.dart';
+import 'trading_page.dart';
 
 class HomeBody extends StatelessWidget {
   const HomeBody({super.key, required this.currentPageIndex, required this.animationController});
@@ -11,7 +12,8 @@ class HomeBody extends StatelessWidget {
 
   static List<Widget> _pages(AnimationController controller) => <Widget>[
         MyDiaryScreen(animationController: controller),
-        const WorkoutPage(),
+        TradingPage(),
+        const ProfilePage(),
         const ProfilePage(),
       ];
 

@@ -4,11 +4,20 @@ import 'exercise_model.dart';
 import 'home_body.dart';
 import 'fitness_app_theme.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'stopwatch_provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   WakelockPlus.enable();
-  runApp(const MyApp());
+  runApp(MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => StopwatchProvider()),
+        ChangeNotifierProvider(create: (_) => ExerciseModel()),
+
+      ],
+      child: const MyApp(),
+    ),);
 }
 
 class MyApp extends StatelessWidget {
@@ -66,21 +75,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         animationController: _animationController,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentPageIndex,
-        onTap: (index) {
-          setState(() {
-            _currentPageIndex = index;
-          });
-        },
-        backgroundColor: FitnessAppTheme.background,
-        selectedItemColor: FitnessAppTheme.darkText,
-        unselectedItemColor: FitnessAppTheme.deactivatedText,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Workout'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Profile'),
-        ],
-      ),
+      type: BottomNavigationBarType.fixed,  // Add this line
+      currentIndex: _currentPageIndex,
+      onTap: (index) {
+        setState(() {
+          _currentPageIndex = index;
+        });
+      },
+      backgroundColor: FitnessAppTheme.background,
+      selectedItemColor: FitnessAppTheme.darkText,
+      unselectedItemColor: FitnessAppTheme.deactivatedText,
+      items: [
+        const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(
+          icon: SvgPicture.asset(
+            'assets/images/inventory_icon.svg',
+            height: 24,
+            color: Colors.white,
+          ),
+          label: 'Inventory',
+        ),
+        const BottomNavigationBarItem(icon: Icon(Icons.sync_alt), label: 'Trading'),
+        const BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Profile'),
+      ],
+    ),
+
     );
   }
 }

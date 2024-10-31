@@ -1,10 +1,12 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'ui_view/body_measurement.dart';
-import 'ui_view/mediterranean_diet_view.dart';
 import 'ui_view/last_workout.dart';
 import 'ui_view/title_view.dart';
-import 'ui_view/workout_duration_chart.dart';  // Import your new chart
+import 'ui_view/workout_duration_chart.dart';
 import 'ui_view/character_stats.dart';
-import 'package:flutter/material.dart';
+import 'workout_page.dart';
+import 'stopwatch_provider.dart'; // Import StopwatchProvider
 
 class MyDiaryScreen extends StatefulWidget {
   const MyDiaryScreen({super.key, this.animationController});
@@ -15,8 +17,7 @@ class MyDiaryScreen extends StatefulWidget {
   _MyDiaryScreenState createState() => _MyDiaryScreenState();
 }
 
-class _MyDiaryScreenState extends State<MyDiaryScreen>
-    with TickerProviderStateMixin {
+class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMixin {
   late final Animation<double> topBarAnimation;
   final List<Widget> listViews = <Widget>[];
   final ScrollController scrollController = ScrollController();
@@ -33,33 +34,23 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
           curve: const Interval(0, 0.5, curve: Curves.fastOutSlowIn),
         ),
       );
-
       addAllListData();
     }
 
     scrollController.addListener(() {
       double offset = scrollController.offset;
       setState(() {
-        if (offset >= 24) {
-          topBarOpacity = 1.0;
-        } else if (offset >= 0) {
-          topBarOpacity = offset / 24;
-        } else {
-          topBarOpacity = 0.0;
-        }
+        topBarOpacity = offset >= 24 ? 1.0 : offset / 24;
       });
     });
   }
 
   void addAllListData() {
-    const int count = 11; // Adjust the count if needed
+    const int count = 11;
     listViews.addAll([
-      SizedBox(
-        height: 450, // Adjust the height to suit your design
-        child: CharacterStatsView(
-          animation: createAnimation(0, count),
-          animationController: widget.animationController!,
-        ),
+      CharacterStatsView(
+        animation: createAnimation(0, count),
+        animationController: widget.animationController!,
       ),
       TitleView(
         titleTxt: 'Last Workout',
@@ -80,17 +71,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
       ),
       const WorkoutDurationChart(
         durations: [35, 55, 60, 40, 30, 45, 90],
-        streakCount: 7, // Pass the streak count here
-      ),
-      TitleView(
-        titleTxt: 'Diet',
-        subTxt: 'Details',
-        animation: createAnimation(4, count),
-        animationController: widget.animationController!,
-      ),
-      MediterranesnDietView(
-        animation: createAnimation(5, count),
-        animationController: widget.animationController!,
+        streakCount: 7,
       ),
       TitleView(
         titleTxt: 'Body measurement',
@@ -104,7 +85,6 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
       )
     ]);
   }
-
 
   Animation<double> createAnimation(int index, int count) {
     return Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -134,6 +114,32 @@ class _MyDiaryScreenState extends State<MyDiaryScreen>
               height: MediaQuery.of(context).padding.bottom,
             ),
           ],
+        ),
+        floatingActionButton: Consumer<StopwatchProvider>(
+          builder: (context, stopwatchProvider, child) {
+            return FloatingActionButton.extended(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) {
+                    return const Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FractionallySizedBox(
+                        heightFactor: 0.95,
+                        child: WorkoutPage(),
+                      ),
+                    );
+                  },
+                );
+              },
+              label: stopwatchProvider.isRunning
+                  ? Text(stopwatchProvider.formattedTime())
+                  : const Text('Start Workout'),
+              icon: const Icon(Icons.fitness_center),
+            );
+          },
         ),
       ),
     );
