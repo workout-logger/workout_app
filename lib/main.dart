@@ -1,42 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'exercise_model.dart';
 import 'home_body.dart';
 import 'fitness_app_theme.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'stopwatch_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'google_signin_page.dart'; // Import your Google sign-in page
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   WakelockPlus.enable();
-  runApp(MultiProvider(
+
+  // Check if it’s the first time the app is opened
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+  bool isFirstLaunch = prefs.getBool('firstLaunch') ?? true;
+
+  runApp(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => StopwatchProvider()),
         ChangeNotifierProvider(create: (_) => ExerciseModel()),
-
       ],
-      child: const MyApp(),
-    ),);
+      child: MyApp(isFirstLaunch: isFirstLaunch),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isFirstLaunch;
+  const MyApp({super.key, required this.isFirstLaunch});
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<ExerciseModel>(
-          create: (context) => ExerciseModel(),
-        ),
-      ],
-      child: MaterialApp(
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        home: const HomeScreen(),
+    return MaterialApp(
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
+      // If it's the first launch, show Google Sign-In page, otherwise show HomeScreen
+      home: isFirstLaunch ? GoogleSignInPage() : const HomeScreen(),
     );
   }
 }

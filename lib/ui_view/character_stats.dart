@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hexcolor/hexcolor.dart';
 import '../fitness_app_theme.dart';

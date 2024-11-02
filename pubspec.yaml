@@ -44,6 +44,9 @@ dependencies:
   wakelock_plus: ^1.2.7
   hexcolor: ^3.0.1
   fl_chart: ^0.68.0
+  google_sign_in: ^6.2.1
+  package_info_plus: ^8.1.0
+  animated_text_kit: ^4.2.2
 
 dev_dependencies:
   flutter_test:

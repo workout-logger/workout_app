@@ -478,10 +478,10 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                   ? Center(
                       child: GestureDetector(
                         onTap: _startWorkout,
-                        child: SizedBox(
+                        child: const SizedBox(
                           width: 200,
                           height: 200,
-                          child: const Column(
+                          child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
