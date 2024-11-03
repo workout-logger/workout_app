@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:workout_logger/main.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:health/health.dart';
+import 'dart:io' show Platform;
+
 
 class GoogleSignInPage extends StatelessWidget {
   GoogleSignInPage({super.key});
@@ -13,6 +16,13 @@ class GoogleSignInPage extends StatelessWidget {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
   );
+  bool _isLoading = false;
+  final types = [
+    // HealthDataType.STEPS,
+    HealthDataType.HEART_RATE,
+    HealthDataType.WORKOUT
+    // HealthDataType.RESTING_HEART_RATE,
+  ];
 
   Future<void> _handleGoogleSignIn(BuildContext context) async {
     try {
@@ -34,9 +44,12 @@ class GoogleSignInPage extends StatelessWidget {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'access_token': accessToken}),
         );
-
         if (response.statusCode == 200) {
           // Successful login
+          final responseBody = jsonDecode(response.body);
+          final String authToken = responseBody['key'];
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('authToken', authToken);
           await _completeSignIn(context);
         } else {
           // Handle login error (e.g., show a snackbar)
@@ -53,16 +66,95 @@ class GoogleSignInPage extends StatelessWidget {
     }
   }
 
+
+  final Health health = Health(); // Create a singleton instance of Health
+
+  Future<bool> requestAuthorization() async {
+    bool isAuthorized = false;
+    if (Platform.isAndroid || Platform.isIOS) {
+      isAuthorized = await health.requestAuthorization(types);
+    } else {
+      print('Health APIs are not available on this platform.');
+    }
+    return isAuthorized;
+  }
+
+  Future<List<HealthDataPoint>> fetchHealthData() async {
+    final Health health = Health();
+    final now = DateTime.now();
+    final yesterday = now.subtract(Duration(days: 999));
+
+    List<HealthDataPoint> healthData = [];
+
+    try {
+      bool isAuthorized = await requestAuthorization();
+
+      if (isAuthorized) {
+        healthData = await health.getHealthDataFromTypes(
+          startTime: yesterday,
+          endTime: now,
+          types: types, // Only one `types` parameter as a named argument
+        );
+        healthData = health.removeDuplicates(healthData);
+      } else {
+        print('Authorization not granted');
+      }
+    } catch (error) {
+      print("Error fetching health data: $error");
+    }
+    return healthData;
+  }
+
+
+
+
   Future<void> _completeSignIn(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('firstLaunch', false); // Set first launch to false
+    await prefs.setBool('firstLaunch', false); 
 
-    // After sign-in is successful, navigate to HomeScreen
+    List<HealthDataPoint> healthData = await fetchHealthData();
+    final String? authToken = prefs.getString('authToken');
+
+    final workoutData = healthData
+        .where((dataPoint) => dataPoint.type == HealthDataType.WORKOUT)
+        .map((dataPoint) => {
+              'value': dataPoint.value,
+              'start_date': dataPoint.dateFrom.toIso8601String(),
+              'end_date': dataPoint.dateTo.toIso8601String(),
+            })
+        .toList();
+
+    final heartRateData = healthData
+        .where((dataPoint) => dataPoint.type == HealthDataType.HEART_RATE)
+        .map((dataPoint) => {
+              'value': dataPoint.value,
+              'start_date': dataPoint.dateFrom.toIso8601String(),
+              'end_date': dataPoint.dateTo.toIso8601String(),
+            })
+        .toList();
+
+    final dataToSend = {
+      'authToken': authToken,
+      'workout_data': workoutData,
+      'heartrate_data': heartRateData,
+    };
+
+    // Send data to backend
+    await http.post(
+      Uri.parse('https://jaybird-exciting-merely.ngrok-free.app/logger/sync_workouts/'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Token $authToken',
+      },
+      body: jsonEncode(dataToSend),
+    );
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const HomeScreen()),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
