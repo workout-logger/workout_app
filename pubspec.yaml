@@ -75,6 +75,11 @@ flutter:
   assets:
   - assets/images/
   - assets/images/Pixel_Chest_Pack/
+  - assets/character/armour/
+  - assets/character/heads/
+  - assets/character/legs/
+  - assets/character/melee/
+  - assets/character/wings/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

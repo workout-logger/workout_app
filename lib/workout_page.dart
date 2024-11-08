@@ -334,7 +334,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                   child: exercise.images.isNotEmpty
                       ? Image.network(
                           exercise.images[0],
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           loadingBuilder: (context, child, loadingProgress) {
                             if (loadingProgress == null) return child;
                             return Center(

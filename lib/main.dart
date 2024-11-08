@@ -13,10 +13,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   WakelockPlus.enable();
 
-  // Check if it’s the first time the app is opened
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  await prefs.clear();
-  bool isFirstLaunch = prefs.getBool('firstLaunch') ?? true;
+  bool isFirstLaunch = prefs.getBool('firstLaunch') ?? false; // Defaults to true if not set
+  final String? authToken = prefs.getString('authToken');
 
   runApp(
     MultiProvider(
@@ -24,10 +23,11 @@ void main() async {
         ChangeNotifierProvider(create: (_) => StopwatchProvider()),
         ChangeNotifierProvider(create: (_) => ExerciseModel()),
       ],
-      child: MyApp(isFirstLaunch: isFirstLaunch),
+      child: MyApp(isFirstLaunch: isFirstLaunch && authToken == null), // Show sign-in only if first launch and no token
     ),
   );
 }
+
 
 class MyApp extends StatelessWidget {
   final bool isFirstLaunch;

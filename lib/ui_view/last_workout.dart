@@ -1,30 +1,58 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../fitness_app_theme.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:hexcolor/hexcolor.dart';
+import 'package:http/http.dart' as http;
 
-class LastWorkoutView extends StatelessWidget {
+class LastWorkoutView extends StatefulWidget {
   final AnimationController? animationController;
   final Animation<double>? animation;
   final String workoutDate;
+  final int duration;
+  final int averageHeartRate;
+  final double energyBurned;
+  final int mood;
+  final String muscleGroups;
 
   const LastWorkoutView({
     super.key,
     this.animationController,
     this.animation,
     required this.workoutDate,
+    required this.duration,
+    required this.averageHeartRate,
+    required this.energyBurned,
+    required this.mood,
+    required this.muscleGroups,
   });
+
+  @override
+  _LastWorkoutViewState createState() => _LastWorkoutViewState();
+}
+
+class _LastWorkoutViewState extends State<LastWorkoutView> {
+  late String muscleGroups;
+
+  @override
+  void initState() {
+    super.initState();
+    muscleGroups = widget.muscleGroups;
+  }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: animationController!,
+      animation: widget.animationController!,
       builder: (BuildContext context, Widget? child) {
         return FadeTransition(
-          opacity: animation!,
+          opacity: widget.animation!,
           child: Transform(
             transform: Matrix4.translationValues(
-                0.0, 30 * (1.0 - animation!.value), 0.0),
+                0.0, 30 * (1.0 - widget.animation!.value), 0.0),
             child: Padding(
               padding: const EdgeInsets.only(
                   left: 24, right: 24, top: 16, bottom: 18),
@@ -46,63 +74,94 @@ class LastWorkoutView extends StatelessWidget {
                 child: Column(
                   children: <Widget>[
                     Padding(
-                      padding: const EdgeInsets.only(
-                          top: 16, right: 16, left: 24),
+                      padding: const EdgeInsets.only(top: 25, right: 16, left: 24),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: <Widget>[
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: <Widget>[
                               Container(
                                 height: 48,
                                 width: 2,
                                 decoration: BoxDecoration(
-                                  color: HexColor('#87A0E5')
-                                      .withOpacity(0.5),
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(4.0)),
+                                  color: HexColor('#87A0E5').withOpacity(0.5),
+                                  borderRadius: const BorderRadius.all(Radius.circular(4.0)),
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.all(8.0),
+                                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 4, bottom: 2),
-                                      child: Text(
-                                        'Muscle Groups',
-                                        style: TextStyle(
-                                          fontFamily:
-                                              FitnessAppTheme.fontName,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 16,
-                                          letterSpacing: -0.1,
-                                          color: FitnessAppTheme.grey
-                                              .withOpacity(0.5),
-                                        ),
+                                    Text(
+                                      'Muscle Groups',
+                                      style: TextStyle(
+                                        fontFamily: FitnessAppTheme.fontName,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16,
+                                        letterSpacing: -0.1,
+                                        color: FitnessAppTheme.grey.withOpacity(0.5),
                                       ),
                                     ),
-                                    const Row(
-                                      children: <Widget>[
-                                        Icon(Icons.fitness_center,
-                                            color: FitnessAppTheme
-                                                .darkerText),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Chest, Triceps',
-                                          style: TextStyle(
-                                            fontFamily: FitnessAppTheme
-                                                .fontName,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
-                                            color: FitnessAppTheme
-                                                .darkerText,
+                                    SizedBox(
+                                      height: 24, // Fixed height container
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: <Widget>[
+                                          Icon(Icons.fitness_center, 
+                                            color: FitnessAppTheme.darkerText,
+                                            size: 24,
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(width: 8),
+                                          GestureDetector(
+                                            onTap: () async {
+                                              final selectedMuscleGroups = await _showMuscleGroupDialog(context);
+                                              if (selectedMuscleGroups != null && selectedMuscleGroups.isNotEmpty) {
+                                                setState(() {
+                                                  muscleGroups = selectedMuscleGroups;
+                                                });
+                                              }
+                                            },
+                                            child: muscleGroups.isNotEmpty
+                                                ? Text(
+                                                    muscleGroups,
+                                                    style: TextStyle(
+                                                      fontFamily: FitnessAppTheme.fontName,
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 16,
+                                                      color: FitnessAppTheme.darkerText,
+                                                    ),
+                                                  )
+                                                : TextButton(
+                                                    style: TextButton.styleFrom(
+                                                      padding: EdgeInsets.zero,
+                                                      minimumSize: Size.zero,
+                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                    ),
+                                                    onPressed: () async {
+                                                      final selectedMuscleGroups = await _showMuscleGroupDialog(context);
+                                                      if (selectedMuscleGroups != null && selectedMuscleGroups.isNotEmpty) {
+                                                        setState(() {
+                                                          muscleGroups = selectedMuscleGroups;
+                                                        });
+                                                      }
+                                                    },
+                                                    child: Text(
+                                                      'Add',
+                                                      style: TextStyle(
+                                                        fontFamily: FitnessAppTheme.fontName,
+                                                        fontWeight: FontWeight.w600,
+                                                        fontSize: 16,
+                                                        color: FitnessAppTheme.darkerText,
+                                                      ),
+                                                    ),
+                                                  ),
+                                          ),
+
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -110,9 +169,9 @@ class LastWorkoutView extends StatelessWidget {
                             ],
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(right: 40.0, top: 5), // Adjust the value as needed
+                            padding: const EdgeInsets.only(right: 40.0),
                             child: Text(
-                              workoutDate,
+                              widget.workoutDate,
                               style: const TextStyle(
                                 fontFamily: FitnessAppTheme.fontName,
                                 fontSize: 18,
@@ -133,182 +192,11 @@ class LastWorkoutView extends StatelessWidget {
                             child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Row(
-                                children: <Widget>[
-                                  Container(
-                                    height: 48,
-                                    width: 2,
-                                    decoration: BoxDecoration(
-                                      color: HexColor('#F56E98')
-                                          .withOpacity(0.5),
-                                      borderRadius: const BorderRadius.all(
-                                          Radius.circular(4.0)),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              left: 4, bottom: 2),
-                                          child: Text(
-                                            'Duration',
-                                            style: TextStyle(
-                                              fontFamily: FitnessAppTheme
-                                                  .fontName,
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 16,
-                                              letterSpacing: -0.1,
-                                              color: FitnessAppTheme.grey
-                                                  .withOpacity(0.5),
-                                            ),
-                                          ),
-                                        ),
-                                        const Row(
-                                          children: <Widget>[
-                                            Icon(Icons.timer,
-                                                color: FitnessAppTheme
-                                                    .darkerText),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              '45 mins',
-                                              style: TextStyle(
-                                                fontFamily: FitnessAppTheme
-                                                    .fontName,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 16,
-                                                color: FitnessAppTheme
-                                                    .darkerText,
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
+                              _buildInfoRow('Duration', Icons.timer, '${widget.duration} mins'),
                               const SizedBox(height: 8),
-                              Row(
-                                children: <Widget>[
-                                  Container(
-                                    height: 48,
-                                    width: 2,
-                                    decoration: BoxDecoration(
-                                      color: HexColor('#F56E98')
-                                          .withOpacity(0.5),
-                                      borderRadius: const BorderRadius.all(
-                                          Radius.circular(4.0)),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              left: 4, bottom: 2),
-                                          child: Text(
-                                            'Avg Heart Rate',
-                                            style: TextStyle(
-                                              fontFamily: FitnessAppTheme
-                                                  .fontName,
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 16,
-                                              letterSpacing: -0.1,
-                                              color: FitnessAppTheme.grey
-                                                  .withOpacity(0.5),
-                                            ),
-                                          ),
-                                        ),
-                                        const Row(
-                                          children: <Widget>[
-                                            Icon(Icons.favorite,
-                                                color: FitnessAppTheme
-                                                    .darkerText),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              '120 bpm',
-                                              style: TextStyle(
-                                                fontFamily: FitnessAppTheme
-                                                    .fontName,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 16,
-                                                color: FitnessAppTheme
-                                                    .darkerText,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
+                              _buildInfoRow('Avg Heart Rate', Icons.favorite, '${widget.averageHeartRate} bpm'),
                               const SizedBox(height: 8),
-                              Row(
-                                children: <Widget>[
-                                  Container(
-                                    height: 48,
-                                    width: 2,
-                                    decoration: BoxDecoration(
-                                      color: HexColor('#F56E98')
-                                          .withOpacity(0.5),
-                                      borderRadius: const BorderRadius.all(
-                                          Radius.circular(4.0)),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              left: 4, bottom: 2),
-                                          child: Text(
-                                            'Mood',
-                                            style: TextStyle(
-                                              fontFamily: FitnessAppTheme
-                                                  .fontName,
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 16,
-                                              letterSpacing: -0.1,
-                                              color: FitnessAppTheme.grey
-                                                  .withOpacity(0.5),
-                                            ),
-                                          ),
-                                        ),
-                                        const Row(
-                                          children: <Widget>[
-                                            Icon(Icons.mood,
-                                                color: FitnessAppTheme
-                                                    .darkerText),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              '😊',
-                                              style: TextStyle(
-                                                fontFamily: FitnessAppTheme
-                                                    .fontName,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 24,
-                                                color: FitnessAppTheme
-                                                    .darkerText,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
+                              _buildInfoRow('Mood', Icons.mood, String.fromCharCode(widget.mood)),
                             ],
                           ),
                           )
@@ -342,7 +230,7 @@ class LastWorkoutView extends StatelessWidget {
                                           CrossAxisAlignment.center,
                                       children: <Widget>[
                                         Text(
-                                          '${(1200 * animation!.value).toInt()}',
+                                          '${(widget.energyBurned * widget.animation!.value).toInt()}',
                                           textAlign: TextAlign.center,
                                           style: const TextStyle(
                                             fontFamily: FitnessAppTheme
@@ -382,7 +270,7 @@ class LastWorkoutView extends StatelessWidget {
                                       ],
                                       angle: 140 +
                                           (360 - 140) *
-                                              (1.0 - animation!.value),
+                                              (1.0 - widget.animation!.value),
                                     ),
                                     child: const SizedBox(
                                       width: 130,
@@ -417,7 +305,150 @@ class LastWorkoutView extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildInfoRow(String label, IconData icon, String value) {
+    return Row(
+      children: <Widget>[
+        Container(
+          height: 48,
+          width: 2,
+          decoration: BoxDecoration(
+            color: HexColor('#F56E98').withOpacity(0.5),
+            borderRadius: const BorderRadius.all(Radius.circular(4.0)),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 2),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: FitnessAppTheme.fontName,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    letterSpacing: -0.1,
+                    color: FitnessAppTheme.grey.withOpacity(0.5),
+                  ),
+                ),
+              ),
+              Row(
+                children: <Widget>[
+                  Icon(icon, color: FitnessAppTheme.darkerText),
+                  const SizedBox(width: 8),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontFamily: FitnessAppTheme.fontName,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: FitnessAppTheme.darkerText,
+                    ),
+                  )
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _sendMuscleGroupUpdate(List<String> muscleGroups) async {
+    final url = Uri.parse('https://jaybird-exciting-merely.ngrok-free.app/logger/workout/update_latest_muscle_groups/');
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? authToken = prefs.getString('authToken');
+
+    final response = await http.patch(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Token $authToken',
+      },
+      body: jsonEncode({
+        'muscleGroups': muscleGroups,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('Muscle groups updated successfully.');
+    } else {
+      print('Failed to update muscle groups. Status code: ${response.statusCode}');
+    }
+  }
+
+
+  Future<String?> _showMuscleGroupDialog(BuildContext context) async {
+    List<String> muscleGroupOptions = [
+      'Calves', 'Hamstrings', 'Glutes', 'Chest', 'Quads', 
+      'Abs', 'Lats', 'Biceps', 'Shoulders', 'Triceps'
+    ];
+    List<String> selectedMuscleGroups = [];
+
+    return showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.black,
+              title: const Text(
+                'Select Muscle Groups',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: muscleGroupOptions.map((muscle) {
+                    return CheckboxListTile(
+                      title: Text(
+                        muscle,
+                        style: const TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                      ),
+                      value: selectedMuscleGroups.contains(muscle),
+                      activeColor: const Color.fromARGB(255, 255, 255, 255),
+                      onChanged: (bool? value) {
+                        setState(() {
+                          if (value == true) {
+                            selectedMuscleGroups.add(muscle);
+                          } else {
+                            selectedMuscleGroups.remove(muscle);
+                          }
+                        });
+                      },
+                      checkColor: Colors.black,
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Cancel', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: const Text('OK', style: TextStyle(color: Color.fromARGB(255, 255, 255, 255))),
+                  onPressed: () async {
+                    Navigator.of(context).pop(selectedMuscleGroups.join(', '));
+                    await _sendMuscleGroupUpdate(selectedMuscleGroups);
+
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
+
+  
+
 
 class CurvePainter extends CustomPainter {
   final double? angle;
@@ -431,15 +462,13 @@ class CurvePainter extends CustomPainter {
     if (colors != null && colors!.isNotEmpty) {
       colorsList = colors!;
     } else {
-      // Set the colors to yellow for the completed part of the arc
       colorsList.addAll([Colors.yellow, Colors.yellow]);
     }
 
     const double strokeWidth = 14.0;
     final Offset center = Offset(size.width / 2, size.height / 2);
-    final double radius = math.min(size.width / 2, size.height / 2) - strokeWidth*1.2;
+    final double radius = math.min(size.width / 2, size.height / 2) - strokeWidth * 1.2;
 
-    // Draw shadow arcs (optional, but included here for completeness)
     final shadowPaint = Paint()
       ..color = Colors.black.withOpacity(0.4)
       ..strokeCap = StrokeCap.round
@@ -484,14 +513,13 @@ class CurvePainter extends CustomPainter {
       shadowPaint,
     );
 
-    // Draw the gradient arc
     final rect = Rect.fromCircle(center: center, radius: radius + strokeWidth / 2);
     final gradient = SweepGradient(
       startAngle: degreeToRadians(268),
       endAngle: degreeToRadians(270.0 + 360),
       tileMode: TileMode.repeated,
       colors: colorsList,
-      stops: [0.0, angle! / 360, 1.0], // Ensure the stops match the colors length
+      stops: [0.0, angle! / 360, 1.0],
     );
 
     final paint = Paint()
@@ -508,7 +536,6 @@ class CurvePainter extends CustomPainter {
       paint,
     );
 
-    // Draw the little circle at the end of the arc
     final circlePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;

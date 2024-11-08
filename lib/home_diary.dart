@@ -1,5 +1,8 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'ui_view/body_measurement.dart';
 import 'ui_view/last_workout.dart';
 import 'ui_view/title_view.dart';
@@ -7,6 +10,8 @@ import 'ui_view/workout_duration_chart.dart';
 import 'ui_view/character_stats.dart';
 import 'workout_page.dart';
 import 'stopwatch_provider.dart'; // Import StopwatchProvider
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class MyDiaryScreen extends StatefulWidget {
   const MyDiaryScreen({super.key, this.animationController});
@@ -22,6 +27,13 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   final List<Widget> listViews = <Widget>[];
   final ScrollController scrollController = ScrollController();
   double topBarOpacity = 0.0;
+  List<int> weeklyWorkouts = [];
+  String workoutDate = '';
+  int duration = 0;
+  int averageHeartRate = 0;
+  double energyBurned = 0.0;
+  int mood = 1;
+  String muscleGroups = '';
 
   @override
   void initState() {
@@ -34,8 +46,9 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
           curve: const Interval(0, 0.5, curve: Curves.fastOutSlowIn),
         ),
       );
-      addAllListData();
     }
+
+    fetchLatestWorkoutData();
 
     scrollController.addListener(() {
       double offset = scrollController.offset;
@@ -45,8 +58,46 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     });
   }
 
+  Future<void> fetchLatestWorkoutData() async {
+    final String apiUrl = 'https://jaybird-exciting-merely.ngrok-free.app/logger/last_workout/';
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? authToken = prefs.getString('authToken');
+
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl), headers: {
+        'Authorization': 'Token $authToken', // Add authentication if needed
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        setState(() {
+          weeklyWorkouts = List<int>.from(data['workout_durations'] ?? [0, 0, 0, 0, 0, 0, 0]);
+          workoutDate = data['start_date'] ?? '';
+          duration = data['duration'] ?? 0;
+          averageHeartRate = data['average_heart_rate'] ?? 0;
+          energyBurned = data['totalEnergyBurned'] ?? 0.0;
+          mood = data['mood'] ?? 0;
+          muscleGroups = data['muscleGroups'] ?? '';
+          addAllListData();
+        });
+      } else {
+        print('Failed to load latest workout data');
+      }
+    } catch (e) {
+      print('Error fetching latest workout data: $e');
+    }
+  }
+
   void addAllListData() {
     const int count = 11;
+    listViews.clear();
+    print(workoutDate);
+    print(duration);
+    print(averageHeartRate);
+    print(energyBurned);
+    print(mood);
     listViews.addAll([
       CharacterStatsView(
         animation: createAnimation(0, count),
@@ -61,7 +112,12 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       LastWorkoutView(
         animation: createAnimation(2, count),
         animationController: widget.animationController!,
-        workoutDate: '15 May',
+        workoutDate: workoutDate, // Display the latest workout date
+        duration: duration, // Display the workout duration
+        averageHeartRate: averageHeartRate, // Display average heart rate
+        energyBurned: energyBurned, // Display energy burned
+        mood: mood, // Display the mood
+        muscleGroups: muscleGroups,
       ),
       TitleView(
         titleTxt: 'Workout Duration',
@@ -69,8 +125,8 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
         animation: createAnimation(3, count),
         animationController: widget.animationController!,
       ),
-      const WorkoutDurationChart(
-        durations: [35, 55, 60, 40, 30, 45, 90],
+      WorkoutDurationChart(
+        durations: weeklyWorkouts,
         streakCount: 7,
       ),
       TitleView(

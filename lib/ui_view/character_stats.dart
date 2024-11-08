@@ -84,22 +84,23 @@ class _CharacterStatsViewState extends State<CharacterStatsView> {
                           ],
                         ),
                       ),
-                      // Center Column with character idle sprite 0
+                      // Center Column with modular character display
                       ScaleTransition(
                         scale: widget.animation!,
                         child: Align(
                           alignment: Alignment.bottomCenter,
                           child: SizedBox(
-                              width: 180,
-                              height: 180,
-                              child: Image.asset(
-                                'assets/images/sprite_idle0.png',
-                                fit: BoxFit.contain,
-                                width: 180,
-                                height: 180,
-                                alignment: Alignment.bottomCenter,
-                              ),
+                            width: 180,
+                            height: 180,
+                            child: ModularCharacter(
+                              armor: 'armour_amber.png',
+                              head: 'head_blue.png',
+                              legs: 'pants_blue.png',
+                              melee: 'sword_iron.png',
+                              shield: '', // Empty if no shield is used
+                              wings: 'wings_amber.png',
                             ),
+                          ),
                         ),
                       ),
                       // Right Column with 3 stats
@@ -196,6 +197,46 @@ class _CharacterStatsViewState extends State<CharacterStatsView> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Modular Character Widget
+class ModularCharacter extends StatelessWidget {
+  final String armor;
+  final String head;
+  final String legs;
+  final String melee;
+  final String shield;
+  final String wings;
+
+  const ModularCharacter({
+    Key? key,
+    required this.armor,
+    required this.head,
+    required this.legs,
+    required this.melee,
+    required this.shield,
+    required this.wings,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        if (wings.isNotEmpty)
+          Image.asset('assets/character/wings/$wings', width: 360, height: 360, fit: BoxFit.cover),
+
+        if (armor.isNotEmpty)
+          Image.asset('assets/character/armour/$armor', width: 360, height: 360, fit: BoxFit.cover),
+        if (head.isNotEmpty)
+          Image.asset('assets/character/heads/$head', width: 360, height: 360, fit: BoxFit.cover),
+        if (legs.isNotEmpty)
+          Image.asset('assets/character/legs/$legs', width: 360, height: 360, fit: BoxFit.cover),
+        if (melee.isNotEmpty)
+          Image.asset('assets/character/melee/$melee', width: 360, height: 360, fit: BoxFit.cover),
+      ],
     );
   }
 }
