@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:workout_logger/constants.dart';
 import 'dart:convert';
 import 'package:workout_logger/main.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
@@ -42,8 +43,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
         final String? accessToken = googleAuth.accessToken;
 
         final response = await http.post(
-          Uri.parse(
-              'https://jaybird-exciting-merely.ngrok-free.app/api/social/google/'),
+          Uri.parse(APIConstants.googleSignIn),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'access_token': accessToken}),
         );
@@ -144,7 +144,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
     };
 
     await http.post(
-      Uri.parse('https://jaybird-exciting-merely.ngrok-free.app/logger/sync_workouts/'),
+      Uri.parse(APIConstants.syncWorkouts),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Token $authToken',

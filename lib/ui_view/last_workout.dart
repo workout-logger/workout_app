@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:hexcolor/hexcolor.dart';
 import 'package:http/http.dart' as http;
+import 'package:workout_logger/constants.dart';
+
 
 class LastWorkoutView extends StatefulWidget {
   final AnimationController? animationController;
@@ -358,7 +360,7 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
   }
 
   Future<void> _sendMuscleGroupUpdate(List<String> muscleGroups) async {
-    final url = Uri.parse('https://jaybird-exciting-merely.ngrok-free.app/logger/workout/update_latest_muscle_groups/');
+    final url = APIConstants.updateLatestMuscleGroups;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? authToken = prefs.getString('authToken');
 

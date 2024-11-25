@@ -1,5 +1,4 @@
-import 'dart:ffi';
-
+import 'package:workout_logger/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -59,7 +58,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   }
 
   Future<void> fetchLatestWorkoutData() async {
-    final String apiUrl = 'https://jaybird-exciting-merely.ngrok-free.app/logger/last_workout/';
+    final String apiUrl = APIConstants.lastWorkout;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? authToken = prefs.getString('authToken');
 
@@ -91,13 +90,13 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   }
 
   void addAllListData() {
-    const int count = 11;
+    const int count = 7;
     listViews.clear();
-    print(workoutDate);
-    print(duration);
-    print(averageHeartRate);
-    print(energyBurned);
-    print(mood);
+    // print(workoutDate);
+    // print(duration);
+    // print(averageHeartRate);
+    // print(energyBurned);
+    // print(mood);
     listViews.addAll([
       CharacterStatsView(
         animation: createAnimation(0, count),
@@ -126,7 +125,8 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
         animationController: widget.animationController!,
       ),
       WorkoutDurationChart(
-        durations: weeklyWorkouts,
+        // durations: weeklyWorkouts,
+        durations: [45,50,34,60,23,96,32],
         streakCount: 7,
       ),
       TitleView(

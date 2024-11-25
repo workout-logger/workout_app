@@ -8,6 +8,7 @@ import 'stopwatch_provider.dart';
 import 'package:workout_logger/exercise.dart';
 import 'fitness_app_theme.dart';
 import 'package:http/http.dart' as http;
+import 'package:workout_logger/constants.dart';
 
 
 class _ExerciseTile extends StatelessWidget {
@@ -402,7 +403,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
   }
 
   Future<List<Exercise>> _fetchWorkoutExercises(String muscleType) async {
-    const String baseUrl = 'https://jaybird-exciting-merely.ngrok-free.app';
+    const String baseUrl = APIConstants.baseUrl;
     final response = await http.get(Uri.parse('$baseUrl/exercise/?muscle_type=$muscleType'));
 
     if (response.statusCode == 200) {
