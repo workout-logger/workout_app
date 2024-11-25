@@ -360,7 +360,7 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
   }
 
   Future<void> _sendMuscleGroupUpdate(List<String> muscleGroups) async {
-    final url = APIConstants.updateLatestMuscleGroups;
+    final url = Uri.parse(APIConstants.updateLatestMuscleGroups);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? authToken = prefs.getString('authToken');
 
