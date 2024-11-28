@@ -192,7 +192,7 @@ class InventoryItemCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.star, // Replace with item icon if available
             color: Colors.amberAccent,
             size: 40,

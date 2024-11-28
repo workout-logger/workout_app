@@ -112,7 +112,7 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
                                       child: Row(
                                         crossAxisAlignment: CrossAxisAlignment.center,
                                         children: <Widget>[
-                                          Icon(Icons.fitness_center, 
+                                          const Icon(Icons.fitness_center, 
                                             color: FitnessAppTheme.darkerText,
                                             size: 24,
                                           ),
@@ -129,7 +129,7 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
                                             child: muscleGroups.isNotEmpty
                                                 ? Text(
                                                     muscleGroups,
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                       fontFamily: FitnessAppTheme.fontName,
                                                       fontWeight: FontWeight.w600,
                                                       fontSize: 16,
@@ -150,7 +150,7 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
                                                         });
                                                       }
                                                     },
-                                                    child: Text(
+                                                    child: const Text(
                                                       'Add',
                                                       style: TextStyle(
                                                         fontFamily: FitnessAppTheme.fontName,
@@ -343,7 +343,7 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
                   const SizedBox(width: 8),
                   Text(
                     value,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: FitnessAppTheme.fontName,
                       fontWeight: FontWeight.w600,
                       fontSize: 16,

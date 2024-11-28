@@ -23,7 +23,7 @@ class UserProfile extends StatelessWidget {
     ),
   ];
 
-  UserProfile({required this.user});
+  UserProfile({super.key, required this.user});
 
   void _sendTradeRequest(BuildContext context) {
     // Placeholder for sending a trade request
@@ -43,7 +43,7 @@ class UserProfile extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(4.0),
+            padding: const EdgeInsets.all(4.0),
             child: Text(item.name),
           ),
         ],
@@ -53,9 +53,9 @@ class UserProfile extends StatelessWidget {
 
   Widget _buildInventoryGrid() {
     return GridView.builder(
-      padding: EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(8.0),
       itemCount: inventory.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2, // Two items per row
         mainAxisSpacing: 8.0,
         crossAxisSpacing: 8.0,
@@ -74,23 +74,23 @@ class UserProfile extends StatelessWidget {
           AppBar(title: Text('${user.name}\'s Profile'), backgroundColor: Colors.blue),
       body: Column(
         children: [
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           CircleAvatar(
             radius: 50,
             backgroundImage: NetworkImage(user.avatarUrl),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
             user.name,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          Divider(height: 20),
+          const Divider(height: 20),
           Expanded(child: _buildInventoryGrid()),
           Padding(
-            padding: EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
               onPressed: () => _sendTradeRequest(context),
-              child: Text('Send Trade Request'),
+              child: const Text('Send Trade Request'),
             ),
           ),
         ],

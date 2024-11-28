@@ -10,7 +10,7 @@ import 'package:health/health.dart';
 import 'dart:io' show Platform;
 
 class GoogleSignInPage extends StatefulWidget {
-  GoogleSignInPage({super.key});
+  const GoogleSignInPage({super.key});
 
   @override
   _GoogleSignInPageState createState() => _GoogleSignInPageState();
@@ -85,7 +85,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
       _loadingMessage = "Syncing data"; // Set loading message for syncing data
     });
     final now = DateTime.now();
-    final yesterday = now.subtract(Duration(days: 999));
+    final yesterday = now.subtract(const Duration(days: 999));
 
     List<HealthDataPoint> healthData = [];
 
@@ -167,33 +167,33 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 20),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 20),
                   Text(
                     _loadingMessage!,
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
               ),
             )
           : Column(
               children: [
-                Spacer(flex: 3),
+                const Spacer(flex: 3),
                 Center(
-                  child: Container(
+                  child: SizedBox(
                     height: 30,
                     child: AnimatedTextKit(
                       animatedTexts: [
                         FadeAnimatedText(
                           'Sign in or Register',
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             color: Colors.white,
                             fontSize: 24,
                             fontWeight: FontWeight.w300,
                             letterSpacing: 1.2,
                             fontFamily: 'Roboto',
                           ),
-                          duration: Duration(milliseconds: 2000),
+                          duration: const Duration(milliseconds: 2000),
                         ),
                         // Other language text options here...
                       ],
@@ -201,7 +201,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                     ),
                   ),
                 ),
-                Spacer(flex: 2),
+                const Spacer(flex: 2),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -210,7 +210,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                         await _handleGoogleSignIn(context);
                       },
                       child: Container(
-                        padding: EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           boxShadow: [
@@ -227,13 +227,13 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 40),
+                    const SizedBox(width: 40),
                     GestureDetector(
                       onTap: () {
                         // Add Facebook login handling here
                       },
                       child: Container(
-                        padding: EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           boxShadow: [
@@ -252,7 +252,7 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
                     ),
                   ],
                 ),
-                Spacer(),
+                const Spacer(),
               ],
             ),
     );

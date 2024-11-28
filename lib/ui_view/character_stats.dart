@@ -38,7 +38,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView> {
                           // Character in the center
                           ScaleTransition(
                             scale: widget.animation!,
-                            child: SizedBox(
+                            child: const SizedBox(
                               width: 180,
                               height: 180,
                               child: ModularCharacter(
@@ -168,14 +168,14 @@ class ModularCharacter extends StatelessWidget {
   final String wings;
 
   const ModularCharacter({
-    Key? key,
+    super.key,
     required this.armor,
     required this.head,
     required this.legs,
     required this.melee,
     required this.shield,
     required this.wings,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

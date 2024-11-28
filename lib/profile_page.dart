@@ -79,10 +79,7 @@ class ProfilePage extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 24.0),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundImage: NetworkImage('https://workoutappconcept.s3.us-east-2.amazonaws.com/profile_pic.jpg'), // Replace with actual profile image URL
-          ),
+
           SizedBox(height: 12),
           Text(
             'Jonathan Baghirov', // Replace with actual user name

@@ -4,6 +4,8 @@ import 'models.dart';
 import 'user_profile.dart';
 
 class ChatPage extends StatefulWidget {
+  const ChatPage({super.key});
+
   @override
   _ChatPageState createState() => _ChatPageState();
 }
@@ -66,15 +68,15 @@ class _ChatPageState extends State<ChatPage> {
       ),
       title: Text(
         message.sender.name,
-        style: TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.white),
       ),
       subtitle: Text(
         message.content,
-        style: TextStyle(color: Colors.white70),
+        style: const TextStyle(color: Colors.white70),
       ),
       trailing: Text(
         '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
-        style: TextStyle(fontSize: 12, color: Colors.white70),
+        style: const TextStyle(fontSize: 12, color: Colors.white70),
       ),
     );
   }
@@ -91,15 +93,15 @@ class _ChatPageState extends State<ChatPage> {
 
 Widget _buildMessageInput() {
   return Container(
-    padding: EdgeInsets.symmetric(horizontal: 8.0),
+    padding: const EdgeInsets.symmetric(horizontal: 8.0),
     color: FitnessAppTheme.white, // Lighter shade than black
     child: Row(
       children: [
         Expanded(
           child: TextField(
             controller: _messageController,
-            style: TextStyle(color: Colors.white),
-            decoration: InputDecoration(
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
               hintText: 'Enter message...',
               hintStyle: TextStyle(color: Colors.white70),
               border: InputBorder.none,
@@ -108,7 +110,7 @@ Widget _buildMessageInput() {
           ),
         ),
         IconButton(
-          icon: Icon(Icons.send, color: Colors.white),
+          icon: const Icon(Icons.send, color: Colors.white),
           onPressed: _sendMessage,
         ),
       ],
@@ -121,7 +123,7 @@ Widget _buildMessageInput() {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Global Chat Room',
           style: TextStyle(color: Colors.white),
         ),
@@ -130,7 +132,7 @@ Widget _buildMessageInput() {
       body: Column(
         children: [
           Expanded(child: _buildChatList()),
-          Divider(height: 1, color: Colors.white),
+          const Divider(height: 1, color: Colors.white),
           _buildMessageInput(),
         ],
       ),

@@ -58,7 +58,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   }
 
   Future<void> fetchLatestWorkoutData() async {
-    final String apiUrl = APIConstants.lastWorkout;
+    const String apiUrl = APIConstants.lastWorkout;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? authToken = prefs.getString('authToken');
 
@@ -124,7 +124,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
         animation: createAnimation(3, count),
         animationController: widget.animationController!,
       ),
-      WorkoutDurationChart(
+      const WorkoutDurationChart(
         // durations: weeklyWorkouts,
         durations: [45,50,34,60,23,96,32],
         streakCount: 7,
