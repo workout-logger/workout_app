@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'websocket_manager.dart';
+import 'inventory_manager.dart'; // Import the InventoryManager
 
-class InventoryPage extends StatelessWidget {
+class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
 
-  Future<List<Map<String, dynamic>>> fetchInventory() async {
-    final response = await http.get(Uri.parse('https://api.example.com/inventory')); // Replace with your API endpoint
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
-      return data.map((item) => item as Map<String, dynamic>).toList();
-    } else {
-      throw Exception('Failed to load inventory');
-    }
+  @override
+  State<InventoryPage> createState() => _InventoryPageState();
+}
+
+class _InventoryPageState extends State<InventoryPage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Register callback for inventory updates
+    WebSocketManager().setInventoryUpdateCallback((updatedItems) {
+      InventoryManager().updateInventory(updatedItems);
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final inventoryItems = InventoryManager().inventoryItems;
+
     // Chest details
     final List<Map<String, dynamic>> chests = [
       {'name': 'Common', 'price': 100},
@@ -93,20 +103,16 @@ class InventoryPage extends StatelessWidget {
               ),
             ),
           ),
-          // Inventory Display using FutureBuilder
+          // Inventory Display
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: fetchInventory(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return const Center(child: Text("Failed to load inventory", style: TextStyle(color: Colors.red)));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text("No items in inventory", style: TextStyle(color: Colors.white)));
-                } else {
-                  final inventoryItems = snapshot.data!;
-                  return GridView.builder(
+            child: inventoryItems.isEmpty
+                ? const Center(
+                    child: Text(
+                      "No items in inventory",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  )
+                : GridView.builder(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       mainAxisSpacing: 10,
@@ -116,12 +122,13 @@ class InventoryPage extends StatelessWidget {
                     itemCount: inventoryItems.length,
                     itemBuilder: (context, index) {
                       final item = inventoryItems[index];
-                      return InventoryItemCard(itemName: item['name']);
+                      return InventoryItemCard(
+                        itemName: item['name'],
+                        category: item['category'],
+                        fileName: item['file_name'],
+                      );
                     },
-                  );
-                }
-              },
-            ),
+                  ),
           ),
         ],
       ),
@@ -179,8 +186,15 @@ class ChestCard extends StatelessWidget {
 
 class InventoryItemCard extends StatelessWidget {
   final String itemName;
+  final String category;
+  final String fileName;
 
-  const InventoryItemCard({super.key, required this.itemName});
+  const InventoryItemCard({
+    super.key,
+    required this.itemName,
+    required this.category,
+    required this.fileName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -192,10 +206,17 @@ class InventoryItemCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.star, // Replace with item icon if available
-            color: Colors.amberAccent,
-            size: 40,
+          Image.asset(
+            'assets/character/$category/$fileName',
+            height: 80,
+            width: 80,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(
+                Icons.broken_image,
+                color: Colors.redAccent,
+                size: 40,
+              );
+            },
           ),
           const SizedBox(height: 8),
           Text(

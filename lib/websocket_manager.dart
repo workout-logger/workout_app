@@ -1,0 +1,68 @@
+// websocket_manager.dart
+
+import 'dart:convert';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+class WebSocketManager {
+  static final WebSocketManager _instance = WebSocketManager._internal();
+  factory WebSocketManager() => _instance;
+
+  late WebSocketChannel _channel;
+  Function(List<Map<String, dynamic>>)? onInventoryUpdate;
+
+  WebSocketManager._internal() {
+    _connectWebSocket();
+  }
+
+  void _connectWebSocket() {
+    _channel = WebSocketChannel.connect(
+      Uri.parse(
+        'ws://jaybird-exciting-merely.ngrok-free.app/ws/inventory/?token=ca98303f6358d7df547dc515a5cd4315e6d4dd27',
+      ),
+    );
+
+    // Listen for messages
+    _channel.stream.listen(
+      (message) {
+        final decodedMessage = json.decode(message);
+        if (decodedMessage is Map<String, dynamic> &&
+            decodedMessage['type'] == 'inventory_update') {
+          final data = decodedMessage['data'];
+          if (data is Map<String, dynamic> && data['items'] is List) {
+            final updatedItems = (data['items'] as List)
+                .map((item) => item as Map<String, dynamic>)
+                .toList();
+            if (onInventoryUpdate != null) {
+              onInventoryUpdate!(updatedItems);
+            }
+          }
+        }
+      },
+      onError: (error) {
+        print("WebSocket Error: $error");
+        _reconnectWebSocket();
+      },
+      onDone: () {
+        print("WebSocket connection closed");
+        _reconnectWebSocket();
+      },
+    );
+  }
+
+  void _reconnectWebSocket() {
+    // Attempt to reconnect after a delay
+    Future.delayed(const Duration(seconds: 5), () {
+      print("Reconnecting to WebSocket...");
+      _connectWebSocket();
+    });
+  }
+
+  void setInventoryUpdateCallback(
+      Function(List<Map<String, dynamic>>) callback) {
+    onInventoryUpdate = callback;
+  }
+
+  void closeConnection() {
+    _channel.sink.close(1000);
+  }
+}
