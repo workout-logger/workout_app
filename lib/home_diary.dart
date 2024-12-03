@@ -57,30 +57,48 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     });
   }
 
-  Future<void> fetchLatestWorkoutData() async {
-    const String apiUrl = APIConstants.lastWorkout;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? authToken = prefs.getString('authToken');
+  void updateStateFromData(Map<String, dynamic> data) {
+    setState(() {
+      weeklyWorkouts = List<int>.from(data['workout_durations'] ?? [0, 0, 0, 0, 0, 0, 0]);
+      workoutDate = data['start_date'] ?? '';
+      duration = data['duration'] ?? 0;
+      averageHeartRate = data['average_heart_rate'] ?? 0;
+      energyBurned = data['totalEnergyBurned'] ?? 0.0;
+      mood = data['mood'] ?? 0;
+      muscleGroups = data['muscleGroups'] ?? '';
+      addAllListData();
+    });
+  }
 
+
+  Future<void> fetchLatestWorkoutData({bool forceRefresh = false}) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    
+    // Check if data is already cached and refresh is not forced
+    if (!forceRefresh) {
+      String? cachedData = prefs.getString('latestWorkoutData');
+      if (cachedData != null) {
+        final data = json.decode(cachedData);
+        updateStateFromData(data);
+        return;
+      }
+    }
+
+    const String apiUrl = APIConstants.lastWorkout;
+    final String? authToken = prefs.getString('authToken');
 
     try {
       final response = await http.get(Uri.parse(apiUrl), headers: {
-        'Authorization': 'Token $authToken', // Add authentication if needed
+        'Authorization': 'Token $authToken',
       });
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        setState(() {
-          weeklyWorkouts = List<int>.from(data['workout_durations'] ?? [0, 0, 0, 0, 0, 0, 0]);
-          workoutDate = data['start_date'] ?? '';
-          duration = data['duration'] ?? 0;
-          averageHeartRate = data['average_heart_rate'] ?? 0;
-          energyBurned = data['totalEnergyBurned'] ?? 0.0;
-          mood = data['mood'] ?? 0;
-          muscleGroups = data['muscleGroups'] ?? '';
-          addAllListData();
-        });
+        // Save data locally
+        await prefs.setString('latestWorkoutData', response.body);
+
+        updateStateFromData(data);
       } else {
         print('Failed to load latest workout data');
       }
@@ -88,6 +106,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       print('Error fetching latest workout data: $e');
     }
   }
+
 
   void addAllListData() {
     const int count = 7;
@@ -162,15 +181,18 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       color: const Color.fromARGB(255, 0, 0, 0),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: <Widget>[
-            getMainListViewUI(),
-            getAppBarUI(),
-            SizedBox(
-              height: MediaQuery.of(context).padding.bottom,
-            ),
-          ],
-        ),
+        body: RefreshIndicator(
+      onRefresh: () => fetchLatestWorkoutData(forceRefresh: true),
+      child: Stack(
+        children: <Widget>[
+          getMainListViewUI(),
+          getAppBarUI(),
+          SizedBox(
+            height: MediaQuery.of(context).padding.bottom,
+          ),
+        ],
+      ),
+    ),
         floatingActionButton: Consumer<StopwatchProvider>(
           builder: (context, stopwatchProvider, child) {
             return FloatingActionButton.extended(
