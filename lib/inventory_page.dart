@@ -46,7 +46,7 @@ class _InventoryPageState extends State<InventoryPage> {
             bottom: 30,
           ),
           child: Text(
-            "Inventory and Cases",
+            "Inventory",
             textAlign: TextAlign.left,
             style: TextStyle(
               fontWeight: FontWeight.w700,
@@ -62,73 +62,76 @@ class _InventoryPageState extends State<InventoryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Available Chests Section Title
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-            child: const Text(
-              "Available Chests",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          // Horizontal Scroll for Chests
-          SizedBox(
-            height: 200,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: chests.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: ChestCard(
-                    chestName: chests[index]['name'],
-                    chestPrice: chests[index]['price'],
-                    chestNumber: index,
-                  ),
-                );
-              },
-            ),
-          ),
+          // Container(
+          //   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          //   child: const Text(
+          //     "Available Chests",
+          //     style: TextStyle(
+          //       color: Colors.white,
+          //       fontSize: 20,
+          //       fontWeight: FontWeight.bold,
+          //     ),
+          //   ),
+          // ),
+          // // Horizontal Scroll for Chests
+          // SizedBox(
+          //   height: 200,
+          //   child: ListView.builder(
+          //     scrollDirection: Axis.horizontal,
+          //     itemCount: chests.length,
+          //     itemBuilder: (context, index) {
+          //       return Padding(
+          //         padding: const EdgeInsets.symmetric(horizontal: 8),
+          //         child: ChestCard(
+          //           chestName: chests[index]['name'],
+          //           chestPrice: chests[index]['price'],
+          //           chestNumber: index,
+          //         ),
+          //       );
+          //     },
+          //   ),
+          // ),
           // Inventory Section Title
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-            child: const Text(
-              "Inventory",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          // Container(
+          //   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          //   child: const Text(
+          //     "Inventory",
+          //     style: TextStyle(
+          //       color: Colors.white,
+          //       fontSize: 20,
+          //       fontWeight: FontWeight.bold,
+          //     ),
+          //   ),
+          // ),
           // Inventory Display
           Expanded(
-            child: inventoryItems.isEmpty
-                ? const Center(
-                    child: Text(
-                      "No items in inventory",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  )
-                : GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 0.8,
-                    ),
-                    itemCount: inventoryItems.length,
-                    itemBuilder: (context, index) {
-                      final item = inventoryItems[index];
-                      return InventoryItemCard(
-                        itemName: item['name'],
-                        category: item['category'],
-                        fileName: item['file_name'],
-                      );
-                    },
-                  ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: inventoryItems.isEmpty
+                  ? const Center(
+                      child: Text(
+                        "No items in inventory",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    )
+                  : GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: 0.8,
+                      ),
+                      itemCount: inventoryItems.length,
+                      itemBuilder: (context, index) {
+                        final item = inventoryItems[index];
+                        return InventoryItemCard(
+                          itemName: item['name'],
+                          category: item['category'],
+                          fileName: item['file_name'],
+                        );
+                  },
+                ),
+              ),
           ),
         ],
       ),
