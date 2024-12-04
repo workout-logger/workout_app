@@ -9,7 +9,15 @@ class InventoryPage extends StatefulWidget {
   State<InventoryPage> createState() => _InventoryPageState();
 }
 
+
 class _InventoryPageState extends State<InventoryPage> {
+  bool _isRefreshing = false;
+  
+
+  void _refreshUI() {
+    setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
@@ -20,20 +28,32 @@ class _InventoryPageState extends State<InventoryPage> {
       if (mounted) {
         setState(() {});
       }
+      // If we're refreshing, stop the refresh indicator
+      if (_isRefreshing) {
+        _isRefreshing = false;
+      }
     });
+  }
+
+  Future<void> _refreshInventory() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    // Request the latest inventory data
+    InventoryManager().requestInventoryUpdate();
+
+
+    // Wait until the inventory is updated via the callback
+    // You might want to implement a timeout or error handling
+    while (_isRefreshing) {
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final inventoryItems = InventoryManager().inventoryItems;
-
-    // Chest details
-    // final List<Map<String, dynamic>> chests = [
-    //   {'name': 'Common', 'price': 100},
-    //   {'name': 'Rare', 'price': 500},
-    //   {'name': 'Epic', 'price': 1000},
-    //   {'name': 'Legendary', 'price': 3000},
-    // ];
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -58,82 +78,49 @@ class _InventoryPageState extends State<InventoryPage> {
         ),
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Available Chests Section Title
-          // Container(
-          //   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          //   child: const Text(
-          //     "Available Chests",
-          //     style: TextStyle(
-          //       color: Colors.white,
-          //       fontSize: 20,
-          //       fontWeight: FontWeight.bold,
-          //     ),
-          //   ),
-          // ),
-          // // Horizontal Scroll for Chests
-          // SizedBox(
-          //   height: 200,
-          //   child: ListView.builder(
-          //     scrollDirection: Axis.horizontal,
-          //     itemCount: chests.length,
-          //     itemBuilder: (context, index) {
-          //       return Padding(
-          //         padding: const EdgeInsets.symmetric(horizontal: 8),
-          //         child: ChestCard(
-          //           chestName: chests[index]['name'],
-          //           chestPrice: chests[index]['price'],
-          //           chestNumber: index,
-          //         ),
-          //       );
-          //     },
-          //   ),
-          // ),
-          // Inventory Section Title
-          // Container(
-          //   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          //   child: const Text(
-          //     "Inventory",
-          //     style: TextStyle(
-          //       color: Colors.white,
-          //       fontSize: 20,
-          //       fontWeight: FontWeight.bold,
-          //     ),
-          //   ),
-          // ),
-          // Inventory Display
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: inventoryItems.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "No items in inventory",
-                        style: TextStyle(color: Colors.white),
+      body: RefreshIndicator(
+        onRefresh: _refreshInventory,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Any other widgets you might have
+
+            // Inventory Display
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: inventoryItems.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No items in inventory",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      )
+                    : GridView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(), // Allows pull-to-refresh even if content is less than screen size
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 0.8,
+                        ),
+                        itemCount: inventoryItems.length,
+                        itemBuilder: (context, index) {
+                          final item = inventoryItems[index];
+                          return InventoryItemCard(
+                            itemName: item['name'],
+                            category: item['category'],
+                            fileName: item['file_name'],
+                            isEquipped: item['is_equipped'],
+                            onEquipUnequip: _refreshUI,
+
+                          );
+                        },
                       ),
-                    )
-                  : GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 0.8,
-                      ),
-                      itemCount: inventoryItems.length,
-                      itemBuilder: (context, index) {
-                        final item = inventoryItems[index];
-                        return InventoryItemCard(
-                          itemName: item['name'],
-                          category: item['category'],
-                          fileName: item['file_name'],
-                        );
-                  },
-                ),
               ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -187,16 +174,22 @@ class ChestCard extends StatelessWidget {
   }
 }
 
+
 class InventoryItemCard extends StatelessWidget {
   final String itemName;
   final String category;
   final String fileName;
+  final bool isEquipped;
+  final VoidCallback onEquipUnequip;
+
 
   const InventoryItemCard({
     super.key,
     required this.itemName,
     required this.category,
     required this.fileName,
+    required this.isEquipped,
+    required this.onEquipUnequip,
   });
 
   @override
@@ -204,7 +197,6 @@ class InventoryItemCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         print('Category: $category');
-
         showModalBottomSheet(
           context: context,
           backgroundColor: Colors.transparent,
@@ -213,20 +205,38 @@ class InventoryItemCard extends StatelessWidget {
             itemName: itemName,
             category: category,
             fileName: fileName,
+            isEquipped: isEquipped,
+            onEquipUnequip: onEquipUnequip,
+
           ),
         );
       },
-      child: Card(
-        color: Colors.grey[900],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Stack(
-          children: [
-            Column(
+      child: Stack(
+        children: [
+          // Card with subtle glow and RPG textures
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A), // Dark RPG base color
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isEquipped ? const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2) : Colors.transparent,
+                width: isEquipped ? 1 : 1, // Subtle glow for equipped
+              ),
+              boxShadow: isEquipped
+                  ? [
+                      BoxShadow(
+                        color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2),
+                        blurRadius: 10,
+                        spreadRadius: 0.5,
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (category == "legs" || category == "melee")
+                 if (category == "legs" || category == "melee")
                   ClipRect(
                     child: SizedBox(
                       child: Align(
@@ -260,36 +270,84 @@ class InventoryItemCard extends StatelessWidget {
                         );
                       },
                     ),
-                ),              ],
+                ),             
+              ],
             ),
+          ),
+
+          // Subtle Rune-like Badge
+          if (isEquipped)
             Positioned(
-              bottom: 8.0, // Position text at the bottom
-              left: 0,
-              right: 0,
-              child: Text(
-                itemName,
-                textAlign: TextAlign.center, // Center the text
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+              top: 4,
+              left: 4,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.deepPurpleAccent.withOpacity(0.7),
+                      Colors.black.withOpacity(0.8),
+                    ],
+                    stops: const [0.6, 1.0],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.star, // Rune-like symbol
+                    size: 16,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+
+          // Item Name at the Bottom
+          Positioned(
+            bottom: 8.0,
+            left: 0,
+            right: 0,
+            child: Text(
+              itemName,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                shadows: [
+                  Shadow(
+                    offset: Offset(0, 1),
+                    blurRadius: 4,
+                    color: Colors.black,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-
 }
+
 
 class InventoryActionsDrawer extends StatelessWidget {
   final String itemName;
   final String category;
   final String fileName;
+  final bool isEquipped;
+  final VoidCallback onEquipUnequip;
+
+
 
   const InventoryActionsDrawer({
     super.key,
     required this.itemName,
     required this.category,
     required this.fileName,
+    required this.isEquipped,
+    required this.onEquipUnequip,
+
   });
 
   @override
@@ -394,12 +452,14 @@ class InventoryActionsDrawer extends StatelessWidget {
                 icon: isEquipped ? Icons.close : Icons.check,
                 label: isEquipped ? "Unequip" : "Equip",
                 onTap: () {
-                  InventoryManager().equipItem(itemName);
+                  InventoryManager().equipItem(itemName, fileName, category);
                   Navigator.of(context).pop();
+                  onEquipUnequip();
+                  final isNowEquipped = InventoryManager().isEquipped(itemName);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        isEquipped ? "$itemName unequipped!" : "$itemName equipped!",
+                        isNowEquipped ? "$itemName equipped!" : "$itemName unequipped!",
                       ),
                     ),
                   );

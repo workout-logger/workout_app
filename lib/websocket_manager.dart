@@ -1,5 +1,3 @@
-// websocket_manager.dart
-
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -64,5 +62,15 @@ class WebSocketManager {
 
   void closeConnection() {
     _channel.sink.close(1000);
+  }
+
+  // New method to send messages
+  void sendMessage(Map<String, dynamic> message) {
+    try {
+      _channel.sink.add(json.encode(message));
+      print("WebSocket message sent: ${json.encode(message)}");
+    } catch (e) {
+      print("Error sending WebSocket message: $e");
+    }
   }
 }
