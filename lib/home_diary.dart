@@ -48,6 +48,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     }
 
     fetchLatestWorkoutData();
+    fetchEquippedItems(); 
 
     scrollController.addListener(() {
       double offset = scrollController.offset;
@@ -69,6 +70,63 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       addAllListData();
     });
   }
+
+  Future<void> fetchEquippedItems({bool forceRefresh = false}) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // Check if data is already cached and refresh is not forced
+    if (!forceRefresh) {
+      String? cachedData = prefs.getString('equippedItemsData');
+      if (cachedData != null) {
+        final data = json.decode(cachedData);
+        updateEquippedItems(data);
+        return;
+      }
+    }
+
+    const String apiUrl = APIConstants.equippedItems; // Adjust APIConstants to include this URL
+    final String? authToken = prefs.getString('authToken');
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl), headers: {
+        'Authorization': 'Token $authToken',
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['success'] == true) {
+          // Save data locally
+          await prefs.setString('equippedItemsData', response.body);
+
+          updateEquippedItems(data);
+        } else {
+          print('Failed to fetch equipped items');
+        }
+      } else {
+        print('Failed to fetch equipped items: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching equipped items: $e');
+    }
+  }
+
+  void updateEquippedItems(Map<String, dynamic> data) {
+    final equippedItems = data['equipped_items'] ?? {};
+    setState(() {
+      listViews[0] = CharacterStatsView(
+        armor: equippedItems['armour'] ?? '',
+        head: equippedItems['headpiece'] ?? '',
+        legs: equippedItems['legs'] ?? '',
+        melee: equippedItems['melee'] ?? '',
+        shield: equippedItems['shield'] ?? '',
+        wings: equippedItems['wings'] ?? '',
+        animation: createAnimation(0, listViews.length),
+        animationController: widget.animationController!,
+      );
+    });
+  }
+
 
 
   Future<void> fetchLatestWorkoutData({bool forceRefresh = false}) async {
@@ -118,6 +176,12 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     // print(mood);
     listViews.addAll([
       CharacterStatsView(
+        armor: '',
+        head: '',
+        legs: '',
+        melee: '',
+        shield: '',
+        wings: '',
         animation: createAnimation(0, count),
         animationController: widget.animationController!,
       ),
@@ -182,7 +246,10 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: RefreshIndicator(
-      onRefresh: () => fetchLatestWorkoutData(forceRefresh: true),
+      onRefresh: () async {
+          await fetchLatestWorkoutData(forceRefresh: true);
+          await fetchEquippedItems(forceRefresh: true);
+        },
       child: Stack(
         children: <Widget>[
           getMainListViewUI(),

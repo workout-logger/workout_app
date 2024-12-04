@@ -203,6 +203,8 @@ class InventoryItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        print('Category: $category');
+
         showModalBottomSheet(
           context: context,
           backgroundColor: Colors.transparent,
@@ -219,32 +221,65 @@ class InventoryItemCard extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Image.asset(
-              'assets/character/$category/$fileName',
-              height: 80,
-              width: 80,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(
-                  Icons.broken_image,
-                  color: Colors.redAccent,
-                  size: 40,
-                );
-              },
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (category == "legs" || category == "melee")
+                  ClipRect(
+                    child: SizedBox(
+                      child: Align(
+                        alignment: Alignment.bottomCenter, // Show the bottom portion
+                        heightFactor: 0.3, // Cut the image to 50%
+                        child: Image.asset(
+                          'assets/character/$category/$fileName',
+                          fit: BoxFit.cover, // Scale the remaining image to fill the space
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.broken_image,
+                              color: Colors.redAccent,
+                              size: 60,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 30.0),                    
+                    child: Image.asset(
+                      'assets/character/$category/$fileName',
+                      fit: BoxFit.contain, // Scale image to fill space
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.broken_image,
+                          color: Colors.redAccent,
+                          size: 40,
+                        );
+                      },
+                    ),
+                ),              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              itemName,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+            Positioned(
+              bottom: 8.0, // Position text at the bottom
+              left: 0,
+              right: 0,
+              child: Text(
+                itemName,
+                textAlign: TextAlign.center, // Center the text
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
 }
+
 class InventoryActionsDrawer extends StatelessWidget {
   final String itemName;
   final String category;
