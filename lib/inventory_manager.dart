@@ -49,4 +49,14 @@ class InventoryManager {
       "action": "fetch_inventory_data",
     });
   }
+
+  Map<String, String> get equippedItems {
+    Map<String, String> equipped = {};
+    for (var item in _inventoryItems) {
+      if (item['is_equipped'] == true) {
+        equipped[item['category']] = item['file_name'];
+      }
+    }
+    return equipped;
+  }
 }

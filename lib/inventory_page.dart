@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'websocket_manager.dart';
 import 'inventory_manager.dart'; // Import the InventoryManager
+import 'ui_view/character_stats_inv.dart';
+
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -54,7 +56,7 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryItems = InventoryManager().inventoryItems;
-
+    final equippedItems = InventoryManager().equippedItems;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -84,7 +86,14 @@ class _InventoryPageState extends State<InventoryPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Any other widgets you might have
-
+            CharacterStatsView(
+              head: equippedItems['heads'] ?? 'head_blue.png',
+              armour: equippedItems['armour'] ?? 'armour_amber.png',
+              legs: equippedItems['legs'] ?? '',
+              melee: equippedItems['melee'] ?? '',
+              shield: equippedItems['shield'] ?? '',
+              wings: equippedItems['wings'] ?? '',
+            ),
             // Inventory Display
             Expanded(
               child: Padding(

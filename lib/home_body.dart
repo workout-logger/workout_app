@@ -12,7 +12,7 @@ class HomeBody extends StatelessWidget {
 
   static List<Widget> _pages(AnimationController controller) => <Widget>[
         MyDiaryScreen(animationController: controller),
-        const InventoryPage(),
+        InventoryPage(),
         const ChatPage(),
         const ProfilePage(),
       ];
