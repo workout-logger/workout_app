@@ -2,6 +2,7 @@ import 'package:workout_logger/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workout_logger/lottie_segment_player.dart';
 import 'ui_view/body_measurement.dart';
 import 'ui_view/last_workout.dart';
 import 'ui_view/title_view.dart';
@@ -36,7 +37,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   String muscleGroups = '';
   bool isRefreshing = false;
   double _pullDistance = 0.0;
-  double _refreshTriggerPullDistance = 100.0;
+  double _refreshTriggerPullDistance = 150.0; // Increased pull distance for less sensitivity
 
   @override
   void initState() {
@@ -52,7 +53,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     }
 
     fetchLatestWorkoutData();
-    fetchEquippedItems(); 
+    fetchEquippedItems();
 
     scrollController.addListener(() {
       double offset = scrollController.offset;
@@ -135,7 +136,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
 
   Future<void> fetchLatestWorkoutData({bool forceRefresh = false}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    
+
     // Check if data is already cached and refresh is not forced
     if (!forceRefresh) {
       String? cachedData = prefs.getString('latestWorkoutData');
@@ -237,15 +238,8 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   }
 
   Future<void> handleRefresh() async {
-    setState(() {
-      isRefreshing = true;
-    });
     await fetchLatestWorkoutData(forceRefresh: true);
     await fetchEquippedItems(forceRefresh: true);
-    setState(() {
-      isRefreshing = false;
-      _pullDistance = 0.0;
-    });
   }
 
   @override
@@ -260,21 +254,31 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
             getAppBarUI(),
             if (_pullDistance > 0 || isRefreshing)
               Positioned(
-                top: 0,
+                top: (_pullDistance > _refreshTriggerPullDistance
+                        ? _refreshTriggerPullDistance / 2
+                        : _pullDistance / 2) +
+                    AppBar().preferredSize.height +
+                    MediaQuery.of(context).padding.top,
                 left: 0,
                 right: 0,
                 child: Container(
                   alignment: Alignment.topCenter,
-                  height: _pullDistance > _refreshTriggerPullDistance
-                      ? _refreshTriggerPullDistance
-                      : _pullDistance,
-                  child: SizedBox(
-                    width: 50, // Adjust the size as needed
-                    height: 50,
-                    child: Lottie.asset(
-                      'assets/animations/loading.json',
-                      width: 50,
-                      height: 50,
+                  height: 50, // Fixed height for the animation container
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: const BoxDecoration(
+                      color: Color.fromARGB(255, 99, 98, 98), // Grey background for the circle
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: LottieSegmentPlayer(
+                        animationPath: 'assets/animations/loading.json',
+                        endFraction: 0.7,
+                        width: 64, // Increase the width here
+                        height: 64, // Increase the height here
+                      ),
                     ),
                   ),
                 ),
@@ -324,21 +328,20 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
             return const SizedBox();
           } else {
             return ListView.builder(
-  controller: scrollController,
-  physics: const AlwaysScrollableScrollPhysics(), // Add this line
-  padding: EdgeInsets.only(
-    top: AppBar().preferredSize.height +
-        MediaQuery.of(context).padding.top +
-        24,
-    bottom: 62 + MediaQuery.of(context).padding.bottom,
-  ),
-  itemCount: listViews.length,
-  itemBuilder: (BuildContext context, int index) {
-    widget.animationController?.forward();
-    return listViews[index];
-  },
-);
-
+              controller: scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(
+                top: AppBar().preferredSize.height +
+                    MediaQuery.of(context).padding.top +
+                    24,
+                bottom: 62 + MediaQuery.of(context).padding.bottom,
+              ),
+              itemCount: listViews.length,
+              itemBuilder: (BuildContext context, int index) {
+                widget.animationController?.forward();
+                return listViews[index];
+              },
+            );
           }
         },
       ),
@@ -351,11 +354,18 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
         setState(() {
           _pullDistance = -notification.metrics.pixels;
         });
+      } else if (notification.metrics.pixels >= 0 && _pullDistance != 0.0) {
+        setState(() {
+          _pullDistance = 0.0;
+        });
       }
     } else if (notification is OverscrollNotification) {
-      setState(() {
-        _pullDistance += notification.overscroll;
-      });
+      if (notification.overscroll < 0) {
+        // User is overscrolling at the top
+        setState(() {
+          _pullDistance += -notification.overscroll;
+        });
+      }
     } else if (notification is ScrollEndNotification) {
       if (_pullDistance >= _refreshTriggerPullDistance && !isRefreshing) {
         _startRefresh();

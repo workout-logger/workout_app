@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       // If it's the first launch, show Google Sign-In page, otherwise show HomeScreen
-      home: GoogleSignInPage(),
+      home: GoogleSignInPage() ,
     );
   }
 }

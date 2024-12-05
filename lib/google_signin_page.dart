@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:workout_logger/main.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:health/health.dart';
+import 'package:workout_logger/lottie_segment_player.dart';
 import 'dart:io' show Platform;
 
 class GoogleSignInPage extends StatefulWidget {
@@ -295,7 +296,12 @@ class _GoogleSignInPageState extends State<GoogleSignInPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircularProgressIndicator(),
+                  const LottieSegmentPlayer(
+                    animationPath: 'assets/animations/loading.json', // Update with your path
+                    width: 100,
+                    height: 100,
+                    endFraction: 0.7
+                  ),
                   const SizedBox(height: 20),
                   Text(
                     _loadingMessage!,

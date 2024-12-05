@@ -8,7 +8,7 @@ class LottieSegmentPlayer extends StatefulWidget {
   final double? height; // Optional height
   final bool progressiveLoad; // Progressive loading toggle
   final int steps; // Number of progressive steps
-  final RenderCache renderCache; // Render cache mode
+  final FilterQuality filterQuality; // Filter quality for rendering
 
   const LottieSegmentPlayer({
     Key? key,
@@ -18,7 +18,7 @@ class LottieSegmentPlayer extends StatefulWidget {
     this.height,
     this.progressiveLoad = false, // Default is not progressive
     this.steps = 5, // Default number of steps
-    this.renderCache = RenderCache.raster, // Default caching mode
+    this.filterQuality = FilterQuality.low, // Default filter quality
   }) : super(key: key);
 
   @override
@@ -34,14 +34,25 @@ class _LottieSegmentPlayerState extends State<LottieSegmentPlayer>
   void initState() {
     super.initState();
 
-    _controller = AnimationController(vsync: this);
+    // Initialize the controller with the specified endFraction as upperBound
+    _controller = AnimationController(
+      vsync: this,
+      lowerBound: 0.0,
+      upperBound: widget.endFraction,
+    );
+  }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _startAnimation() {
     if (widget.progressiveLoad) {
-      _controller.addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          _loadNextSegment();
-        }
-      });
+      _loadNextSegment();
+    } else {
+      _controller.repeat();
     }
   }
 
@@ -53,20 +64,25 @@ class _LottieSegmentPlayerState extends State<LottieSegmentPlayer>
         _currentFraction = widget.endFraction; // Cap the fraction
       }
 
-      _controller.value = 0;
       _controller.animateTo(
         _currentFraction,
         duration: Duration(
-          milliseconds: (_currentFraction * _controller.duration!.inMilliseconds).round(),
+          milliseconds: ((_currentFraction - _controller.value) *
+                  _controller.duration!.inMilliseconds)
+              .round(),
         ),
-      );
+      ).whenComplete(() {
+        // Delay before loading the next segment
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _loadNextSegment();
+        });
+      });
+    } else {
+      // Restart the progressive loading
+      _currentFraction = 0;
+      _controller.value = 0;
+      _loadNextSegment();
     }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   @override
@@ -77,21 +93,10 @@ class _LottieSegmentPlayerState extends State<LottieSegmentPlayer>
       width: widget.width, // Set the width
       height: widget.height, // Set the height
       fit: BoxFit.contain, // Ensure the animation scales properly
-      renderCache: widget.renderCache, // Apply caching mode
+      filterQuality: widget.filterQuality, // Apply filter quality
       onLoaded: (composition) {
         _controller.duration = composition.duration;
-        if (widget.progressiveLoad) {
-          _loadNextSegment(); // Start progressive loading
-        } else {
-          _controller.animateTo(
-            widget.endFraction,
-            duration: Duration(
-              milliseconds: (widget.endFraction *
-                      _controller.duration!.inMilliseconds)
-                  .round(),
-            ),
-          );
-        }
+        _startAnimation();
       },
     );
   }
