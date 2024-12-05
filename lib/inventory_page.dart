@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'websocket_manager.dart';
 import 'inventory_manager.dart'; // Import the InventoryManager
 import 'ui_view/character_stats_inv.dart';
-
-
+import 'lottie_segment_player.dart'; // Import the LottieSegmentPlayer widget
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
 
@@ -11,10 +10,9 @@ class InventoryPage extends StatefulWidget {
   State<InventoryPage> createState() => _InventoryPageState();
 }
 
-
 class _InventoryPageState extends State<InventoryPage> {
   bool _isRefreshing = false;
-  
+  // Remove _isLoading variable
 
   void _refreshUI() {
     setState(() {});
@@ -23,6 +21,12 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   void initState() {
     super.initState();
+
+    // Check if data is already loaded
+    if (!InventoryManager().isLoading) {
+      // Data is already loaded, no need to set up the WebSocket callback again
+      return;
+    }
 
     // Register callback for inventory updates
     WebSocketManager().setInventoryUpdateCallback((updatedItems) {
@@ -35,19 +39,20 @@ class _InventoryPageState extends State<InventoryPage> {
         _isRefreshing = false;
       }
     });
+
+    // Request the initial inventory data if loading
+    InventoryManager().requestInventoryUpdate();
   }
 
-  Future<void> _refreshInventory() async {
+ Future<void> _refreshInventory() async {
     setState(() {
       _isRefreshing = true;
     });
 
-    // Request the latest inventory data
-    InventoryManager().requestInventoryUpdate();
-
+    // Request the latest inventory data without showing the loading overlay
+    InventoryManager().requestInventoryUpdate(showLoadingOverlay: false);
 
     // Wait until the inventory is updated via the callback
-    // You might want to implement a timeout or error handling
     while (_isRefreshing) {
       await Future.delayed(const Duration(milliseconds: 100));
     }
@@ -57,6 +62,8 @@ class _InventoryPageState extends State<InventoryPage> {
   Widget build(BuildContext context) {
     final inventoryItems = InventoryManager().inventoryItems;
     final equippedItems = InventoryManager().equippedItems;
+    final isLoading = InventoryManager().isLoading; // Use the shared loading state
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -80,56 +87,76 @@ class _InventoryPageState extends State<InventoryPage> {
         ),
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       ),
-      body: RefreshIndicator(
-        onRefresh: _refreshInventory,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Any other widgets you might have
-            CharacterStatsView(
-              head: equippedItems['heads'] ?? 'head_blue.png',
-              armour: equippedItems['armour'] ?? 'armour_amber.png',
-              legs: equippedItems['legs'] ?? '',
-              melee: equippedItems['melee'] ?? '',
-              shield: equippedItems['shield'] ?? '',
-              wings: equippedItems['wings'] ?? '',
+      body: Stack(
+        children: [
+          // Main content
+          RefreshIndicator(
+            onRefresh: _refreshInventory,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Any other widgets you might have
+                CharacterStatsView(
+                  head: equippedItems['heads'] ?? 'head_blue.png',
+                  armour: equippedItems['armour'] ?? 'armour_amber.png',
+                  legs: equippedItems['legs'] ?? '',
+                  melee: equippedItems['melee'] ?? '',
+                  shield: equippedItems['shield'] ?? '',
+                  wings: equippedItems['wings'] ?? '',
+                ),
+                // Inventory Display
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: inventoryItems.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "No items in inventory",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          )
+                        : GridView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: 0.8,
+                            ),
+                            itemCount: inventoryItems.length,
+                            itemBuilder: (context, index) {
+                              final item = inventoryItems[index];
+                              return InventoryItemCard(
+                                itemName: item['name'],
+                                category: item['category'],
+                                fileName: item['file_name'],
+                                isEquipped: item['is_equipped'],
+                                onEquipUnequip: _refreshUI,
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ],
             ),
-            // Inventory Display
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: inventoryItems.isEmpty
-                    ? const Center(
-                        child: Text(
-                          "No items in inventory",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      )
-                    : GridView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(), // Allows pull-to-refresh even if content is less than screen size
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 10,
-                          crossAxisSpacing: 10,
-                          childAspectRatio: 0.8,
-                        ),
-                        itemCount: inventoryItems.length,
-                        itemBuilder: (context, index) {
-                          final item = inventoryItems[index];
-                          return InventoryItemCard(
-                            itemName: item['name'],
-                            category: item['category'],
-                            fileName: item['file_name'],
-                            isEquipped: item['is_equipped'],
-                            onEquipUnequip: _refreshUI,
-
-                          );
-                        },
-                      ),
+          ),
+          // Loading overlay
+          if (isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.7),
+                child: const Center(
+                  child: LottieSegmentPlayer(
+                    animationPath: 'assets/animations/loading.json',
+                    endFraction: 0.7,
+                    width: 150, // Increase the width here
+                    height: 150, // Increase the height here
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+
+        ],
       ),
     );
   }

@@ -11,6 +11,7 @@ import 'workout_page.dart';
 import 'stopwatch_provider.dart'; // Import StopwatchProvider
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:lottie/lottie.dart'; // Import Lottie
 
 class MyDiaryScreen extends StatefulWidget {
   const MyDiaryScreen({super.key, this.animationController});
@@ -33,6 +34,9 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   double energyBurned = 0.0;
   int mood = 1;
   String muscleGroups = '';
+  bool isRefreshing = false;
+  double _pullDistance = 0.0;
+  double _refreshTriggerPullDistance = 100.0;
 
   @override
   void initState() {
@@ -114,20 +118,20 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   void updateEquippedItems(Map<String, dynamic> data) {
     final equippedItems = data['equipped_items'] ?? {};
     setState(() {
-      listViews[0] = CharacterStatsView(
-        armor: equippedItems['armour'] ?? '',
-        head: equippedItems['headpiece'] ?? '',
-        legs: equippedItems['legs'] ?? '',
-        melee: equippedItems['melee'] ?? '',
-        shield: equippedItems['shield'] ?? '',
-        wings: equippedItems['wings'] ?? '',
-        animation: createAnimation(0, listViews.length),
-        animationController: widget.animationController!,
-      );
+      if (listViews.isNotEmpty) {
+        listViews[0] = CharacterStatsView(
+          armor: equippedItems['armour'] ?? '',
+          head: equippedItems['headpiece'] ?? '',
+          legs: equippedItems['legs'] ?? '',
+          melee: equippedItems['melee'] ?? '',
+          shield: equippedItems['shield'] ?? '',
+          wings: equippedItems['wings'] ?? '',
+          animation: createAnimation(0, listViews.length),
+          animationController: widget.animationController!,
+        );
+      }
     });
   }
-
-
 
   Future<void> fetchLatestWorkoutData({bool forceRefresh = false}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -165,15 +169,9 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     }
   }
 
-
   void addAllListData() {
     const int count = 7;
     listViews.clear();
-    // print(workoutDate);
-    // print(duration);
-    // print(averageHeartRate);
-    // print(energyBurned);
-    // print(mood);
     listViews.addAll([
       CharacterStatsView(
         armor: '',
@@ -207,9 +205,8 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
         animation: createAnimation(3, count),
         animationController: widget.animationController!,
       ),
-      const WorkoutDurationChart(
-        // durations: weeklyWorkouts,
-        durations: [45,50,34,60,23,96,32],
+      WorkoutDurationChart(
+        durations: weeklyWorkouts,
         streakCount: 7,
       ),
       TitleView(
@@ -239,27 +236,54 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     return true;
   }
 
+  Future<void> handleRefresh() async {
+    setState(() {
+      isRefreshing = true;
+    });
+    await fetchLatestWorkoutData(forceRefresh: true);
+    await fetchEquippedItems(forceRefresh: true);
+    setState(() {
+      isRefreshing = false;
+      _pullDistance = 0.0;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       color: const Color.fromARGB(255, 0, 0, 0),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: RefreshIndicator(
-      onRefresh: () async {
-          await fetchLatestWorkoutData(forceRefresh: true);
-          await fetchEquippedItems(forceRefresh: true);
-        },
-      child: Stack(
-        children: <Widget>[
-          getMainListViewUI(),
-          getAppBarUI(),
-          SizedBox(
-            height: MediaQuery.of(context).padding.bottom,
-          ),
-        ],
-      ),
-    ),
+        body: Stack(
+          children: <Widget>[
+            getMainListViewUI(),
+            getAppBarUI(),
+            if (_pullDistance > 0 || isRefreshing)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  alignment: Alignment.topCenter,
+                  height: _pullDistance > _refreshTriggerPullDistance
+                      ? _refreshTriggerPullDistance
+                      : _pullDistance,
+                  child: SizedBox(
+                    width: 50, // Adjust the size as needed
+                    height: 50,
+                    child: Lottie.asset(
+                      'assets/animations/loading.json',
+                      width: 50,
+                      height: 50,
+                    ),
+                  ),
+                ),
+              ),
+            SizedBox(
+              height: MediaQuery.of(context).padding.bottom,
+            ),
+          ],
+        ),
         floatingActionButton: Consumer<StopwatchProvider>(
           builder: (context, stopwatchProvider, child) {
             return FloatingActionButton.extended(
@@ -291,30 +315,69 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   }
 
   Widget getMainListViewUI() {
-    return FutureBuilder<bool>(
-      future: getData(),
-      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox();
-        } else {
-          return ListView.builder(
-            controller: scrollController,
-            padding: EdgeInsets.only(
-              top: AppBar().preferredSize.height +
-                  MediaQuery.of(context).padding.top +
-                  24,
-              bottom: 62 + MediaQuery.of(context).padding.bottom,
-            ),
-            itemCount: listViews.length,
-            scrollDirection: Axis.vertical,
-            itemBuilder: (BuildContext context, int index) {
-              widget.animationController?.forward();
-              return listViews[index];
-            },
-          );
-        }
-      },
+    return NotificationListener<ScrollNotification>(
+      onNotification: _onScrollNotification,
+      child: FutureBuilder<bool>(
+        future: getData(),
+        builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+          if (!snapshot.hasData) {
+            return const SizedBox();
+          } else {
+            return ListView.builder(
+  controller: scrollController,
+  physics: const AlwaysScrollableScrollPhysics(), // Add this line
+  padding: EdgeInsets.only(
+    top: AppBar().preferredSize.height +
+        MediaQuery.of(context).padding.top +
+        24,
+    bottom: 62 + MediaQuery.of(context).padding.bottom,
+  ),
+  itemCount: listViews.length,
+  itemBuilder: (BuildContext context, int index) {
+    widget.animationController?.forward();
+    return listViews[index];
+  },
+);
+
+          }
+        },
+      ),
     );
+  }
+
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      if (notification.metrics.pixels < 0) {
+        setState(() {
+          _pullDistance = -notification.metrics.pixels;
+        });
+      }
+    } else if (notification is OverscrollNotification) {
+      setState(() {
+        _pullDistance += notification.overscroll;
+      });
+    } else if (notification is ScrollEndNotification) {
+      if (_pullDistance >= _refreshTriggerPullDistance && !isRefreshing) {
+        _startRefresh();
+      } else {
+        setState(() {
+          _pullDistance = 0.0;
+        });
+      }
+    }
+    return false;
+  }
+
+  void _startRefresh() {
+    setState(() {
+      isRefreshing = true;
+    });
+    handleRefresh().then((_) {
+      setState(() {
+        isRefreshing = false;
+        _pullDistance = 0.0;
+      });
+    });
   }
 
   Widget getAppBarUI() {

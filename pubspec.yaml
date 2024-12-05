@@ -50,6 +50,7 @@ dependencies:
   health: ^11.1.0
   permission_handler: ^11.3.1
   web_socket_channel: ^3.0.1
+  lottie: ^3.1.3
 
 dev_dependencies:
   flutter_test:
@@ -81,6 +82,7 @@ flutter:
   - assets/character/legs/
   - assets/character/melee/
   - assets/character/wings/
+  - assets/animations/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

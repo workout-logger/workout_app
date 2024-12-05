@@ -9,6 +9,8 @@ class InventoryManager {
 
   final List<Map<String, dynamic>> _inventoryItems = [];
 
+  bool isLoading = true; // Loading state variable
+
   List<Map<String, dynamic>> get inventoryItems => List.unmodifiable(_inventoryItems);
 
   bool isEquipped(String itemName) {
@@ -41,9 +43,17 @@ class InventoryManager {
     _inventoryItems
       ..clear()
       ..addAll(updatedItems);
+    if (isLoading) {
+      isLoading = false; // Set loading to false when data is received
+    }
   }
 
-  void requestInventoryUpdate() {
+  void requestInventoryUpdate({bool showLoadingOverlay = true}) {
+    // Set isLoading to true only if showLoadingOverlay is true
+    if (showLoadingOverlay) {
+      isLoading = true;
+    }
+
     // Use WebSocketManager to send the update request
     WebSocketManager().sendMessage({
       "action": "fetch_inventory_data",
