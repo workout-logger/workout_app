@@ -263,12 +263,12 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
                 right: 0,
                 child: Container(
                   alignment: Alignment.topCenter,
-                  height: 50, // Fixed height for the animation container
+                  height: 50,
                   child: Container(
                     width: 70,
                     height: 70,
                     decoration: const BoxDecoration(
-                      color: Color.fromARGB(255, 99, 98, 98), // Grey background for the circle
+                      color: Color.fromARGB(255, 99, 98, 98),
                       shape: BoxShape.circle,
                     ),
                     child: const Padding(
@@ -276,8 +276,8 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
                       child: LottieSegmentPlayer(
                         animationPath: 'assets/animations/loading.json',
                         endFraction: 0.7,
-                        width: 64, // Increase the width here
-                        height: 64, // Increase the height here
+                        width: 64,
+                        height: 64,
                       ),
                     ),
                   ),

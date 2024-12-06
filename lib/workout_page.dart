@@ -79,7 +79,9 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+      _startWorkout();
     _loadWorkoutState();
+
   }
 
   @override
@@ -118,14 +120,13 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
 
   Future<void> _loadWorkoutState() async {
     final prefs = await SharedPreferences.getInstance();
-    _workoutStarted = prefs.getBool('workoutStarted') ?? false;
 
     final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
     final savedElapsedMilliseconds = prefs.getInt('elapsedMilliseconds') ?? 0;
 
-    if (_workoutStarted) {
-      stopwatchProvider.startStopwatch(initialMilliseconds: savedElapsedMilliseconds);
-    }
+    
+    stopwatchProvider.startStopwatch(initialMilliseconds: savedElapsedMilliseconds);
+    
 
     final exercisesJson = prefs.getString('selectedExercises');
     if (exercisesJson != null) {
@@ -475,36 +476,8 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
         child: Column(
           children: [
             Expanded(
-              child: !_workoutStarted
-                  ? Center(
-                      child: GestureDetector(
-                        onTap: _startWorkout,
-                        child: const SizedBox(
-                          width: 200,
-                          height: 200,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.fitness_center,
-                                size: 48,
-                                color: Colors.white,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Start Workout',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  : Column(
+              child: 
+                    Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Consumer<StopwatchProvider>(
@@ -552,10 +525,11 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
       ),
     );
   }
-
   Future<void> _discardWorkout() async {
     final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+    stopwatchProvider.resetStopwatch();
     stopwatchProvider.stopStopwatch();
+
     
     setState(() {
       _workoutStarted = false;
@@ -567,5 +541,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     await prefs.remove('workoutStarted');
     await prefs.remove('elapsedMilliseconds');
     await prefs.remove('selectedExercises');
+    
+    Navigator.of(context).pop();
   }
 }
