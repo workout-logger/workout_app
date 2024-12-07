@@ -1,55 +1,17 @@
+// workout_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'exercise_tile.dart';
 import 'exercise_model.dart';
 import 'stopwatch_provider.dart';
-import 'package:workout_logger/exercise.dart';
-import 'fitness_app_theme.dart';
+import 'exercise.dart';
+import '../fitness_app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:workout_logger/constants.dart';
-
-
-class _ExerciseTile extends StatelessWidget {
-  final Exercise exercise;
-
-  const _ExerciseTile({required this.exercise});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: FitnessAppTheme.background.withOpacity(0.1),
-      margin: const EdgeInsets.all(8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              exercise.name,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              exercise.description,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
-                fontSize: 14,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+import 'workout_set.dart';
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({super.key});
@@ -75,13 +37,13 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
   ];
   late StopwatchProvider stopwatchProvider;
   late ExerciseModel exerciseModel;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-      _startWorkout();
+    _startWorkout();
     _loadWorkoutState();
-
   }
 
   @override
@@ -100,7 +62,8 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       _saveWorkoutState();
     } else if (state == AppLifecycleState.resumed) {
       _loadWorkoutState();
@@ -114,27 +77,32 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     prefs.setBool('workoutStarted', _workoutStarted);
     prefs.setInt('elapsedMilliseconds', stopwatchProvider.elapsedMilliseconds);
 
-    final exercisesJson = json.encode(exerciseModel.selectedExercises.map((e) => e.toJson()).toList());
+    final exercisesJson =
+        json.encode(exerciseModel.selectedExercises.map((e) => e.toJson()).toList());
     prefs.setString('selectedExercises', exercisesJson);
   }
 
   Future<void> _loadWorkoutState() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+    final savedWorkoutStarted = prefs.getBool('workoutStarted') ?? false;
     final savedElapsedMilliseconds = prefs.getInt('elapsedMilliseconds') ?? 0;
 
-    
-    stopwatchProvider.startStopwatch(initialMilliseconds: savedElapsedMilliseconds);
-    
+    if (savedWorkoutStarted) {
+      setState(() {
+        _workoutStarted = true;
+      });
+      stopwatchProvider.startStopwatch(initialMilliseconds: savedElapsedMilliseconds);
+    }
 
     final exercisesJson = prefs.getString('selectedExercises');
     if (exercisesJson != null) {
-      final exercisesList = (json.decode(exercisesJson) as List)
+      final exercisesList = (json.decode(exercisesJson) as List<dynamic>)
           .map((e) => Exercise.fromJson(e as Map<String, dynamic>))
           .toList();
-      Provider.of<ExerciseModel>(context, listen: false).setExercises(exercisesList);
+      exerciseModel.setExercises(exercisesList);
     }
+
     setState(() {});
   }
 
@@ -294,7 +262,15 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
   Widget _buildExerciseCard(Exercise exercise) {
     return GestureDetector(
       onTap: () {
-        Provider.of<ExerciseModel>(context, listen: false).addExercise(exercise);
+        // Create a new Exercise instance with empty sets
+        final newExercise = Exercise(
+          name: exercise.name,
+          description: exercise.description,
+          equipment: exercise.equipment,
+          images: exercise.images,
+          sets: [], // Initialize with empty sets
+        );
+        Provider.of<ExerciseModel>(context, listen: false).addExercise(newExercise);
         Navigator.of(context).pop();
       },
       child: Container(
@@ -405,7 +381,8 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
 
   Future<List<Exercise>> _fetchWorkoutExercises(String muscleType) async {
     const String baseUrl = APIConstants.baseUrl;
-    final response = await http.get(Uri.parse('$baseUrl/exercise/?muscle_type=$muscleType'));
+    final response =
+        await http.get(Uri.parse('$baseUrl/exercise/?muscle_type=$muscleType'));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -439,6 +416,115 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _discardWorkout() async {
+    final shouldDiscard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: FitnessAppTheme.background,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text('Discard Workout', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Are you sure you want to discard the current workout?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDiscard ?? false) {
+      final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+      stopwatchProvider.resetStopwatch();
+      stopwatchProvider.stopStopwatch();
+
+      setState(() {
+        _workoutStarted = false;
+      });
+
+      Provider.of<ExerciseModel>(context, listen: false).resetWorkout();
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('workoutStarted');
+      await prefs.remove('elapsedMilliseconds');
+      await prefs.remove('selectedExercises');
+    }
+  }
+
+  Future<void> _endWorkout() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final stopwatchProvider =
+          Provider.of<StopwatchProvider>(context, listen: false);
+      final exerciseModel =
+          Provider.of<ExerciseModel>(context, listen: false);
+
+      final workoutData = {
+        'duration': stopwatchProvider.elapsedMilliseconds,
+        'exercises': exerciseModel.selectedExercises.map((exercise) {
+          return {
+            'name': exercise.name,
+            'sets': exercise.sets.map((set) => set.toJson()).toList(),
+          };
+        }).toList(),
+      };
+
+      print(json.encode(workoutData)); // For debugging
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? authToken = prefs.getString('authToken');
+
+      const String baseUrl = APIConstants.baseUrl;
+      final response = await http.post(
+        Uri.parse('$baseUrl/logger/workout_receiver/'),
+        headers: {"Content-Type": "application/json",'Authorization': 'Token $authToken'},
+        body: json.encode(workoutData),
+      );
+
+      if (response.statusCode == 201) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: FitnessAppTheme.background,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            title: const Text('Workout Complete',
+                style: TextStyle(color: Colors.white)),
+            content: const Text(
+              'Your workout has been saved!',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+
+        _discardWorkout();
+      } else {
+        throw Exception('Failed to save workout: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -470,78 +556,74 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                   : const Icon(Icons.add),
               label: const Text('Add Exercise'),
             ),
+          const SizedBox(height: 10),
+          if (_workoutStarted)
+            FloatingActionButton.extended(
+              onPressed: _endWorkout,
+              backgroundColor: Colors.green,
+              icon: const Icon(Icons.check),
+              label: const Text('End Workout'),
+            ),
         ],
       ),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
-              child: 
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Consumer<StopwatchProvider>(
-                          builder: (context, stopwatchProvider, child) {
-                            return Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                'Workout Time: ${_formattedTime(stopwatchProvider.elapsedMilliseconds)}',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        Expanded(
-                          child: Consumer<ExerciseModel>(
-                            builder: (context, model, child) {
-                              return model.selectedExercises.isEmpty
-                                  ? Center(
-                                      child: Text(
-                                        'No exercises selected',
-                                        style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onPrimary,
-                                        ),
-                                      ),
-                                    )
-                                  : ListView.builder(
-                                      itemCount: model.selectedExercises.length,
-                                      itemBuilder: (context, index) {
-                                        final exercise = model.selectedExercises[index];
-                                        return _ExerciseTile(exercise: exercise);
-                                      },
-                                    );
-                            },
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Consumer<StopwatchProvider>(
+                    builder: (context, stopwatchProvider, child) {
+                      return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'Workout Time: ${_formattedTime(stopwatchProvider.elapsedMilliseconds)}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
+                      );
+                    },
+                  ),
+                  Expanded(
+                    child: Consumer<ExerciseModel>(
+                      builder: (context, model, child) {
+                        return model.selectedExercises.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No exercises selected',
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
+                                  ),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: model.selectedExercises.length,
+                                itemBuilder: (context, index) {
+                                  final exercise = model.selectedExercises[index];
+                                  return ExerciseTile(
+                                    exercise: exercise,
+                                    exerciseIndex: index,
+                                    onSetsChanged: (exerciseIndex, updatedSets) {
+                                      model.updateExerciseSets(
+                                          exerciseIndex, updatedSets);
+                                    },
+                                  );
+                                },
+                              );
+                      },
                     ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
-  }
-  Future<void> _discardWorkout() async {
-    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
-    stopwatchProvider.resetStopwatch();
-    stopwatchProvider.stopStopwatch();
-
-    
-    setState(() {
-      _workoutStarted = false;
-    });
-
-    Provider.of<ExerciseModel>(context, listen: false).setExercises([]);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('workoutStarted');
-    await prefs.remove('elapsedMilliseconds');
-    await prefs.remove('selectedExercises');
-    
-    Navigator.of(context).pop();
   }
 }

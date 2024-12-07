@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'exercise_model.dart';
+import 'workout_tracking/exercise_model.dart';
 import 'home_body.dart';
 import 'fitness_app_theme.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'stopwatch_provider.dart';
+import 'workout_tracking/stopwatch_provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'google_signin_page.dart'; // Import your Google sign-in page
 

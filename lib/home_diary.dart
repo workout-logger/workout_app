@@ -8,8 +8,8 @@ import 'ui_view/last_workout.dart';
 import 'ui_view/title_view.dart';
 import 'ui_view/workout_duration_chart.dart';
 import 'ui_view/character_stats.dart';
-import 'workout_page.dart';
-import 'stopwatch_provider.dart'; // Import StopwatchProvider
+import 'workout_tracking/workout_page.dart';
+import 'workout_tracking/stopwatch_provider.dart'; // Import StopwatchProvider
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:lottie/lottie.dart'; // Import Lottie
