@@ -455,7 +455,29 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
       await prefs.remove('workoutStarted');
       await prefs.remove('elapsedMilliseconds');
       await prefs.remove('selectedExercises');
+
+      Navigator.of(context).pop();
     }
+  }
+
+  Future<void> _performDiscardWorkout() async {
+    final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+    stopwatchProvider.resetStopwatch();
+    stopwatchProvider.stopStopwatch();
+
+    setState(() {
+      _workoutStarted = false;
+    });
+
+    Provider.of<ExerciseModel>(context, listen: false).resetWorkout();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('workoutStarted');
+    await prefs.remove('elapsedMilliseconds');
+    await prefs.remove('selectedExercises');
+
+    // Optionally close the workout page
+    Navigator.of(context).pop();
   }
 
   Future<void> _endWorkout() async {
@@ -464,10 +486,8 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     });
 
     try {
-      final stopwatchProvider =
-          Provider.of<StopwatchProvider>(context, listen: false);
-      final exerciseModel =
-          Provider.of<ExerciseModel>(context, listen: false);
+      final stopwatchProvider = Provider.of<StopwatchProvider>(context, listen: false);
+      final exerciseModel = Provider.of<ExerciseModel>(context, listen: false);
 
       final workoutData = {
         'duration': stopwatchProvider.elapsedMilliseconds,
@@ -479,26 +499,24 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
         }).toList(),
       };
 
-      print(json.encode(workoutData)); // For debugging
       SharedPreferences prefs = await SharedPreferences.getInstance();
       final String? authToken = prefs.getString('authToken');
 
       const String baseUrl = APIConstants.baseUrl;
       final response = await http.post(
         Uri.parse('$baseUrl/logger/workout_receiver/'),
-        headers: {"Content-Type": "application/json",'Authorization': 'Token $authToken'},
+        headers: {"Content-Type": "application/json", 'Authorization': 'Token $authToken'},
         body: json.encode(workoutData),
       );
 
       if (response.statusCode == 201) {
+        await _performDiscardWorkout(); // Directly discard without confirmation
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: FitnessAppTheme.background,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            title: const Text('Workout Complete',
-                style: TextStyle(color: Colors.white)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            title: const Text('Workout Complete', style: TextStyle(color: Colors.white)),
             content: const Text(
               'Your workout has been saved!',
               style: TextStyle(color: Colors.white70),
@@ -510,14 +528,12 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
               ),
             ],
           ),
-        );
-
-        _discardWorkout();
+        ).then((_) => Navigator.of(context).pop());
       } else {
         throw Exception('Failed to save workout: ${response.statusCode}');
       }
     } catch (e) {
-      _showErrorDialog(e.toString());
+      _showErrorDialog('Error ending workout: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -525,46 +541,56 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: FitnessAppTheme.background,
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          if (_workoutStarted)
-            FloatingActionButton.extended(
-              onPressed: _discardWorkout,
-              backgroundColor: Colors.red,
-              icon: const Icon(Icons.delete),
-              label: const Text('Discard Workout'),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        decoration: BoxDecoration(
+          color: FitnessAppTheme.background,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
             ),
-          const SizedBox(height: 10),
-          if (_workoutStarted)
-            FloatingActionButton.extended(
-              onPressed: _showWorkoutExercises,
-              backgroundColor: FitnessAppTheme.white,
-              foregroundColor: FitnessAppTheme.background,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(Icons.add),
-              label: const Text('Add Exercise'),
-            ),
-          const SizedBox(height: 10),
-          if (_workoutStarted)
-            FloatingActionButton.extended(
-              onPressed: _endWorkout,
-              backgroundColor: Colors.green,
-              icon: const Icon(Icons.check),
-              label: const Text('End Workout'),
-            ),
-        ],
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            if (_workoutStarted)
+              FloatingActionButton(
+                onPressed: _discardWorkout,
+                backgroundColor: Colors.red,
+                child: const Icon(Icons.delete),
+              ),
+            if (_workoutStarted)
+              FloatingActionButton.extended(
+                onPressed: _showWorkoutExercises,
+                backgroundColor: Color.fromARGB(255, 182, 176, 238),
+                foregroundColor: FitnessAppTheme.background,
+                icon: _isLoading
+                    ? const SizedBox(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.add),
+                label: const Text('Add Exercise'),
+              ),
+            if (_workoutStarted)
+              FloatingActionButton.extended(
+                onPressed: _endWorkout,
+                backgroundColor: Colors.green,
+                icon: const Icon(Icons.check),
+                label: const Text('End'),
+              ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: Column(
