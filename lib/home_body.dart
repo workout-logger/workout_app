@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_diary.dart';
 import 'profile_page.dart';
 import 'inventory_page.dart';
-import 'chat_page.dart';
+import 'marketplace.dart';
 
 class HomeBody extends StatelessWidget {
   const HomeBody({super.key, required this.currentPageIndex, required this.animationController});
@@ -13,7 +13,7 @@ class HomeBody extends StatelessWidget {
   static List<Widget> _pages(AnimationController controller) => <Widget>[
         MyDiaryScreen(animationController: controller),
         InventoryPage(),
-        const ChatPage(),
+        MMORPGMainScreen(),
         const ProfilePage(),
       ];
 

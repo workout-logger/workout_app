@@ -123,10 +123,6 @@ Widget _buildMessageInput() {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Global Chat Room',
-          style: TextStyle(color: Colors.white),
-        ),
         backgroundColor: Colors.black,
       ),
       body: Column(

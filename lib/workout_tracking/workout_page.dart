@@ -11,7 +11,6 @@ import 'exercise.dart';
 import '../fitness_app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:workout_logger/constants.dart';
-import 'workout_set.dart';
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({super.key});
