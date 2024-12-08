@@ -1,141 +1,163 @@
 import 'package:flutter/material.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
+import 'dart:convert';
 
-class TradingPage extends StatefulWidget {
-  const TradingPage({super.key});
+class ChatPage extends StatefulWidget {
+  final String websocketUrl;
+  final String username; // Authenticated user's username
+  final String userId; // Authenticated user's ID
+
+  ChatPage({
+    required this.websocketUrl,
+    required this.username,
+    required this.userId,
+  });
 
   @override
-  _TradingPageState createState() => _TradingPageState();
+  _ChatPageState createState() => _ChatPageState();
 }
 
-class _TradingPageState extends State<TradingPage> {
+class _ChatPageState extends State<ChatPage> {
+  late WebSocketChannel channel;
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, String>> _messages = []; // Mocked message list
+  final List<Map<String, dynamic>> _messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize WebSocket connection
+    channel = WebSocketChannel.connect(Uri.parse(widget.websocketUrl));
+
+    // Listen for incoming messages
+    channel.stream.listen((data) {
+      final decodedData = json.decode(data);
+      setState(() {
+        _messages.add(decodedData);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    channel.sink.close(status.normalClosure);
+    _messageController.dispose();
+    super.dispose();
+  }
 
   void _sendMessage() {
-    final text = _messageController.text.trim();
-    if (text.isNotEmpty) {
+    final message = _messageController.text.trim();
+    if (message.isNotEmpty) {
+      // Create the message payload
+      final payload = {
+        "sender_id": widget.userId,
+        "message": message,
+      };
+
+      // Send the message to the WebSocket server
+      channel.sink.add(json.encode(payload));
+
+      // Optionally, add the message locally to the UI
       setState(() {
-        _messages.add({"user": "You", "message": text});
+        _messages.add({
+          "sender_id": widget.userId,
+          "username": widget.username,
+          "message": message,
+          "timestamp": DateTime.now().toIso8601String(),
+        });
       });
+
+      // Clear the input field
       _messageController.clear();
     }
+  }
+
+  Widget _buildMessageBubble(Map<String, dynamic> message) {
+    final isMe = message['sender_id'] == widget.userId;
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isMe ? Colors.blueGrey[700] : Colors.grey[800],
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isMe)
+              Text(
+                message['username'] ?? 'Anonymous',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.tealAccent,
+                ),
+              ),
+            Text(
+              message['message'] ?? '',
+              style: TextStyle(color: Colors.white),
+            ),
+            SizedBox(height: 5),
+            Text(
+              message['timestamp'] != null
+                  ? message['timestamp'].toString().split('T')[1].split('.')[0]
+                  : '',
+              style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text(
-          "Trading Chatroom",
-          style: TextStyle(color: Colors.white, fontSize: 20),
-        ),
-        backgroundColor: Colors.grey[850],
-      ),
       body: Column(
         children: [
-          // Message List
+          // Messages List
           Expanded(
             child: ListView.builder(
-              reverse: true, // Show latest messages at the bottom
+              reverse: true,
               itemCount: _messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[_messages.length - 1 - index];
-                return ListTile(
-                  title: Text(
-                    message["user"]!,
-                    style: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    message["message"]!,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                );
+                return _buildMessageBubble(
+                    _messages[_messages.length - 1 - index]);
               },
             ),
           ),
-          // Input field and send button
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            color: Colors.grey[900],
+
+          // Message Input Field
+          Padding(
+            padding: const EdgeInsets.all(10.0),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      hintText: "Type a message",
-                      hintStyle: TextStyle(color: Colors.white60),
-                      border: InputBorder.none,
+                    style: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.grey[800],
+                      hintText: 'Type a message...',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send, color: Colors.greenAccent),
+                  icon: Icon(Icons.send, color: Colors.tealAccent),
                   onPressed: _sendMessage,
                 ),
               ],
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Action to initiate a trade
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                backgroundColor: Colors.grey[850],
-                title: const Text(
-                  "Initiate Trade",
-                  style: TextStyle(color: Colors.white),
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      "Select item to trade:",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButton<String>(
-                      dropdownColor: Colors.grey[850],
-                      items: <String>['Item 1', 'Item 2', 'Item 3'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value, style: const TextStyle(color: Colors.white)),
-                        );
-                      }).toList(),
-                      onChanged: (_) {},
-                      hint: const Text("Choose item", style: TextStyle(color: Colors.white)),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Action to confirm trade
-                        Navigator.of(context).pop();
-                        setState(() {
-                          _messages.add({
-                            "user": "System",
-                            "message": "Trade request sent. Waiting for confirmation."
-                          });
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.greenAccent,
-                      ),
-                      child: const Text("Send Trade Request"),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-        backgroundColor: Colors.greenAccent,
-        child: const Icon(Icons.swap_horiz),
       ),
     );
   }

@@ -446,34 +446,11 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.keyboard_arrow_left),
-                                color: Colors.grey,
-                                onPressed: () {},
-                              ),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Row(
-                                  children: <Widget>[
-                                    Icon(
-                                      Icons.calendar_today,
-                                      color: Colors.grey,
-                                      size: 18,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      '15 May',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.keyboard_arrow_right),
-                                color: Colors.grey,
-                                onPressed: () {},
+                                icon: const Icon(Icons.account_circle, size: 30),
+                                color: Colors.white,
+                                onPressed: () {
+                                  // Add your logic for profile button here
+                                },
                               ),
                             ],
                           ),

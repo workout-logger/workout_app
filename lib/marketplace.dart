@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:workout_logger/chat_page.dart';
-
+import 'package:workout_logger/trading_page.dart';
 
 class MMORPGMainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3, // Number of tabs
+      length: 4, // Updated to 4 tabs
       child: Scaffold(
         backgroundColor: Color.fromARGB(255, 0, 0, 0),
         appBar: PreferredSize(
@@ -25,6 +24,10 @@ class MMORPGMainScreen extends StatelessWidget {
                   text: 'Market',
                 ),
                 Tab(
+                  icon: Icon(Icons.inventory_2_outlined),
+                  text: 'Chests',
+                ),
+                Tab(
                   icon: Icon(Icons.chat_bubble_outline),
                   text: 'Chat',
                 ),
@@ -39,7 +42,12 @@ class MMORPGMainScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             MarketScreen(),
-            ChatPage(),
+            ChestsScreen(), // New Chests Tab
+            ChatPage(
+              websocketUrl: 'ws://jaybird-exciting-merely.ngrok-free.app/ws/chat/?token=ca98303f6358d7df547dc515a5cd4315e6d4dd27', // Replace with your WebSocket URL
+              username: 'johndoe', // Replace with authenticated username
+              userId: '2', // Replace with authenticated user ID
+            ),
             FriendsScreen(),
           ],
         ),
@@ -48,14 +56,44 @@ class MMORPGMainScreen extends StatelessWidget {
   }
 }
 
-
-class MarketScreen extends StatelessWidget {
+class ChestsScreen extends StatelessWidget {
   final List<Map<String, dynamic>> chestData = [
     {'name': 'Bronze Chest', 'price': 100, 'number': 0},
     {'name': 'Silver Chest', 'price': 250, 'number': 1},
     {'name': 'Gold Chest', 'price': 500, 'number': 2},
     {'name': 'Diamond Chest', 'price': 1000, 'number': 3},
   ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Color.fromARGB(255, 0, 0, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2, // Two items per row
+            crossAxisSpacing: 16.0, // Space between columns
+            mainAxisSpacing: 16.0, // Space between rows
+          ),
+          itemCount: chestData.length,
+          itemBuilder: (context, index) {
+            return ChestCard(
+              chestName: chestData[index]['name'],
+              chestPrice: chestData[index]['price'],
+              chestNumber: chestData[index]['number'],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+
+
+
+class MarketScreen extends StatelessWidget {
 
   final List<Map<String, dynamic>> globalItems = [
     {'name': 'Epic Sword', 'price': 1500, 'rarity': 'Epic'},
@@ -72,35 +110,6 @@ class MarketScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Chests Section
-            Padding(
-              padding: const EdgeInsets.only(top: 25.0, left: 10, bottom: 0.0), // Reduce bottom padding
-              child: Text(
-                'Chests',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 180, // Reduce height if needed
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: chestData.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: ChestCard(
-                      chestName: chestData[index]['name'],
-                      chestPrice: chestData[index]['price'],
-                      chestNumber: chestData[index]['number'],
-                    ),
-                  );
-                },
-              ),
-            ),
-            // Global Items Section
             Padding(
               padding: const EdgeInsets.only(top: 16.0, left: 10, bottom: 8.0),
               child: Text(
