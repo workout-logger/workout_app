@@ -97,100 +97,168 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _showProfilePopup(BuildContext context, Map<String, dynamic> userProfile) {
-    showDialog(
+  void _showProfileBottomSheet(Map<String, dynamic> userProfile) {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          title: Text(
-            "${userProfile['username']}'s Profile",
-            style: TextStyle(color: Colors.tealAccent),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Character Display
-                Center(
-                  child: Container(
-                    height: 100,
-                    width: 100,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage(userProfile['characterImage']),
-                        fit: BoxFit.cover,
-                      ),
-                      borderRadius: BorderRadius.circular(50),
-                      border: Border.all(color: Colors.tealAccent, width: 2),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
+        final characterImage = userProfile['characterImage'] ?? '';
+        final username = userProfile['username'] ?? 'Unknown';
 
-                // Stats Section
-                Text(
-                  "Stats:",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.tealAccent,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  "Level: ${userProfile['stats']['level']}\n"
-                  "Strength: ${userProfile['stats']['strength']}\n"
-                  "Agility: ${userProfile['stats']['agility']}\n"
-                  "Endurance: ${userProfile['stats']['endurance']}",
-                  style: TextStyle(color: Colors.white),
-                ),
-                SizedBox(height: 20),
-
-                // Items Section
-                Text(
-                  "Items:",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.tealAccent,
-                  ),
-                ),
-                SizedBox(height: 10),
-                ...userProfile['items'].map<Widget>((item) {
-                  return Text(
-                    "- $item",
-                    style: TextStyle(color: Colors.white),
-                  );
-                }).toList(),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                "Close",
-                style: TextStyle(color: Colors.tealAccent),
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-            ),
-          ],
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Arrow to close at the top center
+                    Center(
+                      child: IconButton(
+                        icon: Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 30),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    // Fancy title
+                    Center(
+                      child: Text(
+                        "$username's Profile",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    // Character image
+                    Center(
+                      child: Container(
+                        height: 120,
+                        width: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          image: characterImage.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(characterImage),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          borderRadius: BorderRadius.circular(60),
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: characterImage.isEmpty
+                            ? Center(
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.black,
+                                  size: 60,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    SizedBox(height: 30),
+                    // Stats
+                    Text(
+                      "Stats",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    _buildStatRow("Level", userProfile['stats']['level'].toString()),
+                    _buildStatRow("Strength", userProfile['stats']['strength'].toString()),
+                    _buildStatRow("Agility", userProfile['stats']['agility'].toString()),
+                    _buildStatRow("Endurance", userProfile['stats']['endurance'].toString()),
+                    SizedBox(height: 30),
+                    // Items
+                    Text(
+                      "Items",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    ..._buildItemsList(userProfile['items'] ?? []),
+                    SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
+  List<Widget> _buildItemsList(List items) {
+    return items.map((item) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3.0),
+        child: Row(
+          children: [
+            Icon(Icons.chevron_right, color: Colors.white, size: 16),
+            SizedBox(width: 5),
+            Text(
+              item,
+              style: TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildStatRow(String statName, String statValue) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              "$statName:",
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          Text(
+            statValue,
+            style: TextStyle(color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMessageBubble(Map<String, dynamic> message) {
     final isMe = message['sender_id'] == widget.userId;
 
     return GestureDetector(
       onTap: () {
-        // Show profile popup with dummy data for now
-        _showProfilePopup(context, {
+        // Show bottom sheet with dummy data for now
+        _showProfileBottomSheet({
           'username': message['username'] ?? 'Anonymous',
           'characterImage': 'https://via.placeholder.com/100', // Replace with actual character image URL
           'stats': {
@@ -208,7 +276,7 @@ class _ChatPageState extends State<ChatPage> {
           margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: isMe ? Colors.blueGrey[700] : Colors.grey[800],
+            color: isMe ? Colors.grey[900] : Colors.grey[800],
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
@@ -219,7 +287,7 @@ class _ChatPageState extends State<ChatPage> {
                   message['username'] ?? 'Anonymous',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.tealAccent,
+                    color: Colors.white,
                   ),
                 ),
               Text(
@@ -231,7 +299,7 @@ class _ChatPageState extends State<ChatPage> {
                 message['timestamp'] != null
                     ? message['timestamp'].toString().split('T')[1].split('.')[0]
                     : '',
-                style: TextStyle(fontSize: 10, color: Colors.grey[400]),
+                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
               ),
             ],
           ),
@@ -252,7 +320,7 @@ class _ChatPageState extends State<ChatPage> {
             child: _isLoading
                 ? Center(
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.tealAccent),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
                 : ListView.builder(
@@ -287,7 +355,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.send, color: Colors.tealAccent),
+                  icon: Icon(Icons.send, color: Colors.white),
                   onPressed: _sendMessage,
                 ),
               ],
