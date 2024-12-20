@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:workout_logger/chests.dart';
 import 'package:workout_logger/trading_page.dart';
 import 'package:animate_do/animate_do.dart'; // Import animate_do
 
@@ -60,43 +61,6 @@ class MMORPGMainScreen extends StatelessWidget {
   }
 }
 
-class ChestsScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> chestData = [
-    {'name': 'Bronze Chest', 'price': 100, 'number': 0},
-    {'name': 'Silver Chest', 'price': 250, 'number': 1},
-    {'name': 'Gold Chest', 'price': 500, 'number': 2},
-    {'name': 'Diamond Chest', 'price': 1000, 'number': 3},
-  ];
-
-  ChestsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Color.fromARGB(255, 0, 0, 0),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // Two items per row
-            crossAxisSpacing: 16.0, // Space between columns
-            mainAxisSpacing: 16.0, // Space between rows
-          ),
-          itemCount: chestData.length,
-          itemBuilder: (context, index) {
-            return ChestCard(
-              chestName: chestData[index]['name'],
-              chestPrice: chestData[index]['price'],
-              chestNumber: chestData[index]['number'],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-
 
 class MarketScreen extends StatelessWidget {
   final List<Map<String, dynamic>> globalItems = [
@@ -109,7 +73,7 @@ class MarketScreen extends StatelessWidget {
     {'name': 'Hunter\'s Knife', 'price': 500, 'rarity': 'Common'},
     {'name': 'Wizard\'s Staff', 'price': 1800, 'rarity': 'Epic'},
   ];
-R
+
   MarketScreen({super.key});
 
   Color _getRarityColor(String rarity) {
@@ -323,100 +287,7 @@ class GlobalItemRow extends StatelessWidget {
 }
 
 
-class ChestCard extends StatelessWidget {
-  final String chestName;
-  final int chestPrice;
-  final int chestNumber;
 
-  const ChestCard({
-    super.key,
-    required this.chestName,
-    required this.chestPrice,
-    required this.chestNumber,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: const Color.fromARGB(0, 48, 48, 48),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: () {
-          // Handle chest purchase
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: Text(
-                'Purchase $chestName',
-                style: TextStyle(color: Colors.white),
-              ),
-              content: Text(
-                'Do you want to buy this chest for $chestPrice coins?',
-                style: TextStyle(color: Colors.white70),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: TextStyle(color: Colors.red)),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '$chestName purchased!',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  },
-                  child: Text('Buy', style: TextStyle(color: Colors.green)),
-                ),
-              ],
-            ),
-          );
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Container(
-                child: Image.asset(
-                  'assets/images/Pixel_Chest_Pack/chest_$chestNumber.png',
-                  height: 100,
-                  width: 100,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              chestName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              "$chestPrice Coins",
-              style: const TextStyle(
-                color: Colors.greenAccent,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class GlobalChatScreen extends StatelessWidget {
   const GlobalChatScreen({super.key});

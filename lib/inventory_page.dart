@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:workout_logger/item_card.dart';
 import 'websocket_manager.dart';
 import 'inventory_manager.dart'; // Import the InventoryManager
 import 'ui_view/character_stats_inv.dart';
@@ -132,6 +133,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 fileName: item['file_name'],
                                 isEquipped: item['is_equipped'],
                                 onEquipUnequip: _refreshUI,
+                                rarity: item['rarity'],
                               );
                             },
                           ),
@@ -211,160 +213,7 @@ class ChestCard extends StatelessWidget {
 }
 
 
-class InventoryItemCard extends StatelessWidget {
-  final String itemName;
-  final String category;
-  final String fileName;
-  final bool isEquipped;
-  final VoidCallback onEquipUnequip;
 
-
-  const InventoryItemCard({
-    super.key,
-    required this.itemName,
-    required this.category,
-    required this.fileName,
-    required this.isEquipped,
-    required this.onEquipUnequip,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        print('Category: $category');
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.transparent,
-          isScrollControlled: true,
-          builder: (context) => InventoryActionsDrawer(
-            itemName: itemName,
-            category: category,
-            fileName: fileName,
-            isEquipped: isEquipped,
-            onEquipUnequip: onEquipUnequip,
-
-          ),
-        );
-      },
-      child: Stack(
-        children: [
-          // Card with subtle glow and RPG textures
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A), // Dark RPG base color
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isEquipped ? const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2) : Colors.transparent,
-                width: isEquipped ? 1 : 1, // Subtle glow for equipped
-              ),
-              boxShadow: isEquipped
-                  ? [
-                      BoxShadow(
-                        color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2),
-                        blurRadius: 10,
-                        spreadRadius: 0.5,
-                      ),
-                    ]
-                  : [],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                 if (category == "legs" || category == "melee")
-                  ClipRect(
-                    child: SizedBox(
-                      child: Align(
-                        alignment: Alignment.bottomCenter, // Show the bottom portion
-                        heightFactor: 0.3, // Cut the image to 50%
-                        child: Image.asset(
-                          'assets/character/$category/$fileName',
-                          fit: BoxFit.cover, // Scale the remaining image to fill the space
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.broken_image,
-                              color: Colors.redAccent,
-                              size: 60,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 30.0),                    
-                    child: Image.asset(
-                      'assets/character/$category/$fileName',
-                      fit: BoxFit.contain, // Scale image to fill space
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.broken_image,
-                          color: Colors.redAccent,
-                          size: 40,
-                        );
-                      },
-                    ),
-                ),             
-              ],
-            ),
-          ),
-
-          // Subtle Rune-like Badge
-          if (isEquipped)
-            Positioned(
-              top: 4,
-              left: 4,
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.deepPurpleAccent.withOpacity(0.7),
-                      Colors.black.withOpacity(0.8),
-                    ],
-                    stops: const [0.6, 1.0],
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.star, // Rune-like symbol
-                    size: 16,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                ),
-              ),
-            ),
-
-          // Item Name at the Bottom
-          Positioned(
-            bottom: 8.0,
-            left: 0,
-            right: 0,
-            child: Text(
-              itemName,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                shadows: [
-                  Shadow(
-                    offset: Offset(0, 1),
-                    blurRadius: 4,
-                    color: Colors.black,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 
 class InventoryActionsDrawer extends StatelessWidget {

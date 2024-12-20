@@ -73,6 +73,7 @@ flutter:
 
   assets:
   - assets/images/
+  - assets/images/chests/
   - assets/images/Pixel_Chest_Pack/
   - assets/character/armour/
   - assets/character/heads/
