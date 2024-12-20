@@ -37,7 +37,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   String muscleGroups = '';
   bool isRefreshing = false;
   double _pullDistance = 0.0;
-  double _refreshTriggerPullDistance = 150.0; // Increased pull distance for less sensitivity
+  final double _refreshTriggerPullDistance = 150.0; // Increased pull distance for less sensitivity
 
   @override
   void initState() {

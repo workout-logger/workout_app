@@ -8,7 +8,7 @@ class ChatPage extends StatefulWidget {
   final String username; // Authenticated user's username
   final String userId; // Authenticated user's ID
 
-  ChatPage({
+  const ChatPage({super.key, 
     required this.websocketUrl,
     required this.username,
     required this.userId,

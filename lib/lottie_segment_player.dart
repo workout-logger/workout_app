@@ -11,7 +11,7 @@ class LottieSegmentPlayer extends StatefulWidget {
   final FilterQuality filterQuality; // Filter quality for rendering
 
   const LottieSegmentPlayer({
-    Key? key,
+    super.key,
     required this.animationPath,
     required this.endFraction,
     this.width,
@@ -19,7 +19,7 @@ class LottieSegmentPlayer extends StatefulWidget {
     this.progressiveLoad = false, // Default is not progressive
     this.steps = 5, // Default number of steps
     this.filterQuality = FilterQuality.low, // Default filter quality
-  }) : super(key: key);
+  });
 
   @override
   _LottieSegmentPlayerState createState() => _LottieSegmentPlayerState();

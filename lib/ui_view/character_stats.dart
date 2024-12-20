@@ -154,7 +154,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
                           stat['icon'],
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),

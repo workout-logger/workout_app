@@ -10,11 +10,11 @@ class ExerciseTile extends StatefulWidget {
   final Function(int, List<WorkoutSet>) onSetsChanged;
 
   const ExerciseTile({
-    Key? key,
+    super.key,
     required this.exercise,
     required this.exerciseIndex,
     required this.onSetsChanged,
-  }) : super(key: key);
+  });
 
   @override
   _ExerciseTileState createState() => _ExerciseTileState();
