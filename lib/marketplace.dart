@@ -68,7 +68,7 @@ class ChestsScreen extends StatelessWidget {
     {'name': 'Diamond Chest', 'price': 1000, 'number': 3},
   ];
 
-  const ChestsScreen({super.key});
+  ChestsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +109,8 @@ class MarketScreen extends StatelessWidget {
     {'name': 'Hunter\'s Knife', 'price': 500, 'rarity': 'Common'},
     {'name': 'Wizard\'s Staff', 'price': 1800, 'rarity': 'Epic'},
   ];
-
-  const MarketScreen({super.key});
+R
+  MarketScreen({super.key});
 
   Color _getRarityColor(String rarity) {
     switch (rarity) {
