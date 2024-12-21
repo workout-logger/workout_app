@@ -99,19 +99,21 @@ class _ChestOverlay extends StatefulWidget {
   @override
   _ChestOverlayState createState() => _ChestOverlayState();
 }
-
 class _ChestOverlayState extends State<_ChestOverlay> {
   bool _centered = false;
   bool _opened = false;
   bool _cardsDealt = false;
-  List<bool> _cardAnimationsStarted = [];
+  int _currentCardIndex = -1;
+  bool _showingStats = false;
+  final List<Map<String, dynamic>> _dealtCards = [];
 
-  final int _cardCount = 5; 
-  final double _cardSpacing = 0.0; 
+  final int _cardCount = 5;
   final double _cardWidth = 120.0;
   final double _cardHeight = 150.0;
+  bool _currentCardAnimationComplete = true;
+  Map<String, dynamic>? _currentlyFlyingCard;
 
-  final List<Map<String, dynamic>> inventoryItems = [
+  final List<Map<String, dynamic>> _inventoryItems = [
     {
       'itemName': 'Iron Sword',
       'category': 'melee',
@@ -149,22 +151,56 @@ class _ChestOverlayState extends State<_ChestOverlay> {
     },
   ];
 
+  late final double _centerDisplayX;
+  final double _statsOffset = 200.0;
+
   @override
   void initState() {
     super.initState();
-    _cardAnimationsStarted = List.filled(_cardCount, false);
-
+    _centerDisplayX = widget.screenWidth / 2 - (_cardWidth / 2) - (_statsOffset / 2);
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {});
       Future.delayed(const Duration(milliseconds: 50), () {
         if (mounted) {
           setState(() {
-            _centered = true; 
+            _centered = true;
           });
         }
       });
     });
   }
+
+  void _startNextCardAnimation() {
+    if (_currentCardIndex < _cardCount - 1 && _currentCardAnimationComplete) {
+      setState(() {
+        _currentCardIndex++;
+        _currentlyFlyingCard = _inventoryItems[_currentCardIndex];
+        _currentCardAnimationComplete = false;
+        _showingStats = false;
+      });
+    }
+  }
+
+
+  void _onCardAnimationComplete() {
+    if (_currentlyFlyingCard != null) {
+      setState(() {
+        _dealtCards.add(_currentlyFlyingCard!);
+        _currentlyFlyingCard = null;
+        _currentCardAnimationComplete = true;
+      });
+      // Trigger next animation only if there are more cards
+      if (_currentCardIndex < _cardCount - 1) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _startNextCardAnimation();
+        });
+      }
+    }
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +209,6 @@ class _ChestOverlayState extends State<_ChestOverlay> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Background Dim
           AnimatedOpacity(
             duration: const Duration(milliseconds: 300),
             opacity: _centered ? 0.7 : 0.0,
@@ -183,7 +218,30 @@ class _ChestOverlayState extends State<_ChestOverlay> {
             ),
           ),
 
-          // Chest positioned higher
+          // Dealt cards in deck
+          ..._dealtCards.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return Positioned(
+              left: _getFinalXPosition(index),
+              top: _getFinalYPosition(index),
+              width: _cardWidth,
+              height: _cardHeight,
+              child: Transform.scale(
+                scale: 0.8,
+                child: InventoryItemCard(
+                  rarity: item['rarity'],
+                  itemName: item['itemName'],
+                  category: item['category'],
+                  fileName: item['fileName'],
+                  isEquipped: item['isEquipped'],
+                  onEquipUnequip: () {},
+                ),
+              ),
+            );
+          }),
+
+          // Chest
           AnimatedPositioned(
             duration: const Duration(milliseconds: 500),
             curve: Curves.easeOutCubic,
@@ -192,228 +250,267 @@ class _ChestOverlayState extends State<_ChestOverlay> {
             width: _centered ? 200.0 : 100.0,
             height: _centered ? 200.0 : 100.0,
             onEnd: () {
-              // Once centered
               if (_centered && !_opened) {
                 setState(() {
-                  _opened = true;
+                  _opened = true; // Ensure _opened is set only once
                 });
               }
             },
-            child: _opened
-                ? AnimatedChest(
-                    open: true,
-                    onAnimationComplete: () {
-                      // Chest is fully opened, start dealing cards
-                      setState(() {
-                        _cardsDealt = true;
-                      });
-                      // Stagger card animations
-                      for (int i = 0; i < _cardCount; i++) {
-                        Future.delayed(Duration(milliseconds: 800 * i), () {
-                          if (mounted) {
-                            setState(() {
-                              _cardAnimationsStarted[i] = true;
-                            });
-                          }
-                        });
-                      }
-                    },
-                  )
-                : Image.asset(
-                    'assets/images/chests/tile000.png',
-                    fit: BoxFit.contain,
-                  ),
+            child: AnimatedChest(
+              open: _opened, // Open state is fixed and does not toggle
+              onAnimationComplete: () {
+                if (!_cardsDealt) {
+                  setState(() {
+                    _cardsDealt = true;
+                  });
+                  if (_currentCardIndex == -1) {
+                    _startNextCardAnimation();
+                  }
+                }
+              },
+            ),
           ),
 
-          // Cards
-          if (_cardsDealt) ..._buildCardWidgets(),
+
+
+          // Currently animating card
+          if (_currentlyFlyingCard != null)
+            FlyingCard(
+              key: ValueKey(_currentCardIndex), // Add key to force rebuild
+              item: _inventoryItems[_currentCardIndex],
+              startX: widget.screenWidth / 2 - 25.0,
+              startY: (widget.screenHeight / 2 - 200.0) + 100.0,
+              centerX: _centerDisplayX,
+              endX: _getFinalXPosition(_dealtCards.length),
+              endY: _getFinalYPosition(_dealtCards.length),
+              cardWidth: _cardWidth,
+              cardHeight: _cardHeight,
+              showStats: _showingStats,
+              onCenterReached: () {
+                setState(() {
+                  _showingStats = true;
+                });
+                // Show stats for 2 seconds
+                Future.delayed(const Duration(seconds: 1), () {
+                  if (mounted) {
+                    setState(() {
+                      _showingStats = false;
+                    });
+                  }
+                });
+              },
+            onAnimationComplete: _onCardAnimationComplete,            
+          ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildCardWidgets() {
-    // Cards start from chest area
-    final double cardStartX = widget.screenWidth / 2 - 25.0;
-    final double cardStartY = (widget.screenHeight / 2 - 200.0) + 100.0; 
+  double _getFinalXPosition(int index) {
+    if (index < 2) {
+      double totalWidthTop = 2 * _cardWidth;
+      double topRowXStart = (widget.screenWidth - totalWidthTop) / 2;
+      return topRowXStart + index * _cardWidth;
+    } else {
+      double totalWidthBottom = 3 * _cardWidth;
+      double bottomRowXStart = (widget.screenWidth - totalWidthBottom) / 2;
+      return bottomRowXStart + (index - 2) * _cardWidth;
+    }
+  }
 
-    double totalWidthTop = 2 * _cardWidth + 1 * _cardSpacing;
-    double topRowXStart = (widget.screenWidth - totalWidthTop) / 2;
-    double topRowY = widget.screenHeight - 200.0 - 140.0; 
-    double totalWidthBottom = 3 * _cardWidth + 2 * _cardSpacing;
-    double bottomRowXStart = (widget.screenWidth - totalWidthBottom) / 2;
-    double bottomRowY = widget.screenHeight - 200.0;
-
-    return List.generate(_cardCount, (i) {
-      final delayStarted = _cardAnimationsStarted[i];
-      final item = inventoryItems[i];
-
-      if (!delayStarted) {
-        return const SizedBox.shrink();
-      }
-
-      double finalX, finalY;
-      if (i < 2) {
-        finalX = topRowXStart + i * (_cardWidth + _cardSpacing);
-        finalY = topRowY;
-      } else {
-        int j = i - 2;
-        finalX = bottomRowXStart + j * (_cardWidth + _cardSpacing);
-        finalY = bottomRowY;
-      }
-
-      return FlyingCard(
-        key: ValueKey(i),
-        item: item,
-        startX: cardStartX,
-        startY: cardStartY,
-        endX: finalX,
-        endY: finalY,
-        isAnimating: delayStarted,
-        cardWidth: _cardWidth,
-        cardHeight: _cardHeight,
-      );
-    });
+  double _getFinalYPosition(int index) {
+    return index < 2 
+        ? widget.screenHeight - 340.0
+        : widget.screenHeight - 200.0;
   }
 }
-
 class FlyingCard extends StatefulWidget {
   final Map<String, dynamic> item;
   final double startX, startY;
+  final double centerX;
   final double endX, endY;
-  final bool isAnimating;
   final double cardWidth, cardHeight;
+  final bool showStats;
+  final VoidCallback onCenterReached;
+  final VoidCallback onAnimationComplete;
 
   const FlyingCard({
     Key? key,
     required this.item,
     required this.startX,
     required this.startY,
+    required this.centerX,
     required this.endX,
     required this.endY,
-    required this.isAnimating,
     required this.cardWidth,
     required this.cardHeight,
+    required this.showStats,
+    required this.onCenterReached,
+    required this.onAnimationComplete,
   }) : super(key: key);
 
   @override
   State<FlyingCard> createState() => _FlyingCardState();
 }
 
-class _FlyingCardState extends State<FlyingCard> with SingleTickerProviderStateMixin {
+class _FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  bool _hasReachedCenter = false;
+  bool _isMovingToFinal = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        if (!_hasReachedCenter) {
+          _hasReachedCenter = true;
+          widget.onCenterReached();
+        } else if (_isMovingToFinal) {
+          widget.onAnimationComplete();
+        }
+      }
+    });
+
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(FlyingCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.showStats && _hasReachedCenter && !_isMovingToFinal) {
+      _isMovingToFinal = true;
+      _controller.duration = const Duration(milliseconds: 800);
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final item = widget.item;
-    final bool isLegendary = item['rarity'] == 'legendary';
+    final screenHeight = MediaQuery.of(context).size.height;
+    final centerY = screenHeight / 2 - (widget.cardHeight / 2);
 
-    if (!widget.isAnimating) {
-      return const SizedBox.shrink();
-    }
-
-    // Different durations:
-    // - Legendary: 8 seconds (8000ms)
-    // - Non-legendary: quick, say 2 seconds (2000ms)
-    final totalDuration = isLegendary ? 8000 : 2000;
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      // Use different duration depending on rarity
-      duration: Duration(milliseconds: totalDuration),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        final screenHeight = MediaQuery.of(context).size.height;
-        
-        final centerX = screenWidth / 2 - (widget.cardWidth / 2);
-        final centerY = screenHeight / 2 - (widget.cardHeight / 2);
-
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
         double currentX, currentY;
-        double scale;
-        double rotationY = 0.0; 
-        double rotationZ = 0.0; 
+        double scale = 1.0;
 
-        if (!isLegendary) {
-          // Non-legendary: just 2 phases over 2s
-          if (value <= 0.5) {
-            double t = value / 0.5;
-            currentX = lerpDouble(widget.startX, centerX, t)!;
-            currentY = lerpDouble(widget.startY, centerY, t)!;
-            scale = lerpDouble(0.5, 1.2, t)!;
-            rotationZ = lerpDouble(-0.2, 0.0, t)!;
-          } else {
-            double t = (value - 0.5) / 0.5;
-            currentX = lerpDouble(centerX, widget.endX, t)!;
-            currentY = lerpDouble(centerY, widget.endY, t)!;
-            scale = lerpDouble(1.2, 0.8, t)!;
-            rotationZ = 0.0;
-          }
-          rotationY = 0.0;
+        if (!_hasReachedCenter) {
+          // Moving to center
+          currentX = lerpDouble(widget.startX, widget.centerX, _animation.value)!;
+          currentY = lerpDouble(widget.startY, centerY, _animation.value)!;
+          scale = lerpDouble(0.5, 1.0, _animation.value)!;
+        } else if (!_isMovingToFinal) {
+          // Holding at center
+          currentX = widget.centerX;
+          currentY = centerY;
+          scale = 1.0;
         } else {
-          // Legendary: longer 8s phases (same as previous code)
-          if (value <= 0.3) {
-            double t = value / 0.3;
-            currentX = lerpDouble(widget.startX, centerX, t)!;
-            currentY = lerpDouble(widget.startY, centerY, t)!;
-            scale = lerpDouble(0.3, 1.3, t)!;
-            rotationZ = lerpDouble(-1, 0, t)!;
-            rotationY = t * 4 * pi; 
-          } else if (value <= 0.5) {
-            double t = (value - 0.3) / 0.2; 
-            currentX = centerX;
-            currentY = centerY;
-            scale = 1.3;
-            rotationZ = 0.0;
-            rotationY = 4 * pi + t * 8 * pi; 
-          } else if (value <= 0.9) {
-            double t = (value - 0.5) / 0.3;
-            currentX = centerX;
-            currentY = centerY;
-            double wiggle = sin(t * 2 * pi) * 0.1; 
-            scale = 1.3 + wiggle;
-            rotationZ = sin(t * 2 * pi) * 0.2;
-            rotationY = 0.0;
-          } else {
-            double t = (value - 0.9) / 0.1;
-            currentX = lerpDouble(centerX, widget.endX, t)!;
-            currentY = lerpDouble(centerY, widget.endY, t)!;
-            scale = lerpDouble(1.3, 0.8, t)!;
-            rotationZ = 0.0;
-            rotationY = 0.0;
-          }
+          // Moving to final position
+          currentX = lerpDouble(widget.centerX, widget.endX, _animation.value)!;
+          currentY = lerpDouble(centerY, widget.endY, _animation.value)!;
+          scale = lerpDouble(1.0, 0.8, _animation.value)!;
         }
 
-        final transform = Matrix4.identity()
-          ..rotateZ(rotationZ)
-          ..rotateY(rotationY);
-
-        return Positioned(
-          left: currentX,
-          top: currentY,
-          width: widget.cardWidth,
-          height: widget.cardHeight,
-          child: Transform(
-            transform: transform,
-            alignment: Alignment.center,
-            child: Transform.scale(
-              scale: scale,
-              child: InventoryItemCard(
-                rarity: item['rarity'],
-                itemName: item['itemName'],
-                category: item['category'],
-                fileName: item['fileName'],
-                isEquipped: item['isEquipped'],
-                onEquipUnequip: () {
-                  print('${item['itemName']} equipped/unequipped!');
-                },
+        return Stack(
+          children: [
+            Positioned(
+              left: currentX,
+              top: currentY,
+              width: widget.cardWidth,
+              height: widget.cardHeight,
+              child: Transform.scale(
+                scale: scale,
+                child: InventoryItemCard(
+                  rarity: widget.item['rarity'],
+                  itemName: widget.item['itemName'],
+                  category: widget.item['category'],
+                  fileName: widget.item['fileName'],
+                  isEquipped: widget.item['isEquipped'],
+                  onEquipUnequip: () {},
+                ),
               ),
             ),
-          ),
+            if (widget.showStats && _hasReachedCenter && !_isMovingToFinal)
+              Positioned(
+                left: currentX + widget.cardWidth + 20.0,
+                top: currentY,
+                child: _buildStatsWidget(widget.item),
+              ),
+          ],
         );
       },
     );
   }
+
+  Widget _buildStatsWidget(Map<String, dynamic> item) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildStatBar("Attack", Random().nextInt(100)),
+        _buildStatBar("Defense", Random().nextInt(100)),
+        _buildStatBar("Durability", Random().nextInt(100)),
+      ],
+    );
+  }
+
+  Widget _buildStatBar(String statName, int value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 60.0,
+            child: Text(
+              statName,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ),
+          Container(
+            width: 100.0,
+            height: 10.0,
+            decoration: BoxDecoration(
+              color: Colors.grey[700],
+              borderRadius: BorderRadius.circular(5.0),
+            ),
+            child: Stack(
+              children: [
+                FractionallySizedBox(
+                  widthFactor: value / 100.0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
 
 class ChestCard extends StatelessWidget {
   final String chestName;

@@ -1,6 +1,23 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:workout_logger/inventory_page.dart';
+
+// A function that returns a perfect hexagonal path based on size.
+Path getHexPath(Size size) {
+  double w = size.width;
+  double h = size.height;
+
+  Path path = Path();
+  path.moveTo(w * 0.5, 0);
+  path.lineTo(w, h * 0.1);
+  path.lineTo(w, h * 0.9);
+  path.lineTo(w * 0.5, h);
+  path.lineTo(0, h * 0.9);
+  path.lineTo(0, h * 0.1);
+  path.close();
+  return path;
+}
 
 class InventoryItemCard extends StatefulWidget {
   final String itemName;
@@ -28,18 +45,12 @@ class _InventoryItemCardState extends State<InventoryItemCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  int _lastSegment = -1;
-
-  // For legendary sudden color changes, store current colors
-  Color _legendaryColor1 = const Color.fromARGB(255, 209, 201, 245)!;
-  Color _legendaryColor2 = const Color.fromARGB(255, 175, 245, 134);
-
   final Random _random = Random();
 
   @override
   void initState() {
     super.initState();
-    // For epic and legendary, we animate. For others, it's static but still use the controller for legendary updates.
+    // For epic and legendary, we animate. For others, it's static.
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
@@ -56,31 +67,36 @@ class _InventoryItemCardState extends State<InventoryItemCard>
   Gradient _buildGradient() {
     switch (widget.rarity) {
       case 'legendary':
-        // Legendary: Dark colors, random sudden changes
-        // We divide animation into segments. On each segment, pick new colors.
-        double t = sin(_animation.value * pi);
-        Color color1 = Color.lerp(const Color.fromARGB(255, 146, 226, 250), const Color.fromARGB(255, 228, 236, 113), t)!;
-        Color color2 = Color.lerp(Colors.indigo[900], Colors.pink[900], 1 - t)!;
-        return LinearGradient(
-          colors: [color1, color2],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-
+        {
+          double t = sin(_animation.value * pi);
+          Color color1 = Color.lerp(
+            const Color.fromARGB(255, 146, 226, 250),
+            const Color.fromARGB(255, 228, 236, 113),
+            t,
+          )!;
+          Color color2 = Color.lerp(Colors.indigo[900], Colors.pink[900], 1 - t)!;
+          return LinearGradient(
+            colors: [color1, color2],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+        }
       case 'epic':
-        // Epic: Purples/pinks but let's keep them static now or slightly animated without sudden changes
-        double t = sin(_animation.value * pi);
-        Color color1 = Color.lerp(Colors.deepPurple[700], Colors.purple[900], t)!;
-        Color color2 = Color.lerp(Colors.indigo[900], Colors.pink[900], 1 - t)!;
-        return LinearGradient(
-          colors: [color1, color2],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-
+        {
+          double t = sin(_animation.value * pi);
+          Color color1 =
+              Color.lerp(Colors.deepPurple[700], Colors.purple[900], t)!;
+          Color color2 =
+              Color.lerp(Colors.indigo[900], Colors.pink[900], 1 - t)!;
+          return LinearGradient(
+            colors: [color1, color2],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+        }
       case 'rare':
         return const LinearGradient(
-          colors: [Color(0xFF203A43), Color(0xFF2C5364)], 
+          colors: [Color(0xFF203A43), Color(0xFF2C5364)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
@@ -93,15 +109,6 @@ class _InventoryItemCardState extends State<InventoryItemCard>
           end: Alignment.bottomRight,
         );
     }
-  }
-
-  Color _randomDarkColor() {
-    // Generate a random dark color
-    // Dark color: low brightness, random hue
-    int r = _random.nextInt(50); // 0-50 for dark
-    int g = _random.nextInt(50);
-    int b = _random.nextInt(50);
-    return Color.fromRGBO(r, g, b, 1.0);
   }
 
   @override
@@ -128,7 +135,6 @@ class _InventoryItemCardState extends State<InventoryItemCard>
           Widget cardContent = Container(
             decoration: BoxDecoration(
               gradient: _buildGradient(),
-              // For non-legendary, normal shape:
               borderRadius: widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
               border: Border.all(
                 color: widget.isEquipped
@@ -139,7 +145,8 @@ class _InventoryItemCardState extends State<InventoryItemCard>
               boxShadow: widget.isEquipped
                   ? [
                       BoxShadow(
-                        color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2),
+                        color: const Color.fromARGB(255, 255, 255, 255)
+                            .withOpacity(0.2),
                         blurRadius: 10,
                         spreadRadius: 0.5,
                       ),
@@ -169,6 +176,21 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                       ),
                     ),
                   )
+                else if (widget.category == "wings")
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
+                    child: Image.asset(
+                      'assets/character/${widget.category}/${widget.fileName}',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.broken_image,
+                          color: Colors.redAccent,
+                          size: 40,
+                        );
+                      },
+                    ),
+                  )
                 else
                   Padding(
                     padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 30.0),
@@ -183,16 +205,28 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                         );
                       },
                     ),
-                  ),
+                  )
               ],
             ),
           );
 
+          // For legendary, clip and add a matching border + moving dot
           if (widget.rarity == 'legendary') {
-            // Clip into a hexagon for legendary
-            cardContent = ClipPath(
-              clipper: HexClipper(),
-              child: cardContent,
+            cardContent = Stack(
+              children: [
+                ClipPath(
+                  clipper: HexClipper(),
+                  child: cardContent,
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: true,
+                    child: CustomPaint(
+                      painter: HexBorderWithDotPainter(animationValue: _animation.value),
+                    ),
+                  ),
+                ),
+              ],
             );
           }
 
@@ -226,23 +260,43 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                   ),
                 ),
               Positioned(
-                bottom: 8.0,
+                bottom: 16.0,
                 left: 0,
                 right: 0,
-                child: Text(
-                  widget.itemName,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    shadows: [
-                      Shadow(
-                        offset: Offset(0, 1),
-                        blurRadius: 4,
-                        color: Colors.black,
+                child: Column(
+                  children: [
+                    Text(
+                      widget.itemName,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: widget.rarity == 'legendary' ? Colors.white : Colors.white70,
+                        fontSize: widget.rarity == 'legendary' ? 16 : 14,
+                        fontWeight: widget.rarity == 'legendary' ? FontWeight.bold : FontWeight.normal,
+                        shadows: [
+                          Shadow(
+                            offset: const Offset(0, 1),
+                            blurRadius: widget.rarity == 'legendary' ? 8 : 4,
+                            color: widget.rarity == 'legendary' ? Colors.black87 : Colors.black,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    Text(
+                      capitalize(widget.rarity),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _getRarityColor(),
+                        shadows: [
+                          Shadow(
+                            offset: const Offset(0, 1),
+                            blurRadius: 3,
+                            color: Colors.black.withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -251,29 +305,140 @@ class _InventoryItemCardState extends State<InventoryItemCard>
       ),
     );
   }
+
+  String capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1).toLowerCase();
+  }
+
+  // Helper function to get color based on rarity
+  Color _getRarityColor() {
+    switch (widget.rarity) {
+      case 'legendary':
+        return const Color(0xFFFFD700); // Gold
+      case 'epic':
+        return const Color(0xFF800080); // Purple
+      case 'rare':
+        return const Color(0xFF4169E1); // Royal Blue
+      case 'common':
+      default:
+        return const Color(0xFFBEBEBE); // Grey
+    }
+  }
 }
 
-// A custom clipper for a hexagonal shape
+// A custom clipper using the same hex path
 class HexClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    // Create a more stylized hexagon with inward curves
-    double w = size.width;
-    double h = size.height;
-    
-    Path path = Path();
-    path.moveTo(w * 0.3, 0); // top-left corner moved in
-    path.lineTo(w * 0.7, 0); // straight top shortened
-    path.lineTo(w, h * 0.2); // right upper edge shortened
-    path.quadraticBezierTo(w * 1.1, h * 0.5, w, h * 0.8); // curved right side lengthened
-    path.lineTo(w * 0.7, h); // bottom-right corner moved in
-    path.lineTo(w * 0.3, h); // straight bottom shortened
-    path.lineTo(0, h * 0.8); // left lower edge shortened
-    path.quadraticBezierTo(w * -0.1, h * 0.5, 0, h * 0.2); // curved left side lengthened
-    path.close();
-    return path;
+    return getHexPath(size);
   }
 
   @override
   bool shouldReclip(HexClipper oldClipper) => false;
 }
+
+// Painter for the hex border with a moving dot along the path
+class HexBorderWithDotPainter extends CustomPainter {
+  final double animationValue;
+
+  HexBorderWithDotPainter({required this.animationValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    var path = getHexPath(size);
+
+    // Draw shimmering border with gradient
+    final borderGradient = SweepGradient(
+      colors: [
+        const Color.fromARGB(255, 255, 0, 0).withOpacity(0.2),
+        Colors.blue.withOpacity(0.4), 
+        Colors.cyan.withOpacity(0.6),
+        Colors.purple.withOpacity(0.2),
+      ],
+      stops: const [0.0, 0.33, 0.66, 1.0],
+      transform: GradientRotation(animationValue * 2 * pi),
+    );
+
+    var borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.0
+      ..shader = borderGradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 3);
+
+    canvas.drawPath(path, borderPaint);
+
+    // Add glowing effect
+    var glowPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..color = Colors.white.withOpacity(0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+    canvas.drawPath(path, glowPaint);
+
+    // Compute path for moving dot
+    PathMetric pathMetric = path.computeMetrics().first;
+    double pathLength = pathMetric.length;
+    double currentOffset = pathLength * animationValue;
+
+    // Get dot position
+    Tangent? tangent = pathMetric.getTangentForOffset(currentOffset);
+    if (tangent == null) return;
+    Offset dotPosition = tangent.position;
+
+    // Create trailing effect
+    double trailLength = pathLength * 0.2;
+    double startOffset = (currentOffset - trailLength).clamp(0.0, pathLength);
+    Path trailPath = pathMetric.extractPath(startOffset, currentOffset);
+
+    // Draw shimmering trail
+    var trailGradient = LinearGradient(
+      colors: [
+        const Color.fromARGB(255, 255, 0, 0).withOpacity(0.0),
+        Colors.cyan.withOpacity(0.3),
+        Colors.blue.withOpacity(0.5),
+        Colors.purple.withOpacity(0.8),
+      ],
+      stops: const [0.0, 0.3, 0.7, 1.0],
+    );
+
+    // Multi-layer trail effect
+    for (int i = 1; i <= 4; i++) {
+      Paint trailPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 10.0 / i
+        ..shader = trailGradient.createShader(
+            Rect.fromPoints(tangent.position, 
+                tangent.position.translate(trailLength, 0)))
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * i.toDouble());
+
+      canvas.drawPath(trailPath, trailPaint);
+    }
+
+    // Draw glowing dot
+    for (double i = 4; i > 0; i--) {
+      var dotPaint = Paint()
+        ..color = Colors.white.withOpacity(0.8 / i)
+        ..style = PaintingStyle.fill
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, i * 3);
+      
+      canvas.drawCircle(dotPosition, 6.0 * i, dotPaint);
+    }
+
+    // Add center highlight to dot
+    canvas.drawCircle(
+      dotPosition,
+      3.0,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill
+    );
+  }
+
+  @override
+  bool shouldRepaint(HexBorderWithDotPainter oldDelegate) {
+    return oldDelegate.animationValue != animationValue;
+  }
+}
+
