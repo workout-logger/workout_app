@@ -104,6 +104,7 @@ class _ChestOverlayState extends State<_ChestOverlay> {
   bool _cardsDealt = false;
   int _currentCardIndex = -1;
   bool _showingStats = false;
+  bool _animating = true;
   final List<Map<String, dynamic>> _dealtCards = [];
 
   final int _cardCount = 5;
@@ -194,6 +195,8 @@ class _ChestOverlayState extends State<_ChestOverlay> {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) _startNextCardAnimation();
         });
+      }else{
+        _animating = false;
       }
     }
   }
@@ -214,7 +217,7 @@ class _ChestOverlayState extends State<_ChestOverlay> {
             child: GestureDetector(
               onTap: () {
                 // Only allow closing if no card animation is in progress
-                if (_currentlyFlyingCard == null) {
+                if (!_animating) {
                   widget.onClose();
                 }
               },
@@ -276,6 +279,7 @@ class _ChestOverlayState extends State<_ChestOverlay> {
                   setState(() {
                     _cardsDealt = true;
                   });
+                  print(_currentCardIndex);
                   if (_currentCardIndex == -1) {
                     _startNextCardAnimation();
                   }
@@ -321,19 +325,21 @@ class _ChestOverlayState extends State<_ChestOverlay> {
 
   void _skipCurrentCardAnimation() {
     if (_currentlyFlyingCard != null) {
-      setState(() {
-        _dealtCards.add(_currentlyFlyingCard!);
-        _currentlyFlyingCard = null;
-        _currentCardAnimationComplete = true;
-        _showingStats = false;
-      });
-      
-      // Start next card animation after a brief delay
-      if (_currentCardIndex < _cardCount - 1) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) _startNextCardAnimation();
+        setState(() {
+          _dealtCards.add(_currentlyFlyingCard!);
+          _currentlyFlyingCard = null;
+          _currentCardAnimationComplete = true;
+          _showingStats = false;
         });
-      }
+        
+      // Start next card animation after a brief delay
+        if (_currentCardIndex < _cardCount - 1) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) _startNextCardAnimation();
+          });
+        }else{
+         _animating = false;
+        }
     }
   }
 

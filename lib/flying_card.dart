@@ -55,22 +55,22 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
       case 'common':
         pathDuration = const Duration(milliseconds: 500);
         flipDuration = const Duration(milliseconds: 500);
-        skipDuration = const Duration(milliseconds: 800);
+        skipDuration = const Duration(milliseconds: 1000);
         break;
       case 'rare':
         pathDuration = const Duration(milliseconds: 600);
         flipDuration = const Duration(milliseconds: 600);
-        skipDuration = const Duration(milliseconds: 900);
+        skipDuration = const Duration(milliseconds: 1200);
         break;
       case 'epic':
         pathDuration = const Duration(milliseconds: 800);
         flipDuration = const Duration(milliseconds: 800);
-        skipDuration = const Duration(milliseconds: 1000);
+        skipDuration = const Duration(milliseconds: 1600);
         break;
       default:
         pathDuration = const Duration(milliseconds: 1500);
         flipDuration = const Duration(milliseconds: 3000);
-        skipDuration = const Duration(milliseconds: 3500);
+        skipDuration = const Duration(milliseconds: 4500);
         break;
 
     }
