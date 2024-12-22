@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:workout_logger/flying_card.dart';
 import 'package:workout_logger/item_card.dart';
-import 'dart:math';
 import 'animated_chest.dart';
 
 class ChestsScreen extends StatefulWidget {
@@ -118,7 +118,7 @@ class _ChestOverlayState extends State<_ChestOverlay> {
       'category': 'melee',
       'fileName': 'sword_iron.png',
       'isEquipped': false,
-      'rarity': 'common'
+      'rarity': 'epic'
     },
     {
       'itemName': 'Blue Pants',
@@ -132,7 +132,7 @@ class _ChestOverlayState extends State<_ChestOverlay> {
       'category': 'heads',
       'fileName': 'head_blue.png',
       'isEquipped': false,
-      'rarity': 'common'
+      'rarity': 'rare'
     },
     {
       'itemName': 'Other Blue Pants',
@@ -212,11 +212,24 @@ class _ChestOverlayState extends State<_ChestOverlay> {
             duration: const Duration(milliseconds: 300),
             opacity: _centered ? 0.7 : 0.0,
             child: GestureDetector(
-              onTap: widget.onClose,
+              onTap: () {
+                // Only allow closing if no card animation is in progress
+                if (_currentlyFlyingCard == null) {
+                  widget.onClose();
+                }
+              },
               child: Container(color: Colors.black),
             ),
           ),
-
+          if (_currentlyFlyingCard != null)
+            GestureDetector(
+              onTapDown: (_) => _skipCurrentCardAnimation(),
+              child: Container(
+                color: Colors.transparent,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
           // Dealt cards in deck
           ..._dealtCards.asMap().entries.map((entry) {
             final index = entry.key;
@@ -306,268 +319,43 @@ class _ChestOverlayState extends State<_ChestOverlay> {
     );
   }
 
+  void _skipCurrentCardAnimation() {
+    if (_currentlyFlyingCard != null) {
+      setState(() {
+        _dealtCards.add(_currentlyFlyingCard!);
+        _currentlyFlyingCard = null;
+        _currentCardAnimationComplete = true;
+        _showingStats = false;
+      });
+      
+      // Start next card animation after a brief delay
+      if (_currentCardIndex < _cardCount - 1) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _startNextCardAnimation();
+        });
+      }
+    }
+  }
+
   double _getFinalXPosition(int index) {
-    if (index < 2) {
-      double totalWidthTop = 2 * _cardWidth;
-      double topRowXStart = (widget.screenWidth - totalWidthTop) / 2;
-      return topRowXStart + index * _cardWidth;
-    } else {
+    if (index < 3) { // First three cards go to the bottom row
       double totalWidthBottom = 3 * _cardWidth;
       double bottomRowXStart = (widget.screenWidth - totalWidthBottom) / 2;
-      return bottomRowXStart + (index - 2) * _cardWidth;
+      return bottomRowXStart + index * _cardWidth;
+    } else { // Last two cards go to the top row
+      double totalWidthTop = 2 * _cardWidth;
+      double topRowXStart = (widget.screenWidth - totalWidthTop) / 2;
+      return topRowXStart + (index - 3) * _cardWidth;
     }
   }
+
 
   double _getFinalYPosition(int index) {
-    return index < 2 
-        ? widget.screenHeight - 340.0
-        : widget.screenHeight - 200.0;
-  }
-}
-class FlyingCard extends StatefulWidget {
-  final Map<String, dynamic> item;
-  final double startX, startY;
-  final double centerX;
-  final double endX, endY;
-  final double cardWidth, cardHeight;
-  final bool showStats;
-  final VoidCallback onCenterReached;
-  final VoidCallback onAnimationComplete;
-
-  const FlyingCard({
-    Key? key,
-    required this.item,
-    required this.startX,
-    required this.startY,
-    required this.centerX,
-    required this.endX,
-    required this.endY,
-    required this.cardWidth,
-    required this.cardHeight,
-    required this.showStats,
-    required this.onCenterReached,
-    required this.onAnimationComplete,
-  }) : super(key: key);
-
-  @override
-  State<FlyingCard> createState() => FlyingCardState();
-}
-
-class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
-  late AnimationController _controller;
-  late AnimationController _flipController;
-  late Animation<double> _pathAnimation;
-  late Animation<double> _flipAnimation;
-  bool _hasReachedCenter = false;
-  bool _isMovingToFinal = false;
-  bool _showContent = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _flipController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-
-    _pathAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
-
-    _flipAnimation = Tween<double>(begin: 0, end: 6 * pi).animate(
-      CurvedAnimation(parent: _flipController, curve: Curves.easeInOutQuad),
-    );
-
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        if (!_hasReachedCenter) {
-          _hasReachedCenter = true;
-          _startCenterFlips();
-        } else if (_isMovingToFinal) {
-          widget.onAnimationComplete();
-        }
-      }
-    });
-
-    _flipController.addStatusListener((status) {
-      if (status == AnimationStatus.completed && _hasReachedCenter && !_isMovingToFinal) {
-        setState(() {
-          _showContent = true;
-        });
-        widget.onCenterReached();
-      }
-    });
-
-    _controller.forward();
+    return index < 3 
+        ? widget.screenHeight - 200.0  // Bottom row
+        : widget.screenHeight - 340.0; // Top row
   }
 
-  void _startCenterFlips() {
-    _flipController.forward();
-  }
-
-  void skipAnimation() {
-    if (!_isMovingToFinal) {
-      _flipController.stop();
-      setState(() {
-        _showContent = true;
-        _isMovingToFinal = true;
-      });
-      _controller.duration = const Duration(milliseconds: 800);
-      _controller.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void didUpdateWidget(FlyingCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!widget.showStats && _hasReachedCenter && !_isMovingToFinal) {
-      _isMovingToFinal = true;
-      _controller.duration = const Duration(milliseconds: 800);
-      _controller.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _flipController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final centerY = screenHeight / 2 - (widget.cardHeight / 2);
-
-    return GestureDetector(
-      onTapDown: (_) => skipAnimation(),
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_pathAnimation, _flipAnimation]),
-        builder: (context, child) {
-          double currentX, currentY;
-          double scale = 1.0;
-
-          if (!_hasReachedCenter) {
-            // Arc path to center
-            final progress = _pathAnimation.value;
-            final arcHeight = 200.0;
-            
-            currentX = lerpDouble(widget.startX, widget.centerX, progress)!;
-            final directY = lerpDouble(widget.startY, centerY, progress)!;
-            final parabolaY = -arcHeight * 4 * (progress - 0.5) * (progress - 0.5) + arcHeight;
-            currentY = directY - parabolaY;
-            
-            scale = lerpDouble(0.5, 1.0, progress)!;
-          } else if (!_isMovingToFinal) {
-            currentX = widget.centerX;
-            currentY = centerY;
-            scale = 1.0;
-          } else {
-            currentX = lerpDouble(widget.centerX, widget.endX, _pathAnimation.value)!;
-            currentY = lerpDouble(centerY, widget.endY, _pathAnimation.value)!;
-            scale = lerpDouble(1.0, 0.8, _pathAnimation.value)!;
-          }
-
-          return Stack(
-            children: [
-              Positioned(
-                left: currentX,
-                top: currentY,
-                width: widget.cardWidth,
-                height: widget.cardHeight,
-                child: Transform(
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001)
-                    ..rotateY(_flipAnimation.value)
-                    ..scale(scale),
-                  alignment: Alignment.center,
-                  child: _showContent 
-                    ? InventoryItemCard(
-                        rarity: widget.item['rarity'],
-                        itemName: widget.item['itemName'],
-                        category: widget.item['category'],
-                        fileName: widget.item['fileName'],
-                        isEquipped: widget.item['isEquipped'],
-                        onEquipUnequip: () {},
-                      )
-                    : Card(
-                        color: Colors.blue[900],
-                        child: const Center(
-                          child: Icon(Icons.card_giftcard, 
-                            color: Colors.white, 
-                            size: 48,
-                          ),
-                        ),
-                      ),
-                ),
-              ),
-              if (widget.showStats && _hasReachedCenter && !_isMovingToFinal)
-                Positioned(
-                  left: currentX + widget.cardWidth + 20.0,
-                  top: currentY,
-                  child: _buildStatsWidget(widget.item),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStatsWidget(Map<String, dynamic> item) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildStatBar("Attack", Random().nextInt(100)),
-        _buildStatBar("Defense", Random().nextInt(100)),
-        _buildStatBar("Durability", Random().nextInt(100)),
-      ],
-    );
-  }
-
-  Widget _buildStatBar(String statName, int value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 60.0,
-            child: Text(
-              statName,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-          ),
-          Container(
-            width: 100.0,
-            height: 10.0,
-            decoration: BoxDecoration(
-              color: Colors.grey[700],
-              borderRadius: BorderRadius.circular(5.0),
-            ),
-            child: Stack(
-              children: [
-                FractionallySizedBox(
-                  widthFactor: value / 100.0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class ChestCard extends StatelessWidget {

@@ -26,6 +26,7 @@ class InventoryItemCard extends StatefulWidget {
   final bool isEquipped;
   final VoidCallback onEquipUnequip;
   final String rarity; // "common", "rare", "epic", "legendary"
+  final bool showContent; // New parameter to control content visibility
 
   const InventoryItemCard({
     super.key,
@@ -35,6 +36,7 @@ class InventoryItemCard extends StatefulWidget {
     required this.isEquipped,
     required this.onEquipUnequip,
     required this.rarity,
+    this.showContent = true, // Default to showing content
   });
 
   @override
@@ -50,12 +52,36 @@ class _InventoryItemCardState extends State<InventoryItemCard>
   @override
   void initState() {
     super.initState();
-    // For epic and legendary, we animate. For others, it's static.
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 5),
-    )..repeat();
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.linear);
+    // Initialize the controller but start it only if content is shown and rarity is epic or legendary
+    if (widget.showContent) {
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 5),
+      )..repeat();
+      _animation = CurvedAnimation(parent: _controller, curve: Curves.linear);
+    } else {
+      // Initialize a dummy animation if not needed
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 5),
+      );
+      _animation = AlwaysStoppedAnimation(0.0);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant InventoryItemCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Handle changes in showContent or rarity
+    if (widget.showContent) {
+      if (!_controller.isAnimating) {
+        _controller.repeat();
+      }
+    } else {
+      if (_controller.isAnimating) {
+        _controller.stop();
+      }
+    }
   }
 
   @override
@@ -65,6 +91,8 @@ class _InventoryItemCardState extends State<InventoryItemCard>
   }
 
   Gradient _buildGradient() {
+
+
     switch (widget.rarity) {
       case 'legendary':
         {
@@ -84,19 +112,21 @@ class _InventoryItemCardState extends State<InventoryItemCard>
       case 'epic':
         {
           double t = sin(_animation.value * pi);
-          Color color1 =
-              Color.lerp(Colors.deepPurple[700], Colors.purple[900], t)!;
-          Color color2 =
-              Color.lerp(Colors.indigo[900], Colors.pink[900], 1 - t)!;
+          Color color1 = Color.lerp(
+            const Color.fromARGB(255, 94, 2, 94),
+            const Color.fromARGB(255, 80, 76, 76),
+            t,
+          )!;
+          Color color2 = Color.lerp(const Color.fromARGB(255, 80, 76, 76),const Color.fromARGB(255, 94, 2, 94), 1 - t)!;
           return LinearGradient(
-            colors: [color1, color2],
+            colors: [Color.fromARGB(255, 80, 76, 76),Color.fromARGB(255, 94, 2, 94)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
         }
       case 'rare':
         return const LinearGradient(
-          colors: [Color(0xFF203A43), Color(0xFF2C5364)],
+          colors: [ Color.fromARGB(104, 23, 138, 0),Color.fromARGB(255, 18, 100, 1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
@@ -104,7 +134,7 @@ class _InventoryItemCardState extends State<InventoryItemCard>
       case 'common':
       default:
         return const LinearGradient(
-          colors: [Color(0xFF2F2F2F), Color(0xFF1A1A1A)],
+          colors: [Color.fromARGB(112, 156, 156, 156), Color.fromARGB(100, 78, 78, 78)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
@@ -114,28 +144,51 @@ class _InventoryItemCardState extends State<InventoryItemCard>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        print('Category: ${widget.category}');
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.transparent,
-          isScrollControlled: true,
-          builder: (context) => InventoryActionsDrawer(
-            itemName: widget.itemName,
-            category: widget.category,
-            fileName: widget.fileName,
-            isEquipped: widget.isEquipped,
-            onEquipUnequip: widget.onEquipUnequip,
-          ),
-        );
-      },
+      onTap: widget.showContent
+          ? () {
+              print('Category: ${widget.category}');
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                builder: (context) => InventoryActionsDrawer(
+                  itemName: widget.itemName,
+                  category: widget.category,
+                  fileName: widget.fileName,
+                  isEquipped: widget.isEquipped,
+                  onEquipUnequip: widget.onEquipUnequip,
+                ),
+              );
+            }
+          : null, // Disable tap if content is hidden
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
+          // If showContent is false, render only the gradient background
+          if (!widget.showContent) {
+            Widget baseContent = Container(
+              decoration: BoxDecoration(
+                gradient: _buildGradient(),
+                borderRadius:
+                    widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
+              ),
+            );
+
+            if (widget.rarity == 'legendary') {
+              return ClipPath(
+                clipper: HexClipper(),
+                child: baseContent,
+              );
+            }
+            return baseContent;
+          }
+
+          // Existing card content
           Widget cardContent = Container(
             decoration: BoxDecoration(
               gradient: _buildGradient(),
-              borderRadius: widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
+              borderRadius:
+                  widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
               border: Border.all(
                 color: widget.isEquipped
                     ? const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2)
@@ -178,7 +231,8 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                   )
                 else if (widget.category == "wings")
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
+                    padding:
+                        const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
                     child: Image.asset(
                       'assets/character/${widget.category}/${widget.fileName}',
                       fit: BoxFit.contain,
@@ -193,7 +247,8 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                   )
                 else
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 30.0),
+                    padding:
+                        const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 30.0),
                     child: Image.asset(
                       'assets/character/${widget.category}/${widget.fileName}',
                       fit: BoxFit.contain,
@@ -222,7 +277,8 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                   child: IgnorePointer(
                     ignoring: true,
                     child: CustomPaint(
-                      painter: HexBorderWithDotPainter(animationValue: _animation.value),
+                      painter:
+                          HexBorderWithDotPainter(animationValue: _animation.value),
                     ),
                   ),
                 ),
@@ -269,14 +325,20 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                       widget.itemName,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: widget.rarity == 'legendary' ? Colors.white : Colors.white70,
+                        color: widget.rarity == 'legendary'
+                            ? Colors.white
+                            : Colors.white70,
                         fontSize: widget.rarity == 'legendary' ? 16 : 14,
-                        fontWeight: widget.rarity == 'legendary' ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: widget.rarity == 'legendary'
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         shadows: [
                           Shadow(
                             offset: const Offset(0, 1),
                             blurRadius: widget.rarity == 'legendary' ? 8 : 4,
-                            color: widget.rarity == 'legendary' ? Colors.black87 : Colors.black,
+                            color: widget.rarity == 'legendary'
+                                ? Colors.black87
+                                : Colors.black,
                           ),
                         ],
                       ),
@@ -317,9 +379,9 @@ class _InventoryItemCardState extends State<InventoryItemCard>
       case 'legendary':
         return const Color(0xFFFFD700); // Gold
       case 'epic':
-        return const Color(0xFF800080); // Purple
+        return const Color.fromARGB(255, 255, 5, 201); // Purple
       case 'rare':
-        return const Color(0xFF4169E1); // Royal Blue
+        return const Color.fromARGB(255, 255, 255, 255); // Royal Blue
       case 'common':
       default:
         return const Color(0xFFBEBEBE); // Grey
@@ -352,7 +414,7 @@ class HexBorderWithDotPainter extends CustomPainter {
     final borderGradient = SweepGradient(
       colors: [
         const Color.fromARGB(255, 255, 0, 0).withOpacity(0.2),
-        Colors.blue.withOpacity(0.4), 
+        Colors.blue.withOpacity(0.4),
         Colors.cyan.withOpacity(0.6),
         Colors.purple.withOpacity(0.2),
       ],
@@ -363,7 +425,8 @@ class HexBorderWithDotPainter extends CustomPainter {
     var borderPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0
-      ..shader = borderGradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..shader =
+          borderGradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 3);
 
     canvas.drawPath(path, borderPaint);
@@ -372,7 +435,7 @@ class HexBorderWithDotPainter extends CustomPainter {
     var glowPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = const Color.fromARGB(255, 238, 255, 3).withOpacity(0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
 
     canvas.drawPath(path, glowPaint);
@@ -381,12 +444,14 @@ class HexBorderWithDotPainter extends CustomPainter {
     PathMetric pathMetric = path.computeMetrics().first;
     double pathLength = pathMetric.length;
     double currentOffset = pathLength * animationValue;
+    double offsetDotCurrentOffset = (pathLength * animationValue + pathLength/2) % pathLength;
 
     // Get dot position
     Tangent? tangent = pathMetric.getTangentForOffset(currentOffset);
-    if (tangent == null) return;
+    Tangent? offsetTangent = pathMetric.getTangentForOffset(offsetDotCurrentOffset);
+    if (tangent == null || offsetTangent == null) return;
     Offset dotPosition = tangent.position;
-
+    Offset offsetDotPosition = offsetTangent.position;
     // Create trailing effect
     double trailLength = pathLength * 0.2;
     double startOffset = (currentOffset - trailLength).clamp(0.0, pathLength);
@@ -403,37 +468,30 @@ class HexBorderWithDotPainter extends CustomPainter {
       stops: const [0.0, 0.3, 0.7, 1.0],
     );
 
-    // Multi-layer trail effect
-    for (int i = 1; i <= 4; i++) {
-      Paint trailPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 10.0 / i
-        ..shader = trailGradient.createShader(
-            Rect.fromPoints(tangent.position, 
-                tangent.position.translate(trailLength, 0)))
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * i.toDouble());
 
-      canvas.drawPath(trailPath, trailPaint);
-    }
 
     // Draw glowing dot
     for (double i = 4; i > 0; i--) {
       var dotPaint = Paint()
-        ..color = Colors.white.withOpacity(0.8 / i)
+        ..color = const Color.fromARGB(255, 255, 255, 255).withOpacity(0.9 / i)
         ..style = PaintingStyle.fill
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, i * 3);
-      
-      canvas.drawCircle(dotPosition, 6.0 * i, dotPaint);
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, i * 5);
+
+      canvas.drawCircle(dotPosition, 4.0 * i, dotPaint);
     }
 
-    // Add center highlight to dot
-    canvas.drawCircle(
-      dotPosition,
-      3.0,
-      Paint()
-        ..color = Colors.white
+    for (double i = 4; i > 0; i--) {
+      var dotPaint = Paint()
+        ..color = const Color.fromARGB(255, 255, 255, 255).withOpacity(0.9 / i)
         ..style = PaintingStyle.fill
-    );
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, i * 5);
+
+      canvas.drawCircle(offsetDotPosition, 4.0 * i, dotPaint);
+    }
+
+
+
+
   }
 
   @override
@@ -441,4 +499,3 @@ class HexBorderWithDotPainter extends CustomPainter {
     return oldDelegate.animationValue != animationValue;
   }
 }
-
