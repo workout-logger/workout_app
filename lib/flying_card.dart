@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
@@ -41,16 +42,23 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   bool _hasReachedCenter = false;
   bool _isMovingToFinal = false;
   bool _showContent = false;
+  bool _showStats = false;
+
+  // **Stats Animation Controllers and Animations**
+  late AnimationController _statsSlideController;
+  late AnimationController _statsBarController;
+  late Animation<Offset> _statsSlideAnimation;
+  late Animation<double> _statsBarAnimation;
 
 
   late Duration pathDuration;
   late Duration flipDuration;
   late Duration skipDuration;
-
   @override
   void initState() {
     super.initState();
 
+    // Determine durations based on rarity
     switch (widget.item['rarity']?.toString().toLowerCase()) {
       case 'common':
         pathDuration = const Duration(milliseconds: 500);
@@ -68,20 +76,15 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
         skipDuration = const Duration(milliseconds: 1600);
         break;
       default:
-        pathDuration = const Duration(milliseconds: 1500);
-        flipDuration = const Duration(milliseconds: 3000);
+        pathDuration = const Duration(milliseconds: 1300);
+        flipDuration = const Duration(milliseconds: 1400);
         skipDuration = const Duration(milliseconds: 4500);
         break;
-
     }
 
+    // Path Animation Controller
     _controller = AnimationController(
       duration: pathDuration,
-      vsync: this,
-    );
-
-    _flipController = AnimationController(
-      duration: flipDuration,
       vsync: this,
     );
 
@@ -90,14 +93,47 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
       curve: Curves.easeOutCubic,
     );
 
+    // Flip Animation Controller
+    _flipController = AnimationController(
+      duration: flipDuration,
+      vsync: this,
+    );
+
     _flipAnimation = Tween<double>(begin: 0, end: 6 * pi).animate(
       CurvedAnimation(parent: _flipController, curve: Curves.easeInOutQuad),
     );
 
+    // **Initialize Stats Animation Controllers**
+    _statsSlideController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _statsBarController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _statsSlideAnimation = Tween<Offset>(
+      begin: const Offset(-1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _statsSlideController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _statsBarAnimation = CurvedAnimation(
+      parent: _statsBarController,
+      curve: Curves.easeInOut,
+    );
+
+    // Listeners
     _controller.addStatusListener((status) {
+      _startFlipAnimation();
       if (status == AnimationStatus.completed) {
         if (!_hasReachedCenter) {
           _hasReachedCenter = true;
+          
         } else if (_isMovingToFinal) {
           widget.onAnimationComplete();
         }
@@ -106,21 +142,61 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
 
     _flipController.addStatusListener((status) {
       if (status == AnimationStatus.completed && _hasReachedCenter && !_isMovingToFinal) {
+        print("Flip completed, showing content");
         setState(() {
           _showContent = true;
         });
         widget.onCenterReached();
+
+        if (widget.showStats) {
+          _startStatsAnimations();
+        }
       }
     });
 
     _controller.forward();
   }
 
-  void _startCenterFlips() {
+  void _startFlipAnimation() {
     _flipController.forward();
   }
 
+  // **Function to Start Stats Animations**
+  void _startStatsAnimations() {
+    setState(() {
+      _showStats = true; // Ensure stats visibility
+      print("Stats are now visible.");
+    });
+
+    // Start the stats slide and bar animations
+    _statsSlideController.forward();
+    _statsBarController.forward();
+
+    // Listen for completion of the stats bar animation
+    _statsBarController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        // Proceed to final animation with a slight delay for visibility
+        Future.delayed(const Duration(milliseconds: 500), () {
+          setState(() {
+            _showStats = false; // Hide stats
+            print("Stats are now hidden.");
+            _isMovingToFinal = true;
+          });
+
+          // Start the path animation to the final position
+          _controller.duration = skipDuration;
+          _controller.forward(from: 0.0);
+        });
+      }
+    });
+  }
+
+
+
+
+
   void skipAnimation() {
+    
     if (!_isMovingToFinal) {
       _flipController.stop();
       setState(() {
@@ -135,10 +211,15 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(FlyingCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!widget.showStats && _hasReachedCenter && !_isMovingToFinal) {
+    if (!widget.showStats && _hasReachedCenter && _isMovingToFinal) {
       _isMovingToFinal = true;
       _controller.duration = skipDuration;
       _controller.forward(from: 0.0);
+    }
+
+    // **Handle Changes to showStats Dynamically**
+    if (widget.showStats && !_isMovingToFinal && _hasReachedCenter && !_statsSlideController.isAnimating && !_statsBarController.isAnimating) {
+      _startStatsAnimations();
     }
   }
 
@@ -146,6 +227,8 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   void dispose() {
     _controller.dispose();
     _flipController.dispose();
+    _statsSlideController.dispose();
+    _statsBarController.dispose();
     super.dispose();
   }
 
@@ -157,23 +240,21 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     return GestureDetector(
       onTapDown: (_) => skipAnimation(),
       child: AnimatedBuilder(
-        animation: Listenable.merge([_pathAnimation, _flipAnimation]),
+        animation: Listenable.merge([_pathAnimation, _flipAnimation, _statsSlideController, _statsBarController]),
         builder: (context, child) {
           double currentX, currentY;
           double scale = 1.0;
 
           if (!_hasReachedCenter) {
-            _startCenterFlips();
-
-            // Arc path to center
+            // **Arc Path to Center**
             final progress = _pathAnimation.value;
             final arcHeight = 200.0;
-            
+
             currentX = lerpDouble(widget.startX, widget.centerX, progress)!;
             final directY = lerpDouble(widget.startY, centerY, progress)!;
             final parabolaY = -arcHeight * 4 * (progress - 0.5) * (progress - 0.5) + arcHeight;
             currentY = directY - parabolaY;
-            
+
             scale = lerpDouble(0.5, 1.0, progress)!;
           } else if (!_isMovingToFinal) {
             currentX = widget.centerX;
@@ -187,6 +268,7 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
 
           return Stack(
             children: [
+              // **Card Positioning and Transformation**
               Positioned(
                 left: currentX,
                 top: currentY,
@@ -219,15 +301,20 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
                         onEquipUnequip: () {}, // Empty callback
                         showContent: false, // Hiding content
                       ),
-
                 ),
               ),
-              if (widget.showStats && _hasReachedCenter && !_isMovingToFinal)
+
+              // **Stats Display Positioned Relative to Card**
+              if (_showStats)
                 Positioned(
-                  left: currentX + widget.cardWidth + 20.0,
+                  left: currentX + widget.cardWidth + 10,  // Added 10 for padding
                   top: currentY,
-                  child: _buildStatsWidget(widget.item),
+                  child: SlideTransition(
+                    position: _statsSlideAnimation,
+                    child: _buildStatsWidget(widget.item),
+                  ),
                 ),
+
             ],
           );
         },
@@ -235,52 +322,103 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildStatsWidget(Map<String, dynamic> item) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildStatBar("Attack", Random().nextInt(100)),
-        _buildStatBar("Defense", Random().nextInt(100)),
-        _buildStatBar("Durability", Random().nextInt(100)),
-      ],
-    );
+  Color _getCardBorderColor(String? rarity) {
+    switch (rarity?.toLowerCase()) {
+      case 'common':
+        return Colors.grey;
+      case 'rare':
+        return Colors.blue;
+      case 'epic':
+        return Colors.purple;
+      default:
+        return Colors.orange;
+    }
   }
 
-  Widget _buildStatBar(String statName, int value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
+  Widget _buildStatsWidget(Map<String, dynamic> item) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(
+          color: _getCardBorderColor(widget.item['rarity']),
+          width: 2.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 60.0,
-            child: Text(
-              statName,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-          ),
-          Container(
-            width: 100.0,
-            height: 10.0,
-            decoration: BoxDecoration(
-              color: Colors.grey[700],
-              borderRadius: BorderRadius.circular(5.0),
-            ),
-            child: Stack(
-              children: [
-                FractionallySizedBox(
-                  widthFactor: value / 100.0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildStatBar("Strength", "+4", 0.8),
+          const SizedBox(height: 12.0),
+          _buildStatBar("Agility", "+2", 0.4),
+          const SizedBox(height: 12.0),
+          _buildStatBar("Vitality", "+3", 0.6),
         ],
       ),
     );
   }
+
+  Widget _buildStatBar(String statName, String bonus, double value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 80.0,
+              child: Text(
+                statName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Text(
+              bonus,
+              style: TextStyle(
+                color: Colors.green[400],
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4.0),
+        Container(
+          width: 160.0,
+          height: 12.0,
+          decoration: BoxDecoration(
+            color: Colors.grey[800],
+            borderRadius: BorderRadius.circular(6.0),
+          ),
+          child: FractionallySizedBox(
+            widthFactor: value * _statsBarAnimation.value, // Animate width based on controller
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.green[400]!,
+                    Colors.green[600]!,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(6.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.3),
+                    blurRadius: 4.0,
+                    spreadRadius: 1.0,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+
 }

@@ -391,7 +391,7 @@ class ChestCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          // Other chests: show purchase dialog
+          // Show purchase dialog
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -413,25 +413,26 @@ class ChestCard extends StatelessWidget {
                   onPressed: () {
                     Navigator.pop(context);
                     onBronzeChestTap();
-
                   },
                   child: const Text('Buy', style: TextStyle(color: Colors.green)),
                 ),
               ],
             ),
           );
-          
         },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Image.asset(
-                imagePath,
-                height: 100,
-                width: 100,
-                fit: BoxFit.contain,
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Image.asset(
+                  imagePath,
+                  height: 120, // Adjusted height
+                  width: 120,  // Adjusted width
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             const SizedBox(height: 8),
