@@ -14,15 +14,14 @@ class ChestsScreen extends StatefulWidget {
 class _ChestsScreenState extends State<ChestsScreen> {
   final List<Map<String, dynamic>> chestData = [
     {'name': 'Bronze Chest', 'price': 100, 'number': 0},
-    {'name': 'Silver Chest', 'price': 250, 'number': 1},
-    {'name': 'Gold Chest', 'price': 500, 'number': 2},
-    {'name': 'Diamond Chest', 'price': 1000, 'number': 3},
+
   ];
 
   OverlayEntry? _overlayEntry;
   final GlobalKey _bronzeChestKey = GlobalKey();
 
   void _onBronzeChestTap() {
+    AnimatedChest.setHasAnimated(false);
     print("Chest tapped!");
     final RenderBox? box = _bronzeChestKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) {
@@ -56,7 +55,7 @@ class _ChestsScreenState extends State<ChestsScreen> {
     return Container(
       color: const Color.fromARGB(255, 0, 0, 0),
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(2.0),
         child: GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
@@ -257,9 +256,10 @@ class _ChestOverlayState extends State<_ChestOverlay> {
               }
             },
             child: AnimatedChest(
-              open: _opened, // Open state is fixed and does not toggle
+              open: _opened,
               onAnimationComplete: () {
                 if (!_cardsDealt) {
+                  print("Animation complete!");
                   setState(() {
                     _cardsDealt = true;
                   });
@@ -539,47 +539,36 @@ class ChestCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          if (chestNumber == 0) {
-            // Bronze chest: animate to center and open
-            onBronzeChestTap();
-          } else {
-            // Other chests: show purchase dialog
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                backgroundColor: Colors.grey[900],
-                title: Text(
-                  'Purchase $chestName',
-                  style: const TextStyle(color: Colors.white),
-                ),
-                content: Text(
-                  'Do you want to buy this chest for $chestPrice coins?',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.red)),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '$chestName purchased!',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    },
-                    child: const Text('Buy', style: TextStyle(color: Colors.green)),
-                  ),
-                ],
+          // Other chests: show purchase dialog
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: Text(
+                'Purchase $chestName',
+                style: const TextStyle(color: Colors.white),
               ),
-            );
-          }
+              content: Text(
+                'Do you want to buy this chest for $chestPrice coins?',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onBronzeChestTap();
+
+                  },
+                  child: const Text('Buy', style: TextStyle(color: Colors.green)),
+                ),
+              ],
+            ),
+          );
+          
         },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
