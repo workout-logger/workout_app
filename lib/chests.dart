@@ -350,40 +350,77 @@ class FlyingCard extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<FlyingCard> createState() => _FlyingCardState();
+  State<FlyingCard> createState() => FlyingCardState();
 }
 
-class _FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
+class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
+  late AnimationController _flipController;
+  late Animation<double> _pathAnimation;
+  late Animation<double> _flipAnimation;
   bool _hasReachedCenter = false;
   bool _isMovingToFinal = false;
+  bool _showContent = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
-    _animation = CurvedAnimation(
+    _flipController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    _pathAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeOutCubic,
+    );
+
+    _flipAnimation = Tween<double>(begin: 0, end: 6 * pi).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeInOutQuad),
     );
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         if (!_hasReachedCenter) {
           _hasReachedCenter = true;
-          widget.onCenterReached();
+          _startCenterFlips();
         } else if (_isMovingToFinal) {
           widget.onAnimationComplete();
         }
       }
     });
 
+    _flipController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && _hasReachedCenter && !_isMovingToFinal) {
+        setState(() {
+          _showContent = true;
+        });
+        widget.onCenterReached();
+      }
+    });
+
     _controller.forward();
+  }
+
+  void _startCenterFlips() {
+    _flipController.forward();
+  }
+
+  void skipAnimation() {
+    if (!_isMovingToFinal) {
+      _flipController.stop();
+      setState(() {
+        _showContent = true;
+        _isMovingToFinal = true;
+      });
+      _controller.duration = const Duration(milliseconds: 800);
+      _controller.forward(from: 0.0);
+    }
   }
 
   @override
@@ -399,6 +436,7 @@ class _FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   @override
   void dispose() {
     _controller.dispose();
+    _flipController.dispose();
     super.dispose();
   }
 
@@ -407,57 +445,78 @@ class _FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     final screenHeight = MediaQuery.of(context).size.height;
     final centerY = screenHeight / 2 - (widget.cardHeight / 2);
 
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        double currentX, currentY;
-        double scale = 1.0;
+    return GestureDetector(
+      onTapDown: (_) => skipAnimation(),
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_pathAnimation, _flipAnimation]),
+        builder: (context, child) {
+          double currentX, currentY;
+          double scale = 1.0;
 
-        if (!_hasReachedCenter) {
-          // Moving to center
-          currentX = lerpDouble(widget.startX, widget.centerX, _animation.value)!;
-          currentY = lerpDouble(widget.startY, centerY, _animation.value)!;
-          scale = lerpDouble(0.5, 1.0, _animation.value)!;
-        } else if (!_isMovingToFinal) {
-          // Holding at center
-          currentX = widget.centerX;
-          currentY = centerY;
-          scale = 1.0;
-        } else {
-          // Moving to final position
-          currentX = lerpDouble(widget.centerX, widget.endX, _animation.value)!;
-          currentY = lerpDouble(centerY, widget.endY, _animation.value)!;
-          scale = lerpDouble(1.0, 0.8, _animation.value)!;
-        }
+          if (!_hasReachedCenter) {
+            // Arc path to center
+            final progress = _pathAnimation.value;
+            final arcHeight = 200.0;
+            
+            currentX = lerpDouble(widget.startX, widget.centerX, progress)!;
+            final directY = lerpDouble(widget.startY, centerY, progress)!;
+            final parabolaY = -arcHeight * 4 * (progress - 0.5) * (progress - 0.5) + arcHeight;
+            currentY = directY - parabolaY;
+            
+            scale = lerpDouble(0.5, 1.0, progress)!;
+          } else if (!_isMovingToFinal) {
+            currentX = widget.centerX;
+            currentY = centerY;
+            scale = 1.0;
+          } else {
+            currentX = lerpDouble(widget.centerX, widget.endX, _pathAnimation.value)!;
+            currentY = lerpDouble(centerY, widget.endY, _pathAnimation.value)!;
+            scale = lerpDouble(1.0, 0.8, _pathAnimation.value)!;
+          }
 
-        return Stack(
-          children: [
-            Positioned(
-              left: currentX,
-              top: currentY,
-              width: widget.cardWidth,
-              height: widget.cardHeight,
-              child: Transform.scale(
-                scale: scale,
-                child: InventoryItemCard(
-                  rarity: widget.item['rarity'],
-                  itemName: widget.item['itemName'],
-                  category: widget.item['category'],
-                  fileName: widget.item['fileName'],
-                  isEquipped: widget.item['isEquipped'],
-                  onEquipUnequip: () {},
+          return Stack(
+            children: [
+              Positioned(
+                left: currentX,
+                top: currentY,
+                width: widget.cardWidth,
+                height: widget.cardHeight,
+                child: Transform(
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.001)
+                    ..rotateY(_flipAnimation.value)
+                    ..scale(scale),
+                  alignment: Alignment.center,
+                  child: _showContent 
+                    ? InventoryItemCard(
+                        rarity: widget.item['rarity'],
+                        itemName: widget.item['itemName'],
+                        category: widget.item['category'],
+                        fileName: widget.item['fileName'],
+                        isEquipped: widget.item['isEquipped'],
+                        onEquipUnequip: () {},
+                      )
+                    : Card(
+                        color: Colors.blue[900],
+                        child: const Center(
+                          child: Icon(Icons.card_giftcard, 
+                            color: Colors.white, 
+                            size: 48,
+                          ),
+                        ),
+                      ),
                 ),
               ),
-            ),
-            if (widget.showStats && _hasReachedCenter && !_isMovingToFinal)
-              Positioned(
-                left: currentX + widget.cardWidth + 20.0,
-                top: currentY,
-                child: _buildStatsWidget(widget.item),
-              ),
-          ],
-        );
-      },
+              if (widget.showStats && _hasReachedCenter && !_isMovingToFinal)
+                Positioned(
+                  left: currentX + widget.cardWidth + 20.0,
+                  top: currentY,
+                  child: _buildStatsWidget(widget.item),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -510,7 +569,6 @@ class _FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     );
   }
 }
-
 
 class ChestCard extends StatelessWidget {
   final String chestName;
