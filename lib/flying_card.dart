@@ -336,10 +336,15 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   }
 
   Widget _buildStatsWidget(Map<String, dynamic> item) {
+    Color backgroundColor = widget.item['rarity']?.toLowerCase() == 'common' ? Color.fromARGB(111, 68, 68, 68) :
+                          widget.item['rarity']?.toLowerCase() == 'rare' ? Color.fromARGB(141, 62, 92, 56) :
+                          widget.item['rarity']?.toLowerCase() == 'epic' ? Color.fromARGB(255, 80, 76, 76) :
+                          Color.fromARGB(255, 146, 226, 250);
+    
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Colors.black87,
+        color: backgroundColor.withOpacity(0.8),
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
           color: _getCardBorderColor(widget.item['rarity']),
@@ -391,7 +396,12 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
           width: 160.0,
           height: 12.0,
           decoration: BoxDecoration(
-            color: Colors.grey[800],
+            gradient: LinearGradient(
+              colors: widget.item['rarity']?.toLowerCase() == 'common' ? [Color.fromARGB(112, 156, 156, 156), Color.fromARGB(100, 78, 78, 78)] :
+                     widget.item['rarity']?.toLowerCase() == 'rare' ? [Color.fromARGB(141, 42, 61, 38), Color.fromARGB(104, 15, 92, 0)] :
+                     widget.item['rarity']?.toLowerCase() == 'epic' ? [Color.fromARGB(255, 80, 76, 76), Color.fromARGB(255, 94, 2, 94)] :
+                     [Color.fromARGB(255, 146, 226, 250), Color.fromARGB(255, 228, 236, 113)],
+            ),
             borderRadius: BorderRadius.circular(6.0),
           ),
           child: FractionallySizedBox(
