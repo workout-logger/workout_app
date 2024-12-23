@@ -106,6 +106,8 @@ class _ChestOverlayState extends State<_ChestOverlay> {
   bool _showingStats = false;
   bool _animating = true;
   final List<Map<String, dynamic>> _dealtCards = [];
+  bool _collecting = false;
+  List<Map<String, dynamic>> _collectingCards = [];
 
   final int _cardCount = 5;
   final double _cardWidth = 120.0;
@@ -168,6 +170,23 @@ class _ChestOverlayState extends State<_ChestOverlay> {
           });
         }
       });
+    });
+  }
+
+  void _collectCards() {
+    if (_dealtCards.isEmpty || _collecting) return;
+
+    setState(() {
+      _collecting = true;
+      _collectingCards = List.from(_dealtCards);
+      _dealtCards.clear();
+    });
+
+    // After animation completes, close the overlay
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        widget.onClose();
+      }
     });
   }
 
@@ -255,7 +274,68 @@ class _ChestOverlayState extends State<_ChestOverlay> {
               ),
             );
           }),
+          if (_collecting)
+            ..._collectingCards.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              return TweenAnimationBuilder(
+                duration: Duration(milliseconds: 500 + (index * 100)),
+                curve: Curves.easeInBack,
+                tween: Tween(
+                  begin: Offset(
+                    _getFinalXPosition(index),
+                    _getFinalYPosition(index),
+                  ),
+                  end: Offset(
+                    widget.screenWidth / 2 - (_cardWidth / 2), // Center horizontally
+                    widget.screenHeight + 50, // Below screen bottom
+                  ),
+                ),
+                builder: (context, Offset offset, child) {
+                  return Positioned(
+                    left: offset.dx,
+                    top: offset.dy,
+                    width: _cardWidth,
+                    height: _cardHeight,
+                    child: Transform.scale(
+                      scale: 0.8,
+                      child: InventoryItemCard(
+                        rarity: item['rarity'],
+                        itemName: item['itemName'],
+                        category: item['category'],
+                        fileName: item['fileName'],
+                        isEquipped: item['isEquipped'],
+                        onEquipUnequip: () {},
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
 
+          // Regular dealt cards
+          if (!_collecting)
+            ..._dealtCards.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              return Positioned(
+                left: _getFinalXPosition(index),
+                top: _getFinalYPosition(index),
+                width: _cardWidth,
+                height: _cardHeight,
+                child: Transform.scale(
+                  scale: 0.8,
+                  child: InventoryItemCard(
+                    rarity: item['rarity'],
+                    itemName: item['itemName'],
+                    category: item['category'],
+                    fileName: item['fileName'],
+                    isEquipped: item['isEquipped'],
+                    onEquipUnequip: () {},
+                  ),
+                ),
+              );
+            }),
           // Chest
           AnimatedPositioned(
             duration: const Duration(milliseconds: 500),
@@ -318,6 +398,39 @@ class _ChestOverlayState extends State<_ChestOverlay> {
               },
             onAnimationComplete: _onCardAnimationComplete,            
           ),
+          if (!_collecting && _dealtCards.isNotEmpty && !_animating)
+            Positioned(
+              bottom: 40,
+              left: widget.screenWidth / 2 - 75, // Center horizontally
+              child: ElevatedButton(
+                onPressed: _collectCards,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  minimumSize: const Size(150, 50), // Fixed width and height
+                  elevation: 8, // Add shadow
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25), // More rounded corners
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.check_circle_outline, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      'Collect All',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -358,8 +471,8 @@ class _ChestOverlayState extends State<_ChestOverlay> {
 
   double _getFinalYPosition(int index) {
     return index < 3 
-        ? widget.screenHeight - 200.0  // Bottom row
-        : widget.screenHeight - 340.0; // Top row
+        ? widget.screenHeight - 260.0  // Bottom row
+        : widget.screenHeight - 400.0; // Top row
   }
 
 }

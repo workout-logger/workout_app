@@ -53,34 +53,19 @@ class _InventoryItemCardState extends State<InventoryItemCard>
   void initState() {
     super.initState();
     // Initialize the controller but start it only if content is shown and rarity is epic or legendary
-    if (widget.showContent) {
       _controller = AnimationController(
         vsync: this,
         duration: const Duration(seconds: 5),
       )..repeat();
       _animation = CurvedAnimation(parent: _controller, curve: Curves.linear);
-    } else {
-      // Initialize a dummy animation if not needed
-      _controller = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 5),
-      );
-      _animation = AlwaysStoppedAnimation(0.0);
-    }
+
   }
 
   @override
   void didUpdateWidget(covariant InventoryItemCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Handle changes in showContent or rarity
-    if (widget.showContent) {
-      if (!_controller.isAnimating) {
+    if (!_controller.isAnimating) {
         _controller.repeat();
-      }
-    } else {
-      if (_controller.isAnimating) {
-        _controller.stop();
-      }
     }
   }
 
@@ -111,13 +96,6 @@ class _InventoryItemCardState extends State<InventoryItemCard>
         }
       case 'epic':
         {
-          double t = sin(_animation.value * pi);
-          Color color1 = Color.lerp(
-            const Color.fromARGB(255, 94, 2, 94),
-            const Color.fromARGB(255, 80, 76, 76),
-            t,
-          )!;
-          Color color2 = Color.lerp(const Color.fromARGB(255, 80, 76, 76),const Color.fromARGB(255, 94, 2, 94), 1 - t)!;
           return LinearGradient(
             colors: [Color.fromARGB(255, 80, 76, 76),Color.fromARGB(255, 94, 2, 94)],
             begin: Alignment.topLeft,
@@ -126,7 +104,7 @@ class _InventoryItemCardState extends State<InventoryItemCard>
         }
       case 'rare':
         return const LinearGradient(
-          colors: [ Color.fromARGB(104, 23, 138, 0),Color.fromARGB(255, 18, 100, 1)],
+          colors: [ Color.fromARGB(141, 23, 97, 9), Color.fromARGB(104, 27, 165, 0)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
