@@ -224,11 +224,16 @@ class ModularCharacter extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
+
         if (wings.isNotEmpty)
           Image.asset(
             'assets/character/wings/$wings',
             fit: BoxFit.contain,
           ),
+        Image.asset(
+          'assets/character/armour/armour_amber.png',
+          fit: BoxFit.contain,
+        ),
         if (armor.isNotEmpty)
           Image.asset(
             'assets/character/armour/$armor',
