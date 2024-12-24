@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workout_logger/currency_provider.dart';
 import 'package:workout_logger/flying_card.dart';
 import 'package:workout_logger/item_card.dart';
 import 'animated_chest.dart';
@@ -24,8 +26,26 @@ class _ChestsScreenState extends State<ChestsScreen> {
   final GlobalKey _bronzeChestKey = GlobalKey();
 
   void _onBronzeChestTap() {
+    // Access the current currency from the provider
+    final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+    const double chestCost = 100.0; // Example cost for opening the chest
+    print(currencyProvider.currency);
+    if (currencyProvider.currency < chestCost) {
+      // Show an error message or feedback to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Not enough currency to open the chest!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return; // Exit if the user doesn't have enough currency
+    }
+
+
+    // Proceed with opening the chest
     AnimatedChest.setHasAnimated(false);
     print("Chest tapped!");
+
     final RenderBox? box = _bronzeChestKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) {
       print("Error: Couldn't find chest position");
@@ -52,6 +72,7 @@ class _ChestsScreenState extends State<ChestsScreen> {
 
     Overlay.of(context).insert(_overlayEntry!);
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +210,6 @@ class _ChestOverlayState extends State<_ChestOverlay> {
       });
     });
     _buyChest();
-    print(_inventoryItems);
     
   }
 
@@ -256,9 +276,7 @@ class _ChestOverlayState extends State<_ChestOverlay> {
             child: GestureDetector(
               onTap: () {
                 // Only allow closing if no card animation is in progress
-                if (!_animating) {
-                  widget.onClose();
-                }
+
               },
               child: Container(color: Colors.black),
             ),

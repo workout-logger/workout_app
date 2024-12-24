@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workout_logger/currency_provider.dart';
+import 'package:workout_logger/websocket_manager.dart';
 import 'workout_tracking/exercise_model.dart';
 import 'home_body.dart';
 import 'fitness_app_theme.dart';
@@ -13,6 +15,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   WakelockPlus.enable();
 
+
   SharedPreferences prefs = await SharedPreferences.getInstance();
   bool isFirstLaunch = prefs.getBool('firstLaunch') ?? false; // Defaults to true if not set
   final String? authToken = prefs.getString('authToken');
@@ -22,6 +25,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => StopwatchProvider()),
         ChangeNotifierProvider(create: (_) => ExerciseModel()),
+        ChangeNotifierProvider(create: (_) => CurrencyProvider()),
       ],
       child: MyApp(isFirstLaunch: isFirstLaunch && authToken == null), // Show sign-in only if first launch and no token
     ),
@@ -63,6 +67,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
+    final currencyProvider =
+        Provider.of<CurrencyProvider>(context, listen: false);
   }
 
   @override

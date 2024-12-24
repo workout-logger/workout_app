@@ -290,7 +290,8 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
                         onEquipUnequip: () {
                           // Your equip/unequip logic here
                         },
-                        showContent: true, // Explicitly showing content
+                        showContent: true, 
+                        outOfChest: true,// Explicitly showing content
                       )
                     : InventoryItemCard(
                         rarity: widget.item['rarity'],
@@ -300,6 +301,7 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
                         isEquipped: widget.item['isEquipped'],
                         onEquipUnequip: () {}, // Empty callback
                         showContent: false, // Hiding content
+                        outOfChest: true,
                       ),
                 ),
               ),

@@ -6,14 +6,15 @@ class WebSocketManager {
   static final WebSocketManager _instance = WebSocketManager._internal();
   factory WebSocketManager() => _instance;
 
-  late WebSocketChannel _channel;
+  WebSocketChannel? _channel; // Make nullable to handle uninitialized cases
   Function(List<Map<String, dynamic>>)? onInventoryUpdate;
+  Function(double)? onCurrencyUpdate; // Callback for currency updates
 
   WebSocketManager._internal() {
-    _connectWebSocket();
+    connectWebSocket();
   }
 
-  Future<void> _connectWebSocket() async {
+  Future<void> connectWebSocket() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? authToken = prefs.getString('authToken');
     _channel = WebSocketChannel.connect(
@@ -23,18 +24,35 @@ class WebSocketManager {
     );
 
     // Listen for messages
-    _channel.stream.listen(
+    _channel?.stream.listen(
       (message) {
         final decodedMessage = json.decode(message);
-        if (decodedMessage is Map<String, dynamic> &&
-            decodedMessage['type'] == 'inventory_update') {
-          final data = decodedMessage['data'];
-          if (data is Map<String, dynamic> && data['items'] is List) {
-            final updatedItems = (data['items'] as List)
-                .map((item) => item as Map<String, dynamic>)
-                .toList();
-            if (onInventoryUpdate != null) {
-              onInventoryUpdate!(updatedItems);
+
+        if (decodedMessage is Map<String, dynamic>) {
+          // Handle inventory updates
+          if (decodedMessage['type'] == 'inventory_update') {
+            final data = decodedMessage['data'];
+            if (data is Map<String, dynamic> && data['items'] is List) {
+              final updatedItems = (data['items'] as List)
+                  .map((item) => item as Map<String, dynamic>)
+                  .toList();
+              if (onInventoryUpdate != null) {
+                onInventoryUpdate!(updatedItems);
+              }
+            }
+          }
+
+          // Handle currency updates
+          if (decodedMessage['type'] == 'currency_update') {
+            final data = decodedMessage['data'];
+            print("Received currency_update message: $data");
+            if (data['currency'] is num) {
+              final double currencyValue = (data['currency'] as num).toDouble();
+              print(onCurrencyUpdate != null);
+              if (onCurrencyUpdate != null) {
+                print("Invoking currency update callback with value: $currencyValue");
+                onCurrencyUpdate!(currencyValue);
+              }
             }
           }
         }
@@ -54,23 +72,33 @@ class WebSocketManager {
     // Attempt to reconnect after a delay
     Future.delayed(const Duration(seconds: 5), () {
       print("Reconnecting to WebSocket...");
-      _connectWebSocket();
+      connectWebSocket();
     });
   }
 
+  // Callback setter for inventory updates
   void setInventoryUpdateCallback(
       Function(List<Map<String, dynamic>>) callback) {
     onInventoryUpdate = callback;
   }
 
-  void closeConnection() {
-    _channel.sink.close(1000);
+  // Callback setter for currency updates
+  void setCurrencyUpdateCallback(Function(double) callback) {
+    onCurrencyUpdate = callback;
   }
 
-  // New method to send messages
+  void closeConnection() {
+    _channel?.sink.close(1000);
+  }
+
+  // Updated method to send messages safely
   void sendMessage(Map<String, dynamic> message) {
     try {
-      _channel.sink.add(json.encode(message));
+      if (_channel == null) {
+        print("WebSocket not initialized. Cannot send message.");
+        return;
+      }
+      _channel!.sink.add(json.encode(message));
       print("WebSocket message sent: ${json.encode(message)}");
     } catch (e) {
       print("Error sending WebSocket message: $e");

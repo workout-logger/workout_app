@@ -27,6 +27,7 @@ class InventoryItemCard extends StatefulWidget {
   final VoidCallback onEquipUnequip;
   final String rarity; // "common", "rare", "epic", "legendary"
   final bool showContent; // New parameter to control content visibility
+  final bool outOfChest;
 
   const InventoryItemCard({
     super.key,
@@ -37,6 +38,7 @@ class InventoryItemCard extends StatefulWidget {
     required this.onEquipUnequip,
     required this.rarity,
     this.showContent = true, // Default to showing content
+    this.outOfChest = false,
   });
 
   @override
@@ -122,7 +124,7 @@ class _InventoryItemCardState extends State<InventoryItemCard>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.showContent
+      onTap: !widget.outOfChest
           ? () {
               print('Category: ${widget.category}');
               showModalBottomSheet(
@@ -223,6 +225,22 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                       },
                     ),
                   )
+              else if (widget.category == "armour")
+                  Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
+                    child: Image.asset(
+                      'assets/character/${widget.category}/${widget.fileName}',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.broken_image,
+                          color: Colors.redAccent,
+                          size: 40,
+                        );
+                      },
+                    ),
+                  )
                 else
                   Padding(
                     padding:
@@ -300,7 +318,9 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                 child: Column(
                   children: [
                     Text(
-                      widget.itemName,
+                      widget.itemName.length > 15
+                          ? widget.itemName.split(' ')[0]
+                          : widget.itemName,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: widget.rarity == 'legendary'
