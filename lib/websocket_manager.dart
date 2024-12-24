@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketManager {
@@ -12,10 +13,12 @@ class WebSocketManager {
     _connectWebSocket();
   }
 
-  void _connectWebSocket() {
+  Future<void> _connectWebSocket() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? authToken = prefs.getString('authToken');
     _channel = WebSocketChannel.connect(
       Uri.parse(
-        'ws://jaybird-exciting-merely.ngrok-free.app/ws/inventory/?token=ca98303f6358d7df547dc515a5cd4315e6d4dd27',
+        'ws://jaybird-exciting-merely.ngrok-free.app/ws/inventory/?token=$authToken',
       ),
     );
 

@@ -167,6 +167,10 @@ class ModularCharacter extends StatelessWidget {
             'assets/character/wings/$wings',
             fit: BoxFit.contain,
           ),
+        Image.asset(
+          'assets/character/armour/armour_amber.png',
+          fit: BoxFit.contain,
+        ),
         if (armour.isNotEmpty)
           Image.asset(
             'assets/character/armour/$armour',

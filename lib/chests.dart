@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/flying_card.dart';
 import 'package:workout_logger/item_card.dart';
 import 'animated_chest.dart';
+import 'package:workout_logger/constants.dart';
+import 'package:http/http.dart' as http;
 
 class ChestsScreen extends StatefulWidget {
   ChestsScreen({Key? key}) : super(key: key);
@@ -14,7 +18,6 @@ class ChestsScreen extends StatefulWidget {
 class _ChestsScreenState extends State<ChestsScreen> {
   final List<Map<String, dynamic>> chestData = [
     {'name': 'Bronze Chest', 'price': 100, 'number': 0},
-
   ];
 
   OverlayEntry? _overlayEntry;
@@ -80,6 +83,7 @@ class _ChestsScreenState extends State<ChestsScreen> {
   }
 }
 
+
 class _ChestOverlay extends StatefulWidget {
   final double initialX;
   final double initialY;
@@ -116,45 +120,58 @@ class _ChestOverlayState extends State<_ChestOverlay> {
   Map<String, dynamic>? _currentlyFlyingCard;
 
   final List<Map<String, dynamic>> _inventoryItems = [
-    {
-      'itemName': 'Iron Sword',
-      'category': 'melee',
-      'fileName': 'sword_iron.png',
-      'isEquipped': false,
-      'rarity': 'epic'
-    },
-    {
-      'itemName': 'Blue Pants',
-      'category': 'legs',
-      'fileName': 'pants_blue.png',
-      'isEquipped': false,
-      'rarity': 'common'
-    },
-    {
-      'itemName': 'Blue Head',
-      'category': 'heads',
-      'fileName': 'head_blue.png',
-      'isEquipped': false,
-      'rarity': 'rare'
-    },
-    {
-      'itemName': 'Other Blue Pants',
-      'category': 'legs',
-      'fileName': 'pants_blue.png',
-      'isEquipped': false,
-      'rarity': 'common'
-    },
-    {
-      'itemName': 'Amber Wings',
-      'category': 'wings',
-      'fileName': 'wings_amber.png',
-      'isEquipped': false,
-      'rarity': 'legendary'
-    },
   ];
 
   late final double _centerDisplayX;
   final double _statsOffset = 200.0;
+
+  Future<List<dynamic>?> _buyChest() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String apiUrl = APIConstants.buyChest;
+    final String? authToken = prefs.getString('authToken');
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $authToken',
+        },
+        body: json.encode({
+          'chest_id': "1",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> items = json.decode(response.body)['items'];
+        
+        // Add the received items to the inventory
+        setState(() {
+          _inventoryItems.addAll(items.map((item) => {
+            'itemName': item['itemName'],
+            'category': item['category'],
+            'fileName': item['fileName'],
+            'isEquipped': false, // Default state
+            'rarity': item['rarity'],
+          }));
+        });
+
+        return items;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to purchase chest: ${json.decode(response.body)['message']}')),
+        );
+        return null;
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+      return null;
+    }
+  }
+
+
 
   @override
   void initState() {
@@ -171,6 +188,9 @@ class _ChestOverlayState extends State<_ChestOverlay> {
         }
       });
     });
+    _buyChest();
+    print(_inventoryItems);
+    
   }
 
   void _collectCards() {

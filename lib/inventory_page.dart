@@ -99,7 +99,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 // Any other widgets you might have
                 CharacterStatsView(
                   head: equippedItems['heads'] ?? 'head_blue.png',
-                  armour: equippedItems['armour'] ?? 'armour_amber.png',
+                  armour: equippedItems['armour'] ?? '',
                   legs: equippedItems['legs'] ?? '',
                   melee: equippedItems['melee'] ?? '',
                   shield: equippedItems['shield'] ?? '',
