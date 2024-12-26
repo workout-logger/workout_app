@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/chests.dart';
 import 'package:workout_logger/trading_page.dart';
 import 'package:animate_do/animate_do.dart'; // Import animate_do
@@ -6,7 +7,7 @@ import 'package:animate_do/animate_do.dart'; // Import animate_do
 
 class MMORPGMainScreen extends StatelessWidget {
   const MMORPGMainScreen({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -44,17 +45,25 @@ class MMORPGMainScreen extends StatelessWidget {
             ),
           ),
         ),
-        body: TabBarView(
-          children: [
-            MarketScreen(),
-            ChestsScreen(), // New Chests Tab
-            ChatPage(
-              websocketUrl: 'ws://jaybird-exciting-merely.ngrok-free.app/ws/chat/?token=ca98303f6358d7df547dc515a5cd4315e6d4dd27', // Replace with your WebSocket URL
-              username: 'johndoe', // Replace with authenticated username
-              userId: '2', // Replace with authenticated user ID
-            ),
-            FriendsScreen(),
-          ],
+        body: FutureBuilder<String>(
+          future: SharedPreferences.getInstance().then((prefs) => prefs.getString('authToken') ?? ''),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              final token = snapshot.data!;
+              return TabBarView(
+                children: [
+                  MarketScreen(),
+                  ChestsScreen(), // New Chests Tab
+                  ChatPage(
+                    websocketUrl: 'ws://jaybird-exciting-merely.ngrok-free.app/ws/chat/?token=$token',
+                    token:token,
+                  ),
+                  FriendsScreen(),
+                ],
+              );
+            }
+            return Center(child: CircularProgressIndicator());
+          }
         ),
       ),
     );
