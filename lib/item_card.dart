@@ -10,11 +10,11 @@ Path getHexPath(Size size) {
 
   Path path = Path();
   path.moveTo(w * 0.5, 0);
-  path.lineTo(w, h * 0.1);
-  path.lineTo(w, h * 0.9);
+  path.lineTo(w, h * 0.25);
+  path.lineTo(w, h * 0.75);
   path.lineTo(w * 0.5, h);
-  path.lineTo(0, h * 0.9);
-  path.lineTo(0, h * 0.1);
+  path.lineTo(0, h * 0.75);
+  path.lineTo(0, h * 0.25);
   path.close();
   return path;
 }
@@ -55,19 +55,18 @@ class _InventoryItemCardState extends State<InventoryItemCard>
   void initState() {
     super.initState();
     // Initialize the controller but start it only if content is shown and rarity is epic or legendary
-      _controller = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 5),
-      )..repeat();
-      _animation = CurvedAnimation(parent: _controller, curve: Curves.linear);
-
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    )..repeat();
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.linear);
   }
 
   @override
   void didUpdateWidget(covariant InventoryItemCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_controller.isAnimating) {
-        _controller.repeat();
+      _controller.repeat();
     }
   }
 
@@ -78,8 +77,6 @@ class _InventoryItemCardState extends State<InventoryItemCard>
   }
 
   Gradient _buildGradient() {
-
-
     switch (widget.rarity) {
       case 'legendary':
         {
@@ -98,15 +95,15 @@ class _InventoryItemCardState extends State<InventoryItemCard>
         }
       case 'epic':
         {
-          return LinearGradient(
-            colors: [Color.fromARGB(255, 80, 76, 76),Color.fromARGB(255, 94, 2, 94)],
+          return const LinearGradient(
+            colors: [Color.fromARGB(255, 80, 76, 76), Color.fromARGB(255, 94, 2, 94)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
         }
       case 'rare':
         return const LinearGradient(
-          colors: [ Color.fromARGB(141, 23, 97, 9), Color.fromARGB(104, 27, 165, 0)],
+          colors: [Color.fromARGB(141, 23, 97, 9), Color.fromARGB(104, 27, 165, 0)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
@@ -130,7 +127,7 @@ class _InventoryItemCardState extends State<InventoryItemCard>
               showModalBottomSheet(
                 context: context,
                 backgroundColor: Colors.transparent,
-                isScrollControlled: true,
+                isScrollControlled: false,
                 builder: (context) => InventoryActionsDrawer(
                   itemName: widget.itemName,
                   category: widget.category,
@@ -149,8 +146,7 @@ class _InventoryItemCardState extends State<InventoryItemCard>
             Widget baseContent = Container(
               decoration: BoxDecoration(
                 gradient: _buildGradient(),
-                borderRadius:
-                    widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
+                borderRadius: widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
               ),
             );
 
@@ -164,102 +160,83 @@ class _InventoryItemCardState extends State<InventoryItemCard>
           }
 
           // Existing card content
-          Widget cardContent = Container(
-            decoration: BoxDecoration(
-              gradient: _buildGradient(),
-              borderRadius:
-                  widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
-              border: Border.all(
-                color: widget.isEquipped
-                    ? const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2)
-                    : Colors.transparent,
-                width: 1,
+          // Replace the SingleChildScrollView with a simple Container
+Widget cardContent = Container(
+  decoration: BoxDecoration(
+    gradient: _buildGradient(),
+    borderRadius: widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
+    border: Border.all(
+      color: widget.isEquipped
+          ? const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2)
+          : Colors.transparent,
+      width: 1,
+    ),
+    boxShadow: widget.isEquipped
+        ? [
+            BoxShadow(
+              color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 0.5,
+            ),
+          ]
+        : [],
+  ),
+  child: Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      if (widget.category == "legs" || widget.category == "melee")
+        ClipRect(
+          child: SizedBox(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              heightFactor: 0.3,
+              child: Image.asset(
+                'assets/character/${widget.category}/${widget.fileName}',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.broken_image,
+                    color: Colors.redAccent,
+                    size: 60,
+                  );
+                },
               ),
-              boxShadow: widget.isEquipped
-                  ? [
-                      BoxShadow(
-                        color: const Color.fromARGB(255, 255, 255, 255)
-                            .withOpacity(0.2),
-                        blurRadius: 10,
-                        spreadRadius: 0.5,
-                      ),
-                    ]
-                  : [],
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (widget.category == "legs" || widget.category == "melee")
-                  ClipRect(
-                    child: SizedBox(
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        heightFactor: 0.3,
-                        child: Image.asset(
-                          'assets/character/${widget.category}/${widget.fileName}',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.broken_image,
-                              color: Colors.redAccent,
-                              size: 60,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  )
-                else if (widget.category == "wings")
-                  Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
-                    child: Image.asset(
-                      'assets/character/${widget.category}/${widget.fileName}',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.broken_image,
-                          color: Colors.redAccent,
-                          size: 40,
-                        );
-                      },
-                    ),
-                  )
-              else if (widget.category == "armour")
-                  Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
-                    child: Image.asset(
-                      'assets/character/${widget.category}/${widget.fileName}',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.broken_image,
-                          color: Colors.redAccent,
-                          size: 40,
-                        );
-                      },
-                    ),
-                  )
-                else
-                  Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 30.0),
-                    child: Image.asset(
-                      'assets/character/${widget.category}/${widget.fileName}',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.broken_image,
-                          color: Colors.redAccent,
-                          size: 40,
-                        );
-                      },
-                    ),
-                  )
-              ],
-            ),
-          );
+          ),
+        )
+      else if (widget.category == "wings")
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
+          child: Image.asset(
+            'assets/character/${widget.category}/${widget.fileName}',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(
+                Icons.broken_image,
+                color: Colors.redAccent,
+                size: 40,
+              );
+            },
+          ),
+        )
+      else
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2.0, 2.0, 2.0, 30.0),
+          child: Image.asset(
+            'assets/character/${widget.category}/${widget.fileName}',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(
+                Icons.broken_image,
+                color: Colors.redAccent,
+                size: 40,
+              );
+            },
+          ),
+        ),
+    ],
+  ),
+);
 
           // For legendary, clip and add a matching border + moving dot
           if (widget.rarity == 'legendary') {
@@ -442,7 +419,7 @@ class HexBorderWithDotPainter extends CustomPainter {
     PathMetric pathMetric = path.computeMetrics().first;
     double pathLength = pathMetric.length;
     double currentOffset = pathLength * animationValue;
-    double offsetDotCurrentOffset = (pathLength * animationValue + pathLength/2) % pathLength;
+    double offsetDotCurrentOffset = (pathLength * animationValue + pathLength / 2) % pathLength;
 
     // Get dot position
     Tangent? tangent = pathMetric.getTangentForOffset(currentOffset);
@@ -466,8 +443,6 @@ class HexBorderWithDotPainter extends CustomPainter {
       stops: const [0.0, 0.3, 0.7, 1.0],
     );
 
-
-
     // Draw glowing dot
     for (double i = 4; i > 0; i--) {
       var dotPaint = Paint()
@@ -486,10 +461,6 @@ class HexBorderWithDotPainter extends CustomPainter {
 
       canvas.drawCircle(offsetDotPosition, 4.0 * i, dotPaint);
     }
-
-
-
-
   }
 
   @override
