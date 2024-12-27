@@ -108,7 +108,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 // Inventory Display
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(10.0),
                     child: inventoryItems.isEmpty
                         ? const Center(
                             child: Text(
@@ -117,26 +117,27 @@ class _InventoryPageState extends State<InventoryPage> {
                             ),
                           )
                         : GridView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
-                              childAspectRatio: 0.8,
-                            ),
-                            itemCount: inventoryItems.length,
-                            itemBuilder: (context, index) {
-                              final item = inventoryItems[index];
-                              return InventoryItemCard(
-                                itemName: item['name'],
-                                category: item['category'],
-                                fileName: item['file_name'],
-                                isEquipped: item['is_equipped'],
-                                onEquipUnequip: _refreshUI,
-                                rarity: item['rarity'],
-                              );
-                            },
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 0.65, // allow more vertical space
                           ),
+                          itemCount: inventoryItems.length,
+                          itemBuilder: (context, index) {
+                            final item = inventoryItems[index];
+                            // No Flexible here:
+                            return InventoryItemCard(
+                              itemName: item['name'],
+                              category: item['category'],
+                              fileName: item['file_name'],
+                              isEquipped: item['is_equipped'],
+                              onEquipUnequip: _refreshUI,
+                              rarity: item['rarity'],
+                            );
+                          },
+                        )
                   ),
                 ),
               ],
@@ -265,7 +266,7 @@ class InventoryActionsDrawer extends StatelessWidget {
           Row(
             children: [
               Image.asset(
-                'assets/character/$category/$fileName',
+                'assets/character/$category/$fileName.png',
                 height: 80,
                 width: 80,
                 errorBuilder: (context, error, stackTrace) {

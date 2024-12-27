@@ -68,7 +68,7 @@ class CharacterStatsView extends StatelessWidget {
           // Character on the left
           SizedBox(
             width: 150,
-            height: 150,
+            height: 250,
             child: ModularCharacter(
               armour: armour,
               head: head,
@@ -78,7 +78,7 @@ class CharacterStatsView extends StatelessWidget {
               wings: wings,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 4),
           // Stats on the right
           Expanded(
             child: Column(
@@ -164,7 +164,7 @@ class ModularCharacter extends StatelessWidget {
       children: [
         if (wings.isNotEmpty)
           Image.asset(
-            'assets/character/wings/$wings',
+            'assets/character/wings/$wings.png',
             fit: BoxFit.contain,
           ),
         Image.asset(
@@ -173,27 +173,27 @@ class ModularCharacter extends StatelessWidget {
         ),
         if (armour.isNotEmpty)
           Image.asset(
-            'assets/character/armour/$armour',
+            'assets/character/armour/$armour.png',
             fit: BoxFit.contain,
           ),
         if (head.isNotEmpty)
           Image.asset(
-            'assets/character/heads/$head',
+            'assets/character/heads/$head.png',
             fit: BoxFit.contain,
           ),
         if (legs.isNotEmpty)
           Image.asset(
-            'assets/character/legs/$legs',
+            'assets/character/legs/$legs.png',
             fit: BoxFit.contain,
           ),
         if (melee.isNotEmpty)
           Image.asset(
-            'assets/character/melee/$melee',
+            'assets/character/melee/$melee.png',
             fit: BoxFit.contain,
           ),
         if (shield.isNotEmpty)
           Image.asset(
-            'assets/character/shield/$shield',
+            'assets/character/shield/$shield.png',
             fit: BoxFit.contain,
           ),
       ],

@@ -159,84 +159,84 @@ class _InventoryItemCardState extends State<InventoryItemCard>
             return baseContent;
           }
 
-          // Existing card content
-          // Replace the SingleChildScrollView with a simple Container
-Widget cardContent = Container(
-  decoration: BoxDecoration(
-    gradient: _buildGradient(),
-    borderRadius: widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
-    border: Border.all(
-      color: widget.isEquipped
-          ? const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2)
-          : Colors.transparent,
-      width: 1,
-    ),
-    boxShadow: widget.isEquipped
-        ? [
-            BoxShadow(
-              color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2),
-              blurRadius: 10,
-              spreadRadius: 0.5,
-            ),
-          ]
-        : [],
-  ),
-  child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      if (widget.category == "legs" || widget.category == "melee")
-        ClipRect(
-          child: SizedBox(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              heightFactor: 0.3,
-              child: Image.asset(
-                'assets/character/${widget.category}/${widget.fileName}',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                    Icons.broken_image,
-                    color: Colors.redAccent,
-                    size: 60,
-                  );
-                },
+                    // Existing card content
+                    // Replace the SingleChildScrollView with a simple Container
+          Widget cardContent = Container(
+            decoration: BoxDecoration(
+              gradient: _buildGradient(),
+              borderRadius: widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
+              border: Border.all(
+                color: widget.isEquipped
+                    ? const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2)
+                    : Colors.transparent,
+                width: 1,
               ),
+              boxShadow: widget.isEquipped
+                  ? [
+                      BoxShadow(
+                        color: const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2),
+                        blurRadius: 10,
+                        spreadRadius: 0.5,
+                      ),
+                    ]
+                  : [],
             ),
-          ),
-        )
-      else if (widget.category == "wings")
-        Padding(
-          padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
-          child: Image.asset(
-            'assets/character/${widget.category}/${widget.fileName}',
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(
-                Icons.broken_image,
-                color: Colors.redAccent,
-                size: 40,
-              );
-            },
-          ),
-        )
-      else
-        Padding(
-          padding: const EdgeInsets.fromLTRB(2.0, 2.0, 2.0, 30.0),
-          child: Image.asset(
-            'assets/character/${widget.category}/${widget.fileName}',
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(
-                Icons.broken_image,
-                color: Colors.redAccent,
-                size: 40,
-              );
-            },
-          ),
-        ),
-    ],
-  ),
-);
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.category == "legs" || widget.category == "melee")
+                  ClipRect(
+                    child: SizedBox(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        heightFactor: 0.3,
+                        child: Image.asset(
+                          'assets/character/${widget.category}/${widget.fileName}.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.broken_image,
+                              color: Colors.redAccent,
+                              size: 60,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  )
+                else if (widget.category == "wings")
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
+                    child: Image.asset(
+                      'assets/character/${widget.category}/${widget.fileName}.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.broken_image,
+                          color: Colors.redAccent,
+                          size: 40,
+                        );
+                      },
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(2.0, 2.0, 2.0, 1.0),
+                    child: Image.asset(
+                      'assets/character/${widget.category}/${widget.fileName}.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.broken_image,
+                          color: Colors.redAccent,
+                          size: 40,
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          );
 
           // For legendary, clip and add a matching border + moving dot
           if (widget.rarity == 'legendary') {
