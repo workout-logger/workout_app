@@ -8,6 +8,7 @@ import 'package:health/health.dart';
 import 'dart:convert';
 
 import 'package:permission_handler/permission_handler.dart';
+import 'package:workout_logger/complete_profile_screen.dart';
 
 import 'package:workout_logger/constants.dart';
 import 'package:workout_logger/main.dart';
@@ -191,45 +192,65 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// Google Sign In logic
   Future<void> _handleGoogleSignIn(BuildContext context) async {
-    setState(() {
-      _loadingMessage = "Logging in";
-    });
+    setState(() => _loadingMessage = "Logging in");
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // User canceled the Google Sign-In
+        setState(() => _loadingMessage = null);
+        return;
+      }
 
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-        final String? accessToken = googleAuth.accessToken;
+      // Retrieve auth details
+      final googleAuth = await googleUser.authentication;
+      final String? accessToken = googleAuth.accessToken;
 
-        final response = await http.post(
-          Uri.parse(APIConstants.googleSignIn),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'access_token': accessToken}),
-        );
+      // Send token to your server
+      final response = await http.post(
+        Uri.parse(APIConstants.googleSignIn),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'access_token': accessToken}),
+      );
 
-        if (response.statusCode == 200) {
-          final responseBody = jsonDecode(response.body);
-          final String authToken = responseBody['key'];
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setString('authToken', authToken);
-          await _completeSignIn(context);
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+
+        // For example:
+        final String authToken = responseBody['key'];
+        final bool isNewUser = responseBody['is_new_user'] ?? false;
+        final bool profileCompleted = responseBody['profile_completed'] ?? false;
+
+        // Save token in SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('authToken', authToken);
+
+        // If new user or profile not done, show the profile creation
+        if (isNewUser || !profileCompleted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const UsernameScreen()),
+          );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed: ${response.body}')),
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
           );
         }
+      } else {
+        // Sign in failed
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed: ${response.body}')),
+        );
       }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sign in failed: $error')),
       );
     } finally {
-      setState(() {
-        _loadingMessage = null;
-      });
+      setState(() => _loadingMessage = null);
     }
   }
+
 
   /// Sign in with email
   Future<void> _signInWithEmail() async {
@@ -455,3 +476,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
