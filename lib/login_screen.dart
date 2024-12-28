@@ -6,10 +6,12 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:health/health.dart';
 import 'dart:convert';
+
+import 'package:permission_handler/permission_handler.dart';
+
 import 'package:workout_logger/constants.dart';
 import 'package:workout_logger/main.dart';
 import 'package:workout_logger/signup_page.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -19,21 +21,175 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-    final GoogleSignIn _googleSignIn = GoogleSignIn(
+  // Google Sign-In
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
   );
-  String? _loadingMessage;
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  final types = [
+  // HealthKit / Health Connect setup
+  final Health health = Health();
+  final List<HealthDataType> types = [
     HealthDataType.HEART_RATE,
     HealthDataType.WORKOUT,
   ];
-  
-  final Health health = Health();
 
+  // For showing progress messages
+  String? _loadingMessage;
+
+  // Text controllers
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  /// We add this to configure the health plugin on app startup.
+  @override
+  void initState() {
+    super.initState();
+    // Configure the Health plugin (important on both iOS and Android).
+    health.configure();
+
+    // If on Android, check the status of Health Connect.
+    if (Platform.isAndroid) {
+      health.getHealthConnectSdkStatus().then((status) {
+        debugPrint('Health Connect SDK status: $status');
+        // Optionally, if status != HealthConnectSdkStatus.sdkAvailable,
+        // you might prompt the user to install Health Connect, etc.
+      });
+    }
+  }
+
+  /// Requests the needed permissions to read data from Apple Health or Health Connect.
+  /// On Android, also asks for Activity Recognition and (optionally) Location.
+  Future<bool> requestAuthorization() async {
+    try {
+      // If on Android, request the ACTIVITY_RECOGNITION permission (and location, if needed).
+      if (Platform.isAndroid) {
+        await Permission.activityRecognition.request();
+        // If your workouts include distance (e.g., running/walking), you may also request location:
+        await Permission.location.request();
+      }
+
+      // If you need more fine-grained READ vs. READ_WRITE logic, build out the permissions list:
+      final permissions = types.map((_) => HealthDataAccess.READ).toList();
+
+      // Check if we already have permissions
+      bool? hasPermissions =
+          await health.hasPermissions(types, permissions: permissions);
+
+      // Because `hasPermissions` can be null, we check falsey:
+      if (hasPermissions != true) {
+        // Request authorization for the data types you need
+        return await health.requestAuthorization(types, permissions: permissions);
+      }
+      // If we already had them
+      return true;
+    } catch (error) {
+      debugPrint('Error requesting authorization: $error');
+      return false;
+    }
+  }
+
+  /// Fetches the user’s heart rate and workout data from the last ~3 years (999 days).
+  /// Adjust the time range as you see fit.
+  Future<List<HealthDataPoint>> fetchHealthData() async {
+    setState(() {
+      _loadingMessage = "Syncing data";
+    });
+
+    final now = DateTime.now();
+    final startDate = now.subtract(const Duration(days: 999));
+    List<HealthDataPoint> healthData = [];
+
+    try {
+      bool isAuthorized = await requestAuthorization();
+      if (!isAuthorized) {
+        debugPrint('Authorization not granted');
+        return [];
+      }
+
+      // We have permission—go ahead and fetch data
+      healthData = await health.getHealthDataFromTypes(
+        startTime: startDate,
+        endTime: now,
+        types: types,
+      );
+
+      // Remove duplicates, just in case
+      healthData = health.removeDuplicates(healthData);
+
+    } catch (error, stack) {
+      debugPrint("Error fetching health data: $error");
+      debugPrint("Stack trace: $stack");
+    } finally {
+      setState(() {
+        _loadingMessage = null;
+      });
+    }
+    return healthData;
+  }
+
+  /// Completes the sign-in process by fetching health data and syncing to your server.
+  Future<void> _completeSignIn(BuildContext context) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      // await prefs.setBool('firstLaunch', false);
+
+      // 1. Fetch health data
+      List<HealthDataPoint> healthData = await fetchHealthData();
+      
+      // 2. Prepare data for your backend
+      final String? authToken = prefs.getString('authToken');
+
+      final workoutData = healthData
+          .where((dp) => dp.type == HealthDataType.WORKOUT)
+          .map((dp) => {
+                'value': dp.value,
+                'start_date': dp.dateFrom.toIso8601String(),
+                'end_date': dp.dateTo.toIso8601String(),
+              })
+          .toList();
+
+      final heartRateData = healthData
+          .where((dp) => dp.type == HealthDataType.HEART_RATE)
+          .map((dp) => {
+                'value': dp.value,
+                'start_date': dp.dateFrom.toIso8601String(),
+                'end_date': dp.dateTo.toIso8601String(),
+              })
+          .toList();
+
+      final dataToSend = {
+        'authToken': authToken,
+        'workout_data': workoutData,
+        'heartrate_data': heartRateData,
+      };
+
+      // 3. POST data to your server
+      await http.post(
+        Uri.parse(APIConstants.syncWorkouts),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $authToken',
+        },
+        body: jsonEncode(dataToSend),
+      );
+
+      // 4. Go to home screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } catch (error) {
+      debugPrint("Error during completion: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to complete sign-in: $error')),
+      );
+      setState(() {
+        _loadingMessage = null;
+      });
+    }
+  }
+
+  /// Google Sign In logic
   Future<void> _handleGoogleSignIn(BuildContext context) async {
     setState(() {
       _loadingMessage = "Logging in";
@@ -44,7 +200,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (googleUser != null) {
         final GoogleSignInAuthentication googleAuth =
             await googleUser.authentication;
-
         final String? accessToken = googleAuth.accessToken;
 
         final response = await http.post(
@@ -52,6 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'access_token': accessToken}),
         );
+
         if (response.statusCode == 200) {
           final responseBody = jsonDecode(response.body);
           final String authToken = responseBody['key'];
@@ -75,6 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Sign in with email
   Future<void> _signInWithEmail() async {
     setState(() {
       _loadingMessage = "Signing in";
@@ -91,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final responseBody = jsonDecode(response.body);
-      print("Server Response: $responseBody");
+      debugPrint("Server Response: $responseBody");
 
       if (response.statusCode == 200) {
         final String? authToken = responseBody['token'] as String?;
@@ -114,12 +271,12 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(content: Text('Sign in failed: $error')),
         );
         setState(() {
-          _loadingMessage = null; // Reset on error
+          _loadingMessage = null;
         });
       }
 
     } catch (e) {
-      print("Error during sign-in: $e");
+      debugPrint("Error during sign-in: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sign in failed: $e')),
       );
@@ -129,109 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<bool> requestAuthorization() async {
-    bool isAuthorized = false;
-    if (Platform.isAndroid || Platform.isIOS) {
-      isAuthorized = await health.requestAuthorization(types);
-      print('Health APIs are available on this platform.');
-    } else {
-      print('Health APIs are not available on this platform.');
-    }
-    return isAuthorized;
-  }
-
-  Future<List<HealthDataPoint>> fetchHealthData() async {
-    setState(() {
-      _loadingMessage = "Syncing data";
-    });
-    final now = DateTime.now();
-    final yesterday = now.subtract(const Duration(days: 999));
-
-    List<HealthDataPoint> healthData = [];
-
-    try {
-      bool isAuthorized = await requestAuthorization();
-
-      if (isAuthorized) {
-        healthData = await health.getHealthDataFromTypes(
-          startTime: yesterday,
-          endTime: now,
-          types: types,
-        );
-        healthData = health.removeDuplicates(healthData);
-      } else {
-        print('Authorization not granted');
-        print('Error: Health data access not authorized by user');
-      }
-    }  catch (error) {
-      print("Error fetching health data: $error");
-      print("Error details: ${error.toString()}");
-      print("Error stack trace: ${StackTrace.current}");
-      setState(() {
-        _loadingMessage = null; // Reset on error
-      });
-    }
-    return healthData;
-  }
-
-  Future<void> _completeSignIn(BuildContext context) async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('firstLaunch', false);
-
-      List<HealthDataPoint> healthData = await fetchHealthData();
-      final String? authToken = prefs.getString('authToken');
-
-      final workoutData = healthData
-          .where((dataPoint) => dataPoint.type == HealthDataType.WORKOUT)
-          .map((dataPoint) => {
-                'value': dataPoint.value,
-                'start_date': dataPoint.dateFrom.toIso8601String(),
-                'end_date': dataPoint.dateTo.toIso8601String(),
-              })
-          .toList();
-
-      final heartRateData = healthData
-          .where((dataPoint) => dataPoint.type == HealthDataType.HEART_RATE)
-          .map((dataPoint) => {
-                'value': dataPoint.value,
-                'start_date': dataPoint.dateFrom.toIso8601String(),
-                'end_date': dataPoint.dateTo.toIso8601String(),
-              })
-          .toList();
-
-      final dataToSend = {
-        'authToken': authToken,
-        'workout_data': workoutData,
-        'heartrate_data': heartRateData,
-      };
-
-      await http.post(
-        Uri.parse(APIConstants.syncWorkouts),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Token $authToken',
-        },
-        body: jsonEncode(dataToSend),
-      );
-
-      // Navigate to the home screen and reset the loading message after navigation
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-
-    } catch (error) {
-      print("Error during completion: $error");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to complete sign-in: $error')),
-      );
-      setState(() {
-        _loadingMessage = null;
-      });
-    }
-  }
-
+  /// Builds the UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -314,7 +369,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          // If you want to allow users as "guests," handle that logic here.
+                        },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.yellow),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -348,8 +405,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 20),
                       OutlinedButton.icon(
                         onPressed: () async {
-                            await _handleGoogleSignIn(context);
-                          },
+                          await _handleGoogleSignIn(context);
+                        },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.grey),
                           padding: const EdgeInsets.symmetric(vertical: 16),
