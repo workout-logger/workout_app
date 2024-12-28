@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/currency_provider.dart';
+import 'package:workout_logger/login_screen.dart';
 import 'package:workout_logger/websocket_manager.dart';
 import 'workout_tracking/exercise_model.dart';
 import 'home_body.dart';
@@ -17,7 +18,7 @@ void main() async {
 
 
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool isFirstLaunch = prefs.getBool('firstLaunch') ?? false; // Defaults to true if not set
+  bool isFirstLaunch = prefs.getBool('firstLaunch') ?? true; // Defaults to true if not set
   final String? authToken = prefs.getString('authToken');
 
   runApp(
@@ -27,7 +28,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ExerciseModel()),
         ChangeNotifierProvider(create: (_) => CurrencyProvider()),
       ],
-      child: MyApp(isFirstLaunch: isFirstLaunch && authToken == null), // Show sign-in only if first launch and no token
+      child: MyApp(isFirstLaunch: isFirstLaunch), // Show sign-in only if first launch
     ),
   );
 }
@@ -44,7 +45,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       // If it's the first launch, show Google Sign-In page, otherwise show HomeScreen
-      home: HomeScreen() ,
+      home: const LoginScreen(),
     );
   }
 }
