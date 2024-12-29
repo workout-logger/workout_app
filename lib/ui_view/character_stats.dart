@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hexcolor/hexcolor.dart';
 // import '../fitness_app_theme.dart'; // Remove or adjust to your needs
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CharacterStatsView extends StatefulWidget {
   final AnimationController? animationController; // can be nullable
@@ -34,7 +35,6 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
   // Rotation controller to spin the stats around the character
   late AnimationController _rotationController;
   late Animation<double> _rotationAnimation;
-
 
 
   // Tracks each stat’s final scale factor for a “fade in” effect
@@ -172,7 +172,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
 
     // If you have a non-null widget.animation, you can fade or scale with it
     final fadeAnimation = widget.animation ?? const AlwaysStoppedAnimation(1.0);
-
+    
     return AnimatedBuilder(
       animation: Listenable.merge(controllers),
       builder: (context, child) {
@@ -281,7 +281,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
 }
 
 // Example of the ModularCharacter widget
-class ModularCharacter extends StatelessWidget {
+class ModularCharacter extends StatefulWidget {
   final String armor;
   final String head;
   final String legs;
@@ -300,42 +300,69 @@ class ModularCharacter extends StatelessWidget {
   });
 
   @override
+  State<ModularCharacter> createState() => _ModularCharacterState();
+}
+
+class _ModularCharacterState extends State<ModularCharacter> {
+  String baseBody = '4'; // Default base body
+  String eyeColor = '4'; // Default eye color
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCharacterAttributes();
+  }
+
+  Future<void> _loadCharacterAttributes() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Retrieve attributes from SharedPreferences or use defaults
+      baseBody = prefs.getString('body_color_index') ?? '4';
+      eyeColor = prefs.getString('eye_color_index') ?? '4';
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
       children: [
-        if (wings.isNotEmpty)
+        if (widget.wings.isNotEmpty)
           Image.asset(
-            'assets/character/wings/$wings.png',
+            'assets/character/wings/${widget.wings}.png',
             fit: BoxFit.contain,
           ),
         Image.asset(
-          'assets/character/base_body_3.png',
+          'assets/character/base_body_$baseBody.png',
           fit: BoxFit.contain,
         ),
-        if (armor.isNotEmpty)
+        Image.asset(
+          'assets/character/eye_color_$eyeColor.png',
+          fit: BoxFit.contain,
+        ),
+        if (widget.armor.isNotEmpty)
           Image.asset(
-            'assets/character/armour/$armor.png',
+            'assets/character/armour/${widget.armor}.png',
             fit: BoxFit.contain,
           ),
-        if (head.isNotEmpty)
+        if (widget.head.isNotEmpty)
           Image.asset(
-            'assets/character/heads/$head.png',
+            'assets/character/heads/${widget.head}.png',
             fit: BoxFit.contain,
           ),
-        if (legs.isNotEmpty)
+        if (widget.legs.isNotEmpty)
           Image.asset(
-            'assets/character/legs/$legs.png',
+            'assets/character/legs/${widget.legs}.png',
             fit: BoxFit.contain,
           ),
-        if (melee.isNotEmpty)
+        if (widget.melee.isNotEmpty)
           Image.asset(
-            'assets/character/melee/$melee.png',
+            'assets/character/melee/${widget.melee}.png',
             fit: BoxFit.contain,
           ),
-        if (shield.isNotEmpty)
+        if (widget.shield.isNotEmpty)
           Image.asset(
-            'assets/character/shield/$shield.png',
+            'assets/character/shield/${widget.shield}.png',
             fit: BoxFit.contain,
           ),
       ],

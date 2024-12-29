@@ -10,7 +10,7 @@ class CurrencyProvider with ChangeNotifier {
     print("CurrencyProvider initialized");
     WebSocketManager().setCurrencyUpdateCallback((double newCurrency) {
       print('CurrencyProvider: Updating currency to: $newCurrency');
-      _updateCurrency(newCurrency);
+      updateCurrency(newCurrency);
     });
 
     // Immediately request the initial currency data
@@ -19,7 +19,7 @@ class CurrencyProvider with ChangeNotifier {
     });
   }
 
-  void _updateCurrency(double newCurrency) {
+  void updateCurrency(double newCurrency) {
     print('CurrencyProvider: Updating currency to $newCurrency');
     _currency = newCurrency;
     notifyListeners();
