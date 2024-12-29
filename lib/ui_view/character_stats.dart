@@ -13,6 +13,8 @@ class CharacterStatsView extends StatefulWidget {
   final String melee;
   final String shield;
   final String wings;
+  final String baseBody;
+  final String eyeColor;
 
   const CharacterStatsView({
     super.key,
@@ -23,7 +25,9 @@ class CharacterStatsView extends StatefulWidget {
     required this.legs,
     required this.melee,
     required this.shield,
-    required this.wings,
+    required this.wings, 
+    required this.baseBody, 
+    required this.eyeColor,
   });
 
   @override
@@ -200,6 +204,8 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
                         melee: widget.melee,
                         shield: widget.shield,
                         wings: widget.wings,
+                        baseBody: widget.baseBody,
+                        eyeColor: widget.eyeColor,
                       ),
                     ),
 
@@ -288,6 +294,8 @@ class ModularCharacter extends StatefulWidget {
   final String melee;
   final String shield;
   final String wings;
+  final String baseBody;
+  final String eyeColor;
 
   const ModularCharacter({
     super.key,
@@ -296,7 +304,9 @@ class ModularCharacter extends StatefulWidget {
     required this.legs,
     required this.melee,
     required this.shield,
-    required this.wings,
+    required this.wings, 
+    required this.baseBody, 
+    required this.eyeColor,
   });
 
   @override
@@ -304,23 +314,14 @@ class ModularCharacter extends StatefulWidget {
 }
 
 class _ModularCharacterState extends State<ModularCharacter> {
-  String baseBody = '4'; // Default base body
-  String eyeColor = '4'; // Default eye color
+
 
   @override
   void initState() {
     super.initState();
-    _loadCharacterAttributes();
   }
 
-  Future<void> _loadCharacterAttributes() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      // Retrieve attributes from SharedPreferences or use defaults
-      baseBody = prefs.getString('body_color_index') ?? '4';
-      eyeColor = prefs.getString('eye_color_index') ?? '4';
-    });
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -333,11 +334,11 @@ class _ModularCharacterState extends State<ModularCharacter> {
             fit: BoxFit.contain,
           ),
         Image.asset(
-          'assets/character/base_body_$baseBody.png',
+          'assets/character/base_body_${widget.baseBody}.png',
           fit: BoxFit.contain,
         ),
         Image.asset(
-          'assets/character/eye_color_$eyeColor.png',
+          'assets/character/eye_color_${widget.eyeColor}.png',
           fit: BoxFit.contain,
         ),
         if (widget.armor.isNotEmpty)

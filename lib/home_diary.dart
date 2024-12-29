@@ -58,8 +58,24 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       );
     }
 
-    // 1. Load or fetch workout data
-    fetchLatestWorkoutData();
+    // 1. Load or fetch workout data only if not already loaded
+    SharedPreferences.getInstance().then((prefs) async {
+      if (prefs.getString('latestWorkoutData') == null) {
+        await fetchLatestWorkoutData();
+        await prefs.setString('latestWorkoutData', json.encode({
+          'workout_durations': weeklyWorkouts,
+          'start_date': workoutDate,
+          'duration': duration,
+          'average_heart_rate': averageHeartRate,
+          'totalEnergyBurned': energyBurned,
+          'mood': mood,
+          'muscleGroups': muscleGroups
+        }));
+      } else {
+        final data = json.decode(prefs.getString('latestWorkoutData')!);
+        updateStateFromData(data);
+      }
+    });
 
     // 2. Load or fetch inventory data (without setting the WebSocket callback)
     fetchEquippedItems();
@@ -91,33 +107,28 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
 
   /// Only query inventory from SharedPreferences or request from server
   Future<void> fetchEquippedItems({bool forceRefresh = false}) async {
-    final prefs = await SharedPreferences.getInstance();
-    final cachedInventory = prefs.getString('inventoryData');
 
-    if (cachedInventory != null && !forceRefresh) {
-      try {
-        final decodedJson = json.decode(cachedInventory);
-        // It's presumably a List of items
-        final localItems = List<Map<String, dynamic>>.from(decodedJson);
-
-        // Update the InventoryManager
-        InventoryManager().updateInventory(localItems);
-
-        setState(() {}); // Rebuild to show newly equipped items
-        return;
-      } catch (e) {
-        debugPrint('Error decoding inventoryData from cache: $e');
-      }
-    }
-
-    // If no cache or forceRefresh, or decode failed:
-    if (!InventoryManager().isLoading && !forceRefresh) {
-      // Already loaded, do nothing
+    // Check if data is already loaded
+    if (!InventoryManager().isLoading) {
+      // Data is already loaded, no need to set up the WebSocket callback again
       return;
     }
 
-    // Otherwise, request fresh data from the server
-    // via the WebSocket
+    // Register callback for inventory updates
+    WebSocketManager().setInventoryUpdateCallback((updatedItems) {
+      InventoryManager().updateInventory(updatedItems);
+      if (mounted) {
+        setState(() {});
+      }
+      // If we're refreshing, stop the refresh indicator
+      if (isRefreshing) {
+        isRefreshing = false;
+      }
+    });
+
+    // Request the initial inventory data if loading
+    InventoryManager().requestCharacterColors();
+
     InventoryManager().requestInventoryUpdate();
   }
 
@@ -162,7 +173,8 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
 
     // Read equipped items from InventoryManager
     final equipped = InventoryManager().equippedItems;
-
+    final bodyColor = InventoryManager().bodyColor?? '';
+    final eyeColors = InventoryManager().eyeColor?? '';
     // Extract file names
     final armorFile  = equipped['armour']  ?? '';
     final headFile   = equipped['heads']   ?? '';
@@ -170,6 +182,8 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     final meleeFile  = equipped['melee']   ?? '';
     final shieldFile = equipped['shield']  ?? '';
     final wingsFile  = equipped['wings']   ?? '';
+
+
 
     listViews.addAll([
       // Character stats
@@ -180,6 +194,8 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
         melee: meleeFile,
         shield: shieldFile,
         wings: wingsFile,
+        baseBody: bodyColor,
+        eyeColor: eyeColors,
         animation: createAnimation(0, count),
         animationController: widget.animationController!,
       ),

@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:workout_logger/inventory_manager.dart';
 
 class WebSocketManager {
   static final WebSocketManager _instance = WebSocketManager._internal();
@@ -49,6 +50,20 @@ class WebSocketManager {
               onCurrencyUpdate?.call(currencyValue);
             }
           }
+
+          if (decodedMessage['type'] == 'character_colors') {
+            final data = decodedMessage['data'];
+            if (data != null && data is Map<String, dynamic>) {
+              InventoryManager().updateCharacterColors({
+                'body_color': data['body_color']?.toString(),
+                'eye_color': data['eye_color']?.toString(),
+              });
+            } else {
+              print("Error: character_colors data is null or not a valid format");
+            }
+          }
+
+
         }
       },
       onError: (error) {

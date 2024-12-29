@@ -8,6 +8,8 @@ class InventoryManager {
   factory InventoryManager() => _instance;
 
   final List<Map<String, dynamic>> _inventoryItems = [];
+  String? bodyColor; // Store body color
+  String? eyeColor;  // Store eye color
 
   bool isLoading = true; // Loading state variable
 
@@ -68,5 +70,19 @@ class InventoryManager {
       }
     }
     return equipped;
+  }
+
+  void requestCharacterColors() {
+    // Send a WebSocket message to fetch character colors
+    print("Requesting character colors");
+    WebSocketManager().sendMessage({
+      "action": "fetch_character_colors",
+    });
+  }
+
+  void updateCharacterColors(Map<String, String?> colorsData) {
+    print("Updating character colors: $colorsData");
+    bodyColor = colorsData['body_color'];
+    eyeColor = colorsData['eye_color'];
   }
 }
