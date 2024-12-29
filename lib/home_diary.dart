@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/lottie_segment_player.dart';
-import 'ui_view/body_measurement.dart';
 import 'ui_view/last_workout.dart';
 import 'ui_view/title_view.dart';
 import 'ui_view/workout_duration_chart.dart';
@@ -63,19 +62,18 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     });
   }
 
-  void updateStateFromData(Map<String, dynamic> data) {
-    setState(() {
-      weeklyWorkouts = List<int>.from(data['workout_durations'] ?? [0, 0, 0, 0, 0, 0, 0]);
-      workoutDate = data['start_date'] ?? '';
-      duration = data['duration'] ?? 0;
-      averageHeartRate = data['average_heart_rate'] ?? 0;
-      energyBurned = data['totalEnergyBurned'] ?? 0.0;
-      mood = data['mood'] ?? 0;
-      muscleGroups = data['muscleGroups'] ?? '';
-      addAllListData();
-    });
-  }
-
+  void updateStateFromData([Map<String, dynamic>? data]) {
+  setState(() {
+    weeklyWorkouts = List<int>.from(data?['workout_durations'] ?? [0, 0, 0, 0, 0, 0, 0]);
+    workoutDate = data?['start_date'] ?? '';
+    duration = data?['duration'] ?? 0;
+    averageHeartRate = data?['average_heart_rate'] ?? 0; 
+    energyBurned = data?['totalEnergyBurned'] ?? 0.0;
+    mood = data?['mood'] ?? 0;
+    muscleGroups = data?['muscleGroups'] ?? '';
+    addAllListData();
+  });
+}
   Future<void> fetchEquippedItems({bool forceRefresh = false}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -163,6 +161,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
 
         updateStateFromData(data);
       } else {
+        updateStateFromData();
         print('Failed to load latest workout data');
       }
     } catch (e) {
@@ -171,7 +170,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   }
 
   void addAllListData() {
-    const int count = 7;
+    const int count = 5;
     listViews.clear();
     listViews.addAll([
       CharacterStatsView(
@@ -202,7 +201,6 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       ),
       TitleView(
         titleTxt: 'Workout Duration',
-        subTxt: 'Last 7 days',
         animation: createAnimation(3, count),
         animationController: widget.animationController!,
       ),
@@ -210,16 +208,16 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
         durations: weeklyWorkouts,
         streakCount: 7,
       ),
-      TitleView(
-        titleTxt: 'Body measurement',
-        subTxt: 'Today',
-        animation: createAnimation(6, count),
-        animationController: widget.animationController!,
-      ),
-      BodyMeasurementView(
-        animation: createAnimation(7, count),
-        animationController: widget.animationController!,
-      )
+      // TitleView(
+      //   titleTxt: 'Body measurement',
+      //   subTxt: 'Today',
+      //   animation: createAnimation(6, count),
+      //   animationController: widget.animationController!,
+      // ),
+      // BodyMeasurementView(
+      //   animation: createAnimation(7, count),
+      //   animationController: widget.animationController!,
+      // )
     ]);
   }
 

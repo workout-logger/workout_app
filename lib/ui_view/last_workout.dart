@@ -45,268 +45,235 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
     muscleGroups = widget.muscleGroups;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: widget.animationController!,
-      builder: (BuildContext context, Widget? child) {
-        return FadeTransition(
-          opacity: widget.animation!,
-          child: Transform(
-            transform: Matrix4.translationValues(
-                0.0, 30 * (1.0 - widget.animation!.value), 0.0),
-            child: Padding(
-              padding: const EdgeInsets.only(
-                  left: 24, right: 24, top: 16, bottom: 18),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: FitnessAppTheme.white,
-                  borderRadius: const BorderRadius.only(
+@override
+Widget build(BuildContext context) {
+  // Dynamically check if all values are zero
+  bool isAllZero = (widget.duration == 0 &&
+      widget.averageHeartRate == 0 &&
+      widget.energyBurned == 0);
+
+  return AnimatedBuilder(
+    animation: widget.animationController!,
+    builder: (BuildContext context, Widget? child) {
+      return FadeTransition(
+        opacity: widget.animation!,
+        child: Transform(
+          transform: Matrix4.translationValues(
+            0.0,
+            30 * (1.0 - widget.animation!.value),
+            0.0,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 18),
+            child: Stack(
+              children: [
+                // Main workout widget
+                Container(
+                  decoration: BoxDecoration(
+                    color: FitnessAppTheme.white,
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(8.0),
                       bottomLeft: Radius.circular(8.0),
                       bottomRight: Radius.circular(8.0),
-                      topRight: Radius.circular(68.0)),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
+                      topRight: Radius.circular(68.0),
+                    ),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
                         color: FitnessAppTheme.grey.withOpacity(0.2),
                         offset: const Offset(1.1, 1.1),
-                        blurRadius: 10.0),
-                  ],
-                ),
-                child: Column(
-                  children: <Widget>[
-                    Padding(
-                      padding: const EdgeInsets.only(top: 25, right: 16, left: 24),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: <Widget>[
-                              Container(
-                                height: 48,
-                                width: 2,
-                                decoration: BoxDecoration(
-                                  color: HexColor('#87A0E5').withOpacity(0.5),
-                                  borderRadius: const BorderRadius.all(Radius.circular(4.0)),
+                        blurRadius: 10.0,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 25, right: 16, left: 24),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                Container(
+                                  height: 48,
+                                  width: 2,
+                                  decoration: BoxDecoration(
+                                    color: HexColor('#87A0E5').withOpacity(0.5),
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(4.0),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Text(
+                                        'Muscle Groups',
+                                        style: TextStyle(
+                                          fontFamily: FitnessAppTheme.fontName,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 16,
+                                          letterSpacing: -0.1,
+                                          color: FitnessAppTheme.grey.withOpacity(0.5),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height: 24,
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: <Widget>[
+                                            const Icon(Icons.fitness_center,
+                                                color: FitnessAppTheme.darkerText, size: 24),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              muscleGroups.isNotEmpty ? muscleGroups : 'None',
+                                              style: const TextStyle(
+                                                fontFamily: FitnessAppTheme.fontName,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                                color: FitnessAppTheme.darkerText,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 40.0),
+                              child: Text(
+                                widget.workoutDate,
+                                style: const TextStyle(
+                                  fontFamily: FitnessAppTheme.fontName,
+                                  fontSize: 18,
+                                  color: FitnessAppTheme.deactivatedText,
                                 ),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      'Muscle Groups',
-                                      style: TextStyle(
-                                        fontFamily: FitnessAppTheme.fontName,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 16,
-                                        letterSpacing: -0.1,
-                                        color: FitnessAppTheme.grey.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 24, right: 24, top: 4),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  _buildInfoRow('Duration', Icons.timer, '${widget.duration} mins'),
+                                  const SizedBox(height: 8),
+                                  _buildInfoRow('Avg Heart Rate', Icons.favorite, '${widget.averageHeartRate} bpm'),
+                                  const SizedBox(height: 8),
+                                  _buildInfoRow('Mood', Icons.mood, String.fromCharCode(widget.mood)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 16, bottom: 70),
+                            child: Center(
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.center,
+                                children: <Widget>[
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Container(
+                                      width: 100,
+                                      height: 100,
+                                      decoration: BoxDecoration(
+                                        color: FitnessAppTheme.white,
+                                        borderRadius: const BorderRadius.all(
+                                          Radius.circular(100.0),
+                                        ),
+                                        border: Border.all(
+                                          width: 4,
+                                          color: FitnessAppTheme.nearlyDarkBlue.withOpacity(0.2),
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(
-                                      height: 24, // Fixed height container
-                                      child: Row(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         crossAxisAlignment: CrossAxisAlignment.center,
                                         children: <Widget>[
-                                          const Icon(Icons.fitness_center, 
-                                            color: FitnessAppTheme.darkerText,
-                                            size: 24,
+                                          Text(
+                                            '${(widget.energyBurned * widget.animation!.value).toInt()}',
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontFamily: FitnessAppTheme.fontName,
+                                              fontWeight: FontWeight.normal,
+                                              fontSize: 24,
+                                              letterSpacing: 0.0,
+                                              color: FitnessAppTheme.nearlyDarkBlue,
+                                            ),
                                           ),
-                                          const SizedBox(width: 8),
-                                          GestureDetector(
-                                            onTap: () async {
-                                              final selectedMuscleGroups = await _showMuscleGroupDialog(context);
-                                              if (selectedMuscleGroups != null && selectedMuscleGroups.isNotEmpty) {
-                                                setState(() {
-                                                  muscleGroups = selectedMuscleGroups;
-                                                });
-                                              }
-                                            },
-                                            child: muscleGroups.isNotEmpty
-                                                ? Text(
-                                                    muscleGroups,
-                                                    style: const TextStyle(
-                                                      fontFamily: FitnessAppTheme.fontName,
-                                                      fontWeight: FontWeight.w600,
-                                                      fontSize: 16,
-                                                      color: FitnessAppTheme.darkerText,
-                                                    ),
-                                                  )
-                                                : TextButton(
-                                                    style: TextButton.styleFrom(
-                                                      padding: EdgeInsets.zero,
-                                                      minimumSize: Size.zero,
-                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                    ),
-                                                    onPressed: () async {
-                                                      final selectedMuscleGroups = await _showMuscleGroupDialog(context);
-                                                      if (selectedMuscleGroups != null && selectedMuscleGroups.isNotEmpty) {
-                                                        setState(() {
-                                                          muscleGroups = selectedMuscleGroups;
-                                                        });
-                                                      }
-                                                    },
-                                                    child: const Text(
-                                                      'Add',
-                                                      style: TextStyle(
-                                                        fontFamily: FitnessAppTheme.fontName,
-                                                        fontWeight: FontWeight.w600,
-                                                        fontSize: 16,
-                                                        color: FitnessAppTheme.darkerText,
-                                                      ),
-                                                    ),
-                                                  ),
+                                          Text(
+                                            'Cal Burned',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontFamily: FitnessAppTheme.fontName,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              letterSpacing: 0.0,
+                                              color: FitnessAppTheme.grey.withOpacity(0.5),
+                                            ),
                                           ),
-
                                         ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 40.0),
-                            child: Text(
-                              widget.workoutDate,
-                              style: const TextStyle(
-                                fontFamily: FitnessAppTheme.fontName,
-                                fontSize: 18,
-                                color: FitnessAppTheme.deactivatedText,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 24, right: 24, top: 4),
-                            child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              _buildInfoRow('Duration', Icons.timer, '${widget.duration} mins'),
-                              const SizedBox(height: 8),
-                              _buildInfoRow('Avg Heart Rate', Icons.favorite, '${widget.averageHeartRate} bpm'),
-                              const SizedBox(height: 8),
-                              _buildInfoRow('Mood', Icons.mood, String.fromCharCode(widget.mood)),
-                            ],
-                          ),
-                          )
+                    ],
+                  ),
+                ),
+
+                if (isAllZero)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8.0),
+                          bottomLeft: Radius.circular(8.0),
+                          bottomRight: Radius.circular(8.0),
+                          topRight: Radius.circular(68.0),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 16, bottom: 70),
-                          child: Center(
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              alignment: Alignment.center,
-                              children: <Widget>[
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Container(
-                                    width: 100,
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      color: FitnessAppTheme.white,
-                                      borderRadius: const BorderRadius.all(
-                                        Radius.circular(100.0),
-                                      ),
-                                      border: Border.all(
-                                          width: 4,
-                                          color: FitnessAppTheme.nearlyDarkBlue
-                                              .withOpacity(0.2)),
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: <Widget>[
-                                        Text(
-                                          '${(widget.energyBurned * widget.animation!.value).toInt()}',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                            fontFamily: FitnessAppTheme
-                                                .fontName,
-                                            fontWeight: FontWeight.normal,
-                                            fontSize: 24,
-                                            letterSpacing: 0.0,
-                                            color: FitnessAppTheme
-                                                .nearlyDarkBlue,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Cal Burned',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontFamily: FitnessAppTheme
-                                                .fontName,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                            letterSpacing: 0.0,
-                                            color: FitnessAppTheme.grey
-                                                .withOpacity(0.5),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: CustomPaint(
-                                    painter: CurvePainter(
-                                      colors: [
-                                        const Color.fromARGB(255, 255, 255, 255),
-                                        HexColor("#fdfd96"),
-                                        HexColor("#fdfd96"),
-                                      ],
-                                      angle: 140 +
-                                          (360 - 140) *
-                                              (1.0 - widget.animation!.value),
-                                    ),
-                                    child: const SizedBox(
-                                      width: 130,
-                                      height: 130,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'No Workout History',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: FitnessAppTheme.fontName,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                          left: 24, right: 24, top: 8, bottom: 8),
-                      child: Container(
-                        height: 2,
-                        decoration: const BoxDecoration(
-                          color: FitnessAppTheme.background,
-                          borderRadius:
-                              BorderRadius.all(Radius.circular(4.0)),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
+
 
   Widget _buildInfoRow(String label, IconData icon, String value) {
     return Row(

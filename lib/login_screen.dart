@@ -218,14 +218,13 @@ class _LoginScreenState extends State<LoginScreen> {
         // For example:
         final String authToken = responseBody['key'];
         final bool isNewUser = responseBody['is_new_user'] ?? false;
-        final bool profileCompleted = responseBody['profile_completed'] ?? false;
 
         // Save token in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('authToken', authToken);
 
         // If new user or profile not done, show the profile creation
-        if (isNewUser || !profileCompleted) {
+        if (isNewUser) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const UsernameScreen()),

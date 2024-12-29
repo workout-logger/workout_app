@@ -2,6 +2,8 @@ class APIConstants {
   static const String baseUrl = 'https://jaybird-exciting-merely.ngrok-free.app';
 
   // Endpoints
+  static const String userExists = '$baseUrl/api/social/username_exists/?username=';
+  static const String saveUserPreferences = '$baseUrl/api/social/save_user_preferences/';
   static const String googleSignIn = '$baseUrl/api/social/google/';
   static const String emailSignUp = '$baseUrl/api/social/register/';
   static const String emailSignIn = '$baseUrl/api/social/login/';

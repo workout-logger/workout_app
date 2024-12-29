@@ -1,17 +1,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:http/http.dart' as http; // If you do real HTTP calls
-import 'package:workout_logger/main.dart'; // or wherever your HomeScreen is
+import 'package:workout_logger/main.dart';
+import 'package:workout_logger/constants.dart';
 
 /// Data model to pass the user's choices across screens.
 class ProfileData {
   String? username;
-  String? bodyImage;
-  String? eyeImage;
+  int? bodyColorIndex; // Store the index of the selected body color
+  int? eyeColorIndex;  // Store the index of the selected eye color
 }
 
-/// SCREEN 1: User enters their username
+/// SCREEN 1: User enters their username 
 class UsernameScreen extends StatefulWidget {
   const UsernameScreen({Key? key}) : super(key: key);
 
@@ -21,6 +22,43 @@ class UsernameScreen extends StatefulWidget {
 
 class _UsernameScreenState extends State<UsernameScreen> {
   final TextEditingController _usernameController = TextEditingController();
+  bool _isChecking = false;
+  String? _errorMessage;
+
+  Future<bool> _checkUsernameExists(String username) async {
+    setState(() {
+      _isChecking = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final String apiUrl = APIConstants.userExists;
+      final response = await http.get(
+        Uri.parse('$apiUrl$username'),
+      );
+
+      if (response.statusCode == 200) {
+        final exists = jsonDecode(response.body)['exists'] as bool;
+        if (exists) {
+          setState(() {
+            _errorMessage = 'Username already taken';
+          });
+        }
+        return exists;
+      } else {
+        throw Exception('Failed to check username');
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error checking username';
+      });
+      return false;
+    } finally {
+      setState(() {
+        _isChecking = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +87,7 @@ class _UsernameScreenState extends State<UsernameScreen> {
                   fillColor: Colors.grey[900],
                   hintText: 'e.g. DarkKnight92',
                   hintStyle: const TextStyle(color: Colors.grey),
+                  errorText: _errorMessage,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0),
                     borderSide: BorderSide.none,
@@ -61,19 +100,32 @@ class _UsernameScreenState extends State<UsernameScreen> {
                   backgroundColor: Colors.yellow,
                   foregroundColor: Colors.black,
                 ),
-                onPressed: () {
-                  final data = ProfileData();
-                  data.username = _usernameController.text.trim();
+                onPressed: _isChecking ? null : () async {
+                  final username = _usernameController.text.trim();
+                  if (username.isEmpty) {
+                    setState(() {
+                      _errorMessage = 'Please enter a username';
+                    });
+                    return;
+                  }
 
-                  // Navigate to the body color screen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BodyColorScreen(profileData: data),
-                    ),
-                  );
+                  final exists = await _checkUsernameExists(username);
+                  if (!exists) {
+                    final data = ProfileData();
+                    data.username = username;
+
+                    // Navigate to the body color screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BodyColorScreen(profileData: data),
+                      ),
+                    );
+                  }
                 },
-                child: const Text('Next'),
+                child: _isChecking 
+                  ? const CircularProgressIndicator()
+                  : const Text('Next'),
               ),
             ],
           ),
@@ -94,16 +146,14 @@ class BodyColorScreen extends StatefulWidget {
 }
 
 class _BodyColorScreenState extends State<BodyColorScreen> {
-  // Five color swatches (the boxes the user taps)
   final List<Color> _colorSwatches = [
-    Colors.red,
-    Colors.green,
-    Colors.blue,
-    Colors.purple,
-    Colors.orange,
+    const Color.fromARGB(255, 244, 226, 255),
+    const Color.fromARGB(255, 232, 166, 136),
+    const Color.fromARGB(255, 196, 150, 129),
+    const Color.fromARGB(255, 126, 87, 75),
+    const Color.fromARGB(255, 126, 87, 75),
   ];
 
-  // Five corresponding body image paths
   final List<String> _bodyColorImages = [
     'assets/character/base_body_1.png',
     'assets/character/base_body_2.png',
@@ -136,15 +186,15 @@ class _BodyColorScreenState extends State<BodyColorScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 1) Large preview
+              // Large preview
               Expanded(
                 child: Center(
-                  child: Image.asset(selectedBodyImage, width: 200),
+                  child: Image.asset(selectedBodyImage, width: 400),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // 2) A row of color squares to pick from
+              // Row of color squares
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(_colorSwatches.length, (index) {
@@ -177,10 +227,8 @@ class _BodyColorScreenState extends State<BodyColorScreen> {
                   foregroundColor: Colors.black,
                 ),
                 onPressed: () {
-                  // Store the chosen image path in ProfileData
-                  widget.profileData.bodyImage = selectedBodyImage;
+                  widget.profileData.bodyColorIndex = _selectedBodyIndex;
 
-                  // Navigate to EyeColorScreen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -217,30 +265,36 @@ class _EyeColorScreenState extends State<EyeColorScreen>
     'assets/character/eye_color_5.png',
   ];
 
-  int _selectedEyeIndex = 0;
+  final List<Color> _eyeColorBackgrounds = [
+    const Color.fromARGB(255, 136, 84, 20),
+    const Color.fromARGB(255, 73, 46, 4),
+    const Color.fromARGB(255, 75, 82, 66),
+    const Color.fromARGB(255, 41, 60, 82),
+    const Color.fromARGB(255, 145, 0, 2)
+  ];
 
+  int _selectedEyeIndex = 0;
   late AnimationController _animationController;
   late Animation<double> _zoomAnimation;
+  bool _isSubmitting = false;
+  final String _completeProfileUrl = APIConstants.saveUserPreferences;
 
   @override
   void initState() {
     super.initState();
 
-    // 1) Create the controller.
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1), // how long the zoom lasts
+      duration: const Duration(seconds: 1),
     );
 
-    // 2) Define the scaling from 1.0 to 1.2
-    _zoomAnimation = Tween<double>(begin: 1.0, end: 5).animate(
+    _zoomAnimation = Tween<double>(begin: 1.0, end: 8).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: Curves.easeInOut, 
+        curve: Curves.easeInOut,
       ),
     );
 
-    // 3) Start the animation as soon as the screen appears.
     _animationController.forward();
   }
 
@@ -250,11 +304,58 @@ class _EyeColorScreenState extends State<EyeColorScreen>
     super.dispose();
   }
 
+  Future<void> _submitProfile() async {
+    setState(() => _isSubmitting = true);
+    try {
+      final username = widget.profileData.username ?? '';
+      final bodyColorIndex = widget.profileData.bodyColorIndex ?? -1; 
+      final eyeColorIndex = widget.profileData.eyeColorIndex ?? -1;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? authToken = prefs.getString('authToken');
+
+      await prefs.setString('username', username);
+      await prefs.setInt('bodyColorIndex', bodyColorIndex);
+      await prefs.setInt('eyeColorIndex', eyeColorIndex);
+
+      final response = await http.post(
+        Uri.parse(_completeProfileUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $authToken',
+        },
+        body: jsonEncode({
+          'username': username,
+          'body_color_index': bodyColorIndex,
+          'eye_color_index': eyeColorIndex,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        Navigator.pushReplacement(
+          context, 
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      } else {
+        final error = jsonDecode(response.body)['error'] ?? 'Unknown error';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile update failed: $error')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error completing profile: $e')),
+      );
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // The body image chosen in the previous screen
-    final String? chosenBodyImage = widget.profileData.bodyImage;
-    // The currently selected eye image
+    final int? bodyColorIndex = widget.profileData.bodyColorIndex;
+    final String? chosenBodyImage =
+        bodyColorIndex != null ? 'assets/character/base_body_${bodyColorIndex + 1}.png' : null;
+
     final String selectedEyeImage = _eyeColorOptions[_selectedEyeIndex];
 
     return Scaffold(
@@ -275,14 +376,11 @@ class _EyeColorScreenState extends State<EyeColorScreen>
               ),
               const SizedBox(height: 16),
 
-              // 4) Use ScaleTransition with an alignment that keeps the face near the top.
               Expanded(
                 child: Center(
                   child: ScaleTransition(
                     scale: _zoomAnimation,
-                    // This alignment shifts the "pivot" of the zoom upwards (negative Y).
-                    // Adjust the value until the face is where you want it.
-                    alignment: const Alignment(0, -0.8), 
+                    alignment: const Alignment(0.1, -0.8),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -303,35 +401,38 @@ class _EyeColorScreenState extends State<EyeColorScreen>
 
               const SizedBox(height: 16),
 
-              // Thumbnails for choosing eye color
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: _eyeColorOptions.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final path = entry.value;
-                  final isSelected = index == _selectedEyeIndex;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedEyeIndex = index;
-                        // Optional: Reset & replay the zoom each time a color is selected:
-                        // _animationController.reset();
-                        // _animationController.forward();
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 5),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: isSelected ? Colors.yellow : Colors.transparent,
-                          width: 3,
+              Container(
+                color: Colors.black.withOpacity(0.8),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: _eyeColorOptions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final path = entry.value;
+                    final isSelected = index == _selectedEyeIndex;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedEyeIndex = index;
+                        });
+                      },
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        margin: const EdgeInsets.only(right: 5),
+                        decoration: BoxDecoration(
+                          color: _eyeColorBackgrounds[index],
+                          border: Border.all(
+                            color: isSelected ? Colors.yellow : Colors.transparent,
+                            width: 3,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(path, fit: BoxFit.contain),
                       ),
-                      child: Image.asset(path, width: 50, height: 50),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
 
               const SizedBox(height: 16),
@@ -341,147 +442,19 @@ class _EyeColorScreenState extends State<EyeColorScreen>
                   backgroundColor: Colors.yellow,
                   foregroundColor: Colors.black,
                 ),
-                onPressed: () {
-                  // Save the chosen eye image
-                  widget.profileData.eyeImage = selectedEyeImage;
-
-                  // Navigate to the final preview or next step
-                  // ...
-                },
-                child: const Text('Next'),
+                onPressed: _isSubmitting
+                    ? null
+                    : () async {
+                        widget.profileData.eyeColorIndex = _selectedEyeIndex;
+                        await _submitProfile();
+                      },
+                child: _isSubmitting
+                    ? const CircularProgressIndicator(color: Colors.black)
+                    : const Text('Complete Profile'),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// SCREEN 4: Shows final preview (username + stacked images) and "Complete Profile" button.
-class ProfilePreviewScreen extends StatefulWidget {
-  final ProfileData profileData;
-  const ProfilePreviewScreen({Key? key, required this.profileData}) : super(key: key);
-
-  @override
-  State<ProfilePreviewScreen> createState() => _ProfilePreviewScreenState();
-}
-
-class _ProfilePreviewScreenState extends State<ProfilePreviewScreen> {
-  bool _isSubmitting = false;
-  final String _completeProfileUrl = ''; // put your real endpoint here
-
-  // If doing real HTTP:
-  // final http.Client httpClient = http.Client();
-
-  Future<void> _submitProfile() async {
-    setState(() => _isSubmitting = true);
-    try {
-      // In a real app, get your auth token from SharedPreferences, then do a POST:
-      // final prefs = await SharedPreferences.getInstance();
-      // final authToken = prefs.getString('authToken') ?? '';
-
-      final username = widget.profileData.username ?? 'NoName';
-      final bodyImg = widget.profileData.bodyImage ?? '';
-      final eyeImg = widget.profileData.eyeImage ?? '';
-
-      /*
-      final response = await httpClient.post(
-        Uri.parse(_completeProfileUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Token $authToken',
-        },
-        body: jsonEncode({
-          'username': username,
-          'body_image': bodyImg,
-          'eye_image': eyeImg,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-      } else {
-        final error = jsonDecode(response.body)['error'] ?? 'Unknown error';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile update failed: $error')),
-        );
-      }
-      */
-
-      // For demo, just pretend success:
-      await Future.delayed(const Duration(seconds: 1));
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error completing profile: $e')),
-      );
-    } finally {
-      setState(() => _isSubmitting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final username = widget.profileData.username ?? 'No username';
-    final body = widget.profileData.bodyImage;
-    final eyes = widget.profileData.eyeImage;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Profile Preview', style: TextStyle(color: Colors.yellow)),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.yellow),
-      ),
-      body: SafeArea(
-        child: _isSubmitting
-            ? const Center(child: CircularProgressIndicator(color: Colors.yellow))
-            : Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    // Stacked images
-                    Expanded(
-                      child: Center(
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (body != null && body.isNotEmpty)
-                              Image.asset(body, width: 200),
-                            if (eyes != null && eyes.isNotEmpty)
-                              Image.asset(eyes, width: 200),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Username: $username',
-                      style: const TextStyle(color: Colors.yellow, fontSize: 20),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.yellow,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                      onPressed: _submitProfile,
-                      child: const Text('Complete Profile'),
-                    ),
-                  ],
-                ),
-              ),
       ),
     );
   }
