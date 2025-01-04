@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workout_logger/constants.dart';
 import 'package:workout_logger/item_card.dart';
 import 'websocket_manager.dart';
 import 'inventory_manager.dart'; // Import the InventoryManager
 import 'ui_view/character_stats_inv.dart';
 import 'lottie_segment_player.dart'; // Import the LottieSegmentPlayer widget
+import 'package:http/http.dart' as http;
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
 
@@ -326,14 +331,15 @@ class InventoryActionsDrawer extends StatelessWidget {
                 icon: Icons.attach_money,
                 label: "Sell",
                 onTap: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Selling feature coming soon!"),
-                    ),
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return SellItemDialog(itemName: itemName);
+                    },
                   );
                 },
               ),
+
               ActionButton(
                 icon: isEquipped ? Icons.close : Icons.check,
                 label: isEquipped ? "Unequip" : "Equip",
@@ -372,6 +378,163 @@ class InventoryActionsDrawer extends StatelessWidget {
   }
 }
 
+class SellItemDialog extends StatefulWidget {
+  final String itemName;
+
+  const SellItemDialog({Key? key, required this.itemName}) : super(key: key);
+
+  @override
+  _SellItemDialogState createState() => _SellItemDialogState();
+}
+
+class _SellItemDialogState extends State<SellItemDialog> {
+  double _price = 50.0; // Default price
+  final TextEditingController _priceController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _priceController.text = _price.toStringAsFixed(0); // Initialize text box with slider value
+  }
+
+  void _submitListing() async {
+    final price = double.tryParse(_priceController.text.trim());
+
+    if (price == null || price <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter a valid price!')),
+      );
+      return;
+    }
+
+
+    try {
+      // Replace with your API endpoint
+      final String apiUrl = APIConstants.sellMarket;
+
+      // Prepare the request payload
+      final payload = {
+        'item_name': widget.itemName,
+        'price': _priceController.text.trim(),
+      };
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String? authToken = prefs.getString('authToken');
+
+
+      // Send POST request to backend
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $authToken', // Replace with user's token
+        },
+        body: jsonEncode(payload),
+      );
+
+      // Parse the response
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201 && data['success'] == true) {
+        Navigator.of(context).pop(); // Close the dialog
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Item "${widget.itemName}" listed successfully!')),
+          );
+        }
+      } else {
+        throw Exception(data['message'] ?? 'Failed to list item.');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.black,
+      title: Text(
+        'Sell ${widget.itemName}',
+        style: TextStyle(color: Colors.white),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Select Price',
+            style: TextStyle(color: Colors.white),
+          ),
+          SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Slider(
+                  value: _price,
+                  min: 0,
+                  max: 1000,
+                  divisions: 100,
+                  activeColor: Colors.yellow,
+                  inactiveColor: Colors.grey,
+                  onChanged: (value) {
+                    setState(() {
+                      _price = value;
+                      _priceController.text = _price.toStringAsFixed(0);
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          TextField(
+            controller: _priceController,
+            keyboardType: TextInputType.number,
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Price',
+              labelStyle: TextStyle(color: Colors.yellow),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.yellow),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.yellow, width: 2),
+              ),
+            ),
+            onChanged: (value) {
+              final parsedValue = double.tryParse(value);
+              if (parsedValue != null && parsedValue >= 0 && parsedValue <= 1000) {
+                setState(() {
+                  _price = parsedValue;
+                });
+              }
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: Colors.yellow),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _submitListing,
+          style: ElevatedButton.styleFrom(
+          ),
+          child: Text(
+            'Submit',
+            style: TextStyle(color: Colors.black),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class ActionButton extends StatelessWidget {
   final IconData icon;

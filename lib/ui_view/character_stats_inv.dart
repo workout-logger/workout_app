@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hexcolor/hexcolor.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CharacterStatsView extends StatelessWidget {
   final String head;
@@ -159,44 +160,51 @@ class ModularCharacter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        if (wings.isNotEmpty)
-          Image.asset(
-            'assets/character/wings/$wings.png',
-            fit: BoxFit.contain,
-          ),
-        Image.asset(
-          'assets/character/base_body_3.png',
-          fit: BoxFit.contain,
-        ),
-        if (armour.isNotEmpty)
-          Image.asset(
-            'assets/character/armour/$armour.png',
-            fit: BoxFit.contain,
-          ),
-        if (head.isNotEmpty)
-          Image.asset(
-            'assets/character/heads/$head.png',
-            fit: BoxFit.contain,
-          ),
-        if (legs.isNotEmpty)
-          Image.asset(
-            'assets/character/legs/$legs.png',
-            fit: BoxFit.contain,
-          ),
-        if (melee.isNotEmpty)
-          Image.asset(
-            'assets/character/melee/$melee.png',
-            fit: BoxFit.contain,
-          ),
-        if (shield.isNotEmpty)
-          Image.asset(
-            'assets/character/shield/$shield.png',
-            fit: BoxFit.contain,
-          ),
-      ],
+    return FutureBuilder<String>(
+      future: SharedPreferences.getInstance().then((prefs) => 
+        prefs.getString('bodyColorIndex') ?? '3'),
+      builder: (context, snapshot) {
+        final bodyIndex = snapshot.data ?? '3';
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            if (wings.isNotEmpty)
+              Image.asset(
+                'assets/character/wings/$wings.png',
+                fit: BoxFit.contain,
+              ),
+            Image.asset(
+              'assets/character/base_body_$bodyIndex.png',
+              fit: BoxFit.contain,
+            ),
+            if (armour.isNotEmpty)
+              Image.asset(
+                'assets/character/armour/$armour.png',
+                fit: BoxFit.contain,
+              ),
+            if (head.isNotEmpty)
+              Image.asset(
+                'assets/character/heads/$head.png',
+                fit: BoxFit.contain,
+              ),
+            if (legs.isNotEmpty)
+              Image.asset(
+                'assets/character/legs/$legs.png',
+                fit: BoxFit.contain,
+              ),
+            if (melee.isNotEmpty)
+              Image.asset(
+                'assets/character/melee/$melee.png',
+                fit: BoxFit.contain,
+              ),
+            if (shield.isNotEmpty)
+              Image.asset(
+                'assets/character/shield/$shield.png',
+                fit: BoxFit.contain,
+              ),
+          ],
+        );
+      }
     );
   }
 }
