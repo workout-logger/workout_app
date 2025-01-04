@@ -1,6 +1,9 @@
 class APIConstants {
   static const String baseUrl = 'https://jaybird-exciting-merely.ngrok-free.app';
+  //https://jaybird-exciting-merely.ngrok-free.app
+  //http://18.219.196.93
 
+  static const String socketUrl = 'wss://jaybird-exciting-merely.ngrok-free.app';
   // Endpoints
   static const String userExists = '$baseUrl/api/social/username_exists/?username=';
   static const String saveUserPreferences = '$baseUrl/api/social/save_user_preferences/';

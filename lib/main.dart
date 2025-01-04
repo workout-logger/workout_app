@@ -11,11 +11,11 @@ import 'package:workout_logger/websocket_manager.dart';
 
 import 'package:workout_logger/workout_tracking/exercise_model.dart';
 import 'package:workout_logger/workout_tracking/stopwatch_provider.dart';
-import 'package:workout_logger/login_screen.dart';
+import 'package:workout_logger/onboarding/login_screen.dart';
 import 'home_body.dart';
 import 'fitness_app_theme.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'google_signin_page.dart';
+import 'onboarding/google_signin_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,15 +29,20 @@ void main() async {
   final inventoryProvider = InventoryProvider();
   final currencyProvider = CurrencyProvider();
 
-  // Set WebSocket callback for inventory
-  WebSocketManager().setInventoryUpdateCallback((updatedItems) {
-    inventoryProvider.updateInventory(updatedItems);
-  });
 
-  // If you want currency updates
-  WebSocketManager().setCurrencyUpdateCallback((value) {
-    currencyProvider.updateCurrency(value);
-  });
+
+  if (authToken != null) {
+    WebSocketManager().setInventoryUpdateCallback((updatedItems) {
+      inventoryProvider.updateInventory(updatedItems);
+    });
+
+    WebSocketManager().setCurrencyUpdateCallback((value) {
+      currencyProvider.updateCurrency(value);
+    });
+
+    await WebSocketManager().connectWebSocket();
+  }
+
 
   // Start the app
   runApp(
@@ -65,7 +70,7 @@ class MyApp extends StatelessWidget {
     required this.isFirstLaunch,
     required this.authToken,
   });
-
+  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

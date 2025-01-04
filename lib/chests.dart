@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:ui';
+import 'package:workout_logger/inventory_manager.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -176,6 +178,8 @@ class _ChestOverlayState extends State<_ChestOverlay> {
             'rarity': item['rarity'],
           }));
         });
+        InventoryManager().requestInventoryUpdate();
+
 
         return items;
       } else {

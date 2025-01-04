@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'websocket_manager.dart';
 
 class InventoryManager {
@@ -72,17 +74,27 @@ class InventoryManager {
     return equipped;
   }
 
-  void requestCharacterColors() {
+  Future<void> requestCharacterColors() async {
     // Send a WebSocket message to fetch character colors
-    print("Requesting character colors");
-    WebSocketManager().sendMessage({
-      "action": "fetch_character_colors",
-    });
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('bodyColorIndex') == null || prefs.getString('eyeColorIndex') == null){
+      WebSocketManager().sendMessage({
+        "action": "fetch_character_colors",
+      });
+    }else{
+      bodyColor = prefs.getString('bodyColorIndex');
+      eyeColor = prefs.getString('eyeColorIndex') ;
+    }
   }
 
-  void updateCharacterColors(Map<String, String?> colorsData) {
-    print("Updating character colors: $colorsData");
+  void updateCharacterColors(Map<String, String?> colorsData) async {
     bodyColor = colorsData['body_color'];
     eyeColor = colorsData['eye_color'];
+
+    // Also store them locally for next time
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('bodyColorIndex', bodyColor ?? '');
+    await prefs.setString('eyeColorIndex', eyeColor ?? '');
   }
+
 }

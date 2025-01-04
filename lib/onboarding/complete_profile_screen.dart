@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/main.dart';
 import 'package:workout_logger/constants.dart';
+import 'package:workout_logger/websocket_manager.dart';
 
 /// Data model to pass the user's choices across screens.
 class ProfileData {
@@ -312,10 +313,12 @@ class _EyeColorScreenState extends State<EyeColorScreen>
       final eyeColorIndex = widget.profileData.eyeColorIndex ?? -1;
       SharedPreferences prefs = await SharedPreferences.getInstance();
       final String? authToken = prefs.getString('authToken');
-
+      await prefs.clear();
       await prefs.setString('username', username);
-      await prefs.setInt('bodyColorIndex', bodyColorIndex);
-      await prefs.setInt('eyeColorIndex', eyeColorIndex);
+      await prefs.setString('authToken', authToken!);
+      await prefs.setString('bodyColorIndex', bodyColorIndex.toString());
+      await prefs.setString('eyeColorIndex', eyeColorIndex.toString());
+
 
       final response = await http.post(
         Uri.parse(_completeProfileUrl),
@@ -331,6 +334,7 @@ class _EyeColorScreenState extends State<EyeColorScreen>
       );
 
       if (response.statusCode == 200) {
+        await WebSocketManager().connectWebSocket();
         Navigator.pushReplacement(
           context, 
           MaterialPageRoute(builder: (_) => const HomeScreen()),

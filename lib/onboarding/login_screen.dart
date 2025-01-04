@@ -8,11 +8,12 @@ import 'package:health/health.dart';
 import 'dart:convert';
 
 import 'package:permission_handler/permission_handler.dart';
-import 'package:workout_logger/complete_profile_screen.dart';
+import 'package:workout_logger/onboarding/complete_profile_screen.dart';
 
 import 'package:workout_logger/constants.dart';
 import 'package:workout_logger/main.dart';
-import 'package:workout_logger/signup_page.dart';
+import 'package:workout_logger/onboarding/signup_page.dart';
+import 'package:workout_logger/websocket_manager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -221,6 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Save token in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
+        print(authToken);
         await prefs.setString('authToken', authToken);
 
         // If new user or profile not done, show the profile creation
@@ -230,6 +232,8 @@ class _LoginScreenState extends State<LoginScreen> {
             MaterialPageRoute(builder: (_) => const UsernameScreen()),
           );
         } else {
+          await WebSocketManager().connectWebSocket();
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -457,7 +461,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 context,
                                 MaterialPageRoute(
                                     builder: (context) =>
-                                        const CreateProfileScreen()),
+                                        const SignUpScreen()),
                               );
                             },
                             child: const Text(

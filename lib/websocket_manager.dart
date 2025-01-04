@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:workout_logger/inventory_manager.dart';
+import 'package:workout_logger/constants.dart';
 
 class WebSocketManager {
   static final WebSocketManager _instance = WebSocketManager._internal();
@@ -14,17 +15,20 @@ class WebSocketManager {
   Function(List<Map<String, dynamic>>)? onInventoryUpdate;
   Function(double)? onCurrencyUpdate;
 
-  WebSocketManager._internal() {
-    connectWebSocket();
-  }
-
+  WebSocketManager._internal();
+  
   Future<void> connectWebSocket() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? authToken = prefs.getString('authToken');
 
+    if (authToken == null) {
+      print("No auth token found, skipping WebSocket connection");
+      return;
+    }
+
     _channel = WebSocketChannel.connect(
       Uri.parse(
-        'ws://jaybird-exciting-merely.ngrok-free.app/ws/inventory/?token=$authToken',
+        '${APIConstants.socketUrl}/ws/inventory/?token=$authToken',
       ),
     );
 
@@ -53,6 +57,7 @@ class WebSocketManager {
 
           if (decodedMessage['type'] == 'character_colors') {
             final data = decodedMessage['data'];
+            print(data);
             if (data != null && data is Map<String, dynamic>) {
               InventoryManager().updateCharacterColors({
                 'body_color': data['body_color']?.toString(),
@@ -78,7 +83,7 @@ class WebSocketManager {
   }
 
   void _reconnectWebSocket() {
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(const Duration(seconds: 20), () {
       print("Reconnecting to WebSocket...");
       connectWebSocket();
     });
@@ -97,9 +102,13 @@ class WebSocketManager {
     _channel?.sink.close(1000);
   }
 
-  void sendMessage(Map<String, dynamic> message) {
-    if (_channel == null) {
-      print("WebSocket not initialized. Cannot send message.");
+  Future<void> sendMessage(Map<String, dynamic> message) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? authToken = prefs.getString('authToken');
+    print(authToken);
+    print(_channel);
+    if (authToken == null || _channel == null) {
+      print("Cannot send message: No auth token or WebSocket not connected");
       return;
     }
     _channel!.sink.add(json.encode(message));

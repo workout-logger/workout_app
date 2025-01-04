@@ -1,9 +1,9 @@
-import 'package:workout_logger/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/inventory_manager.dart';
 import 'package:workout_logger/lottie_segment_player.dart';
 import 'package:workout_logger/websocket_manager.dart';
+import 'package:workout_logger/constants.dart';
 import 'ui_view/last_workout.dart';
 import 'ui_view/title_view.dart';
 import 'ui_view/workout_duration_chart.dart';
@@ -13,7 +13,7 @@ import 'workout_tracking/stopwatch_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:lottie/lottie.dart';
-import 'package:provider/provider.dart'; // For StopwatchProvider
+import 'package:provider/provider.dart';
 
 class MyDiaryScreen extends StatefulWidget {
   const MyDiaryScreen({super.key, this.animationController});
@@ -28,6 +28,7 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   late final Animation<double> topBarAnimation;
   final List<Widget> listViews = <Widget>[];
   final ScrollController scrollController = ScrollController();
+  bool _isLoading = true;
 
   double topBarOpacity = 0.0;
 
@@ -45,6 +46,9 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   double _pullDistance = 0.0;
   final double _refreshTriggerPullDistance = 150.0;
 
+  bool get _hasRequiredData => 
+    weeklyWorkouts.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
@@ -58,29 +62,9 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       );
     }
 
-    // 1. Load or fetch workout data only if not already loaded
-    SharedPreferences.getInstance().then((prefs) async {
-      if (prefs.getString('latestWorkoutData') == null) {
-        await fetchLatestWorkoutData();
-        await prefs.setString('latestWorkoutData', json.encode({
-          'workout_durations': weeklyWorkouts,
-          'start_date': workoutDate,
-          'duration': duration,
-          'average_heart_rate': averageHeartRate,
-          'totalEnergyBurned': energyBurned,
-          'mood': mood,
-          'muscleGroups': muscleGroups
-        }));
-      } else {
-        final data = json.decode(prefs.getString('latestWorkoutData')!);
-        updateStateFromData(data);
-      }
-    });
+    // Initialize data
+    _initializeData();
 
-    // 2. Load or fetch inventory data (without setting the WebSocket callback)
-    fetchEquippedItems();
-
-    // 3. Control AppBar opacity
     scrollController.addListener(() {
       double offset = scrollController.offset;
       setState(() {
@@ -89,8 +73,67 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     });
   }
 
-  /// Update local state with server or cached workout data
+  Future<void> _initializeData() async {
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      // Set up WebSocket for inventory updates first
+      WebSocketManager().setInventoryUpdateCallback((updatedItems) {
+        if (!mounted) return;
+        
+        InventoryManager().updateInventory(updatedItems);
+        setState(() {
+          if (_hasRequiredData) {
+            _isLoading = false;
+            isRefreshing = false; // Also reset refresh state here
+            _pullDistance = 0.0;
+            addAllListData();
+          }
+        });
+      });
+      final prefs = await SharedPreferences.getInstance();
+
+      // if (prefs.getInt('bodyColorIndex') == null || prefs.getInt('eyeColorIndex') == null) {
+      InventoryManager().requestCharacterColors();
+      final hasFetchedInventory = !(prefs.getBool('hasFetchedInventory') ?? false);
+      if (hasFetchedInventory){
+        InventoryManager().requestInventoryUpdate();
+        prefs.setBool('hasFetchedInventory', true);
+      }
+      
+      final cachedWorkout = prefs.getString('latestWorkoutData');
+      
+      if (cachedWorkout == null) {
+        await fetchLatestWorkoutData();
+      } else {
+        updateStateFromData(json.decode(cachedWorkout));
+      }
+
+      // Check if we can show the UI yet
+      if (mounted) {
+        setState(() {
+          if (_hasRequiredData) {
+            _isLoading = false;
+            addAllListData();
+          }
+        });
+      }
+
+    } catch (e) {
+      debugPrint('Error initializing data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          isRefreshing = false;
+        });
+      }
+    }
+  }
+
   void updateStateFromData([Map<String, dynamic>? data]) {
+    if (!mounted) return;
+    
     setState(() {
       weeklyWorkouts = List<int>.from(
         data?['workout_durations'] ?? [0, 0, 0, 0, 0, 0, 0],
@@ -101,38 +144,22 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       energyBurned = data?['totalEnergyBurned'] ?? 0.0;
       mood = data?['mood'] ?? 1;
       muscleGroups = data?['muscleGroups'] ?? '';
-      addAllListData();
+      
+      // Only call addAllListData if we have character data
+      if (_hasRequiredData) {
+        addAllListData();
+      }
     });
   }
 
-  /// Only query inventory from SharedPreferences or request from server
   Future<void> fetchEquippedItems({bool forceRefresh = false}) async {
-
-    // Check if data is already loaded
-    if (!InventoryManager().isLoading) {
-      // Data is already loaded, no need to set up the WebSocket callback again
-      return;
+    // Always request updates on refresh
+    if (forceRefresh || InventoryManager().isLoading) {
+      InventoryManager().requestCharacterColors();
+      InventoryManager().requestInventoryUpdate();
     }
-
-    // Register callback for inventory updates
-    WebSocketManager().setInventoryUpdateCallback((updatedItems) {
-      InventoryManager().updateInventory(updatedItems);
-      if (mounted) {
-        setState(() {});
-      }
-      // If we're refreshing, stop the refresh indicator
-      if (isRefreshing) {
-        isRefreshing = false;
-      }
-    });
-
-    // Request the initial inventory data if loading
-    InventoryManager().requestCharacterColors();
-
-    InventoryManager().requestInventoryUpdate();
   }
 
-  /// Load workout from local cache or fetch from server
   Future<void> fetchLatestWorkoutData({bool forceRefresh = false}) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -145,7 +172,6 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       }
     }
 
-    // Otherwise fetch from the server
     const String apiUrl = APIConstants.lastWorkout;
     final String? authToken = prefs.getString('authToken');
 
@@ -166,67 +192,72 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     }
   }
 
-  /// Build the main list of UI (character, stats, charts, etc.)
-  void addAllListData() {
+  Future<void> addAllListData() async {
+    if (!mounted || !_hasRequiredData) return;
+    
     const int count = 5;
     listViews.clear();
 
-    // Read equipped items from InventoryManager
+    // Safely get character data
     final equipped = InventoryManager().equippedItems;
-    final bodyColor = InventoryManager().bodyColor?? '';
-    final eyeColors = InventoryManager().eyeColor?? '';
-    // Extract file names
-    final armorFile  = equipped['armour']  ?? '';
-    final headFile   = equipped['heads']   ?? '';
-    final legsFile   = equipped['legs']    ?? '';
-    final meleeFile  = equipped['melee']   ?? '';
-    final shieldFile = equipped['shield']  ?? '';
-    final wingsFile  = equipped['wings']   ?? '';
+    final bodyColor = InventoryManager().bodyColor;
+    final eyeColors = InventoryManager().eyeColor;
+    
+    // Check if we have all required data
+    if (bodyColor == null || eyeColors == null) {
+      print('Missing required character data');
+      return;
+    }
+    
+    final armorFile = equipped['armour'] ?? '';
+    final headFile = equipped['heads'] ?? '';
+    final legsFile = equipped['legs'] ?? '';
+    final meleeFile = equipped['melee'] ?? '';
+    final shieldFile = equipped['shield'] ?? '';
+    final wingsFile = equipped['wings'] ?? '';
 
-
-
-    listViews.addAll([
-      // Character stats
-      CharacterStatsView(
-        armor: armorFile,
-        head: headFile,
-        legs: legsFile,
-        melee: meleeFile,
-        shield: shieldFile,
-        wings: wingsFile,
-        baseBody: bodyColor,
-        eyeColor: eyeColors,
-        animation: createAnimation(0, count),
-        animationController: widget.animationController!,
-      ),
-      TitleView(
-        titleTxt: 'Last Workout',
-        animation: createAnimation(1, count),
-        animationController: widget.animationController!,
-      ),
-      LastWorkoutView(
-        animation: createAnimation(2, count),
-        animationController: widget.animationController!,
-        workoutDate: workoutDate,
-        duration: duration,
-        averageHeartRate: averageHeartRate,
-        energyBurned: energyBurned,
-        mood: mood,
-        muscleGroups: muscleGroups,
-      ),
-      TitleView(
-        titleTxt: 'Workout Duration',
-        subTxt: 'History',
-        animation: createAnimation(3, count),
-        animationController: widget.animationController!,
-      ),
-      WorkoutDurationChart(
-        durations: weeklyWorkouts,
-        streakCount: 7,
-      ),
-    ]);
+    setState(() {
+      listViews.addAll([
+        CharacterStatsView(
+          armor: armorFile,
+          head: headFile,
+          legs: legsFile,
+          melee: meleeFile,
+          shield: shieldFile,
+          wings: wingsFile,
+          baseBody: bodyColor,
+          eyeColor: eyeColors,
+          animation: createAnimation(0, count),
+          animationController: widget.animationController!,
+        ),
+        TitleView(
+          titleTxt: 'Last Workout',
+          animation: createAnimation(1, count),
+          animationController: widget.animationController!,
+        ),
+        LastWorkoutView(
+          animation: createAnimation(2, count),
+          animationController: widget.animationController!,
+          workoutDate: workoutDate,
+          duration: duration,
+          averageHeartRate: averageHeartRate,
+          energyBurned: energyBurned,
+          mood: mood,
+          muscleGroups: muscleGroups,
+        ),
+        TitleView(
+          titleTxt: 'Workout Duration',
+          subTxt: 'History',
+          animation: createAnimation(3, count),
+          animationController: widget.animationController!,
+        ),
+        WorkoutDurationChart(
+          durations: weeklyWorkouts,
+          streakCount: 7,
+        ),
+      ]);
+    });
   }
-
   Animation<double> createAnimation(int index, int count) {
     return Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -241,14 +272,43 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   }
 
   Future<bool> getData() async {
-    await Future.delayed(const Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 10));
     return true;
   }
 
-  /// Called when user does pull-to-refresh
   Future<void> handleRefresh() async {
-    await fetchLatestWorkoutData(forceRefresh: true);
-    await fetchEquippedItems(forceRefresh: true);
+    if (isRefreshing) return; // Prevent multiple refreshes
+    
+    setState(() {
+      isRefreshing = true;
+    });
+
+    try {
+      // Reset character data loading state
+      InventoryManager().isLoading = true;
+      
+      // Request new data
+      await Future.wait([
+        fetchLatestWorkoutData(forceRefresh: true),
+        fetchEquippedItems(forceRefresh: true)
+      ]);
+
+
+      if (mounted) {
+        setState(() {
+          isRefreshing = false;
+          _pullDistance = 0.0;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error during refresh: $e');
+      if (mounted) {
+        setState(() {
+          isRefreshing = false;
+          _pullDistance = 0.0;
+        });
+      }
+    }
   }
 
   @override
@@ -257,46 +317,50 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       color: const Color.fromARGB(255, 0, 0, 0),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: <Widget>[
-            getMainListViewUI(),
-            getAppBarUI(),
-
-            // The pull-to-refresh loading indicator
-            if (_pullDistance > 0 || isRefreshing)
-              Positioned(
-                top: (_pullDistance > _refreshTriggerPullDistance
-                    ? _refreshTriggerPullDistance / 2
-                    : _pullDistance / 2) +
-                    AppBar().preferredSize.height +
-                    MediaQuery.of(context).padding.top,
-                left: 0,
-                right: 0,
-                child: Container(
-                  alignment: Alignment.topCenter,
-                  height: 50,
-                  child: Container(
-                    width: 70,
-                    height: 70,
-                    decoration: const BoxDecoration(
-                      color: Color.fromARGB(255, 99, 98, 98),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: LottieSegmentPlayer(
-                        animationPath: 'assets/animations/loading.json',
-                        endFraction: 0.7,
-                        width: 64,
-                        height: 64,
+        body: _isLoading || !_hasRequiredData
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            )
+          : Stack(
+              children: <Widget>[
+                getMainListViewUI(),
+                getAppBarUI(),
+                if (_pullDistance > 0 || isRefreshing)
+                  Positioned(
+                    top: (_pullDistance > _refreshTriggerPullDistance
+                        ? _refreshTriggerPullDistance / 2
+                        : _pullDistance / 2) +
+                        AppBar().preferredSize.height +
+                        MediaQuery.of(context).padding.top,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      alignment: Alignment.topCenter,
+                      height: 50,
+                      child: Container(
+                        width: 70,
+                        height: 70,
+                        decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 99, 98, 98),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: LottieSegmentPlayer(
+                            animationPath: 'assets/animations/loading.json',
+                            endFraction: 0.7,
+                            width: 64,
+                            height: 64,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom),
-          ],
-        ),
+                SizedBox(height: MediaQuery.of(context).padding.bottom),
+              ],
+            ),
         floatingActionButton: Consumer<StopwatchProvider>(
           builder: (context, stopwatchProvider, child) {
             return FloatingActionButton.extended(
@@ -357,11 +421,9 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
     );
   }
 
-  /// Logic for custom pull-to-refresh
   bool _onScrollNotification(ScrollNotification notification) {
     if (notification is ScrollUpdateNotification) {
       if (notification.metrics.pixels < 0) {
-        // Pulling past the top
         setState(() {
           _pullDistance = -notification.metrics.pixels;
         });
@@ -372,7 +434,6 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
       }
     } else if (notification is OverscrollNotification) {
       if (notification.overscroll < 0) {
-        // Overscrolling at the top
         setState(() {
           _pullDistance += -notification.overscroll;
         });
@@ -390,16 +451,10 @@ class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateM
   }
 
   void _startRefresh() {
-    setState(() {
-      isRefreshing = true;
-    });
-    handleRefresh().then((_) {
-      setState(() {
-        isRefreshing = false;
-        _pullDistance = 0.0;
-      });
-    });
+    if (isRefreshing) return; // Prevent multiple refreshes
+    handleRefresh();
   }
+
 
   /// Simple AppBar with fade animation
   Widget getAppBarUI() {
