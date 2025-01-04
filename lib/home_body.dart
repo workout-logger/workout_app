@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:workout_logger/inventory_manager.dart';
 import 'home_diary.dart';
 import 'profile_page.dart';
 import 'inventory_page.dart';
@@ -20,19 +21,26 @@ class HomeBody extends StatefulWidget {
 
 class _HomeBodyState extends State<HomeBody> {
   late final List<Widget> pages;
-
+  final GlobalKey<MyDiaryScreenState> _diaryScreenKey = GlobalKey<MyDiaryScreenState>();
   @override
   void initState() {
     super.initState();
+    InventoryManager().onEquipmentChanged = () {
+      _diaryScreenKey.currentState?.handleRefresh();
+    };
 
-    // Create the pages only once
     pages = [
-      MyDiaryScreen(animationController: widget.animationController),
+      MyDiaryScreen(key: _diaryScreenKey, animationController: widget.animationController),
       InventoryPage(),
       MMORPGMainScreen(),
       const ProfilePage(),
     ];
   }
+
+  void refreshDiaryData() {
+    _diaryScreenKey.currentState?.handleRefresh();
+  }
+
 
   @override
   Widget build(BuildContext context) {

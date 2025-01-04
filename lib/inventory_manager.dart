@@ -1,4 +1,8 @@
+import 'dart:ui';
+
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workout_logger/home_body.dart';
+import 'package:workout_logger/home_diary.dart';
 
 import 'websocket_manager.dart';
 
@@ -8,7 +12,7 @@ class InventoryManager {
   InventoryManager._internal();
 
   factory InventoryManager() => _instance;
-
+  VoidCallback? onEquipmentChanged;
   final List<Map<String, dynamic>> _inventoryItems = [];
   String? bodyColor; // Store body color
   String? eyeColor;  // Store eye color
@@ -41,6 +45,7 @@ class InventoryManager {
         item['is_equipped'] = false;
       }
     }
+    onEquipmentChanged?.call();
   }
 
   void updateInventory(List<Map<String, dynamic>> updatedItems) {

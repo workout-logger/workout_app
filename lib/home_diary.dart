@@ -21,10 +21,10 @@ class MyDiaryScreen extends StatefulWidget {
   final AnimationController? animationController;
 
   @override
-  _MyDiaryScreenState createState() => _MyDiaryScreenState();
+  MyDiaryScreenState createState() => MyDiaryScreenState();
 }
 
-class _MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMixin {
+class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMixin {
   late final Animation<double> topBarAnimation;
   final List<Widget> listViews = <Widget>[];
   final ScrollController scrollController = ScrollController();
