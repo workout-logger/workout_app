@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:ui';
-import 'package:workout_logger/inventory_manager.dart';
+import 'package:workout_logger/inventory/inventory_manager.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/currency_provider.dart';
 import 'package:workout_logger/flying_card.dart';
-import 'package:workout_logger/item_card.dart';
+import 'package:workout_logger/inventory/item_card.dart';
 import 'animated_chest.dart';
 import 'package:workout_logger/constants.dart';
 import 'package:http/http.dart' as http;

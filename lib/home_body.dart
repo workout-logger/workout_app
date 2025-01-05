@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:workout_logger/inventory_manager.dart';
+import 'package:workout_logger/inventory/inventory_manager.dart';
 import 'home_diary.dart';
 import 'profile_page.dart';
-import 'inventory_page.dart';
+import 'inventory/inventory_page.dart';
 import 'marketplace.dart';
 
 class HomeBody extends StatefulWidget {

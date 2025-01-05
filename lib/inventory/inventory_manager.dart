@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/home_body.dart';
 import 'package:workout_logger/home_diary.dart';
 
-import 'websocket_manager.dart';
+import '../websocket_manager.dart';
 
 class InventoryManager {
   static final InventoryManager _instance = InventoryManager._internal();

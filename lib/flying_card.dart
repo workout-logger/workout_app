@@ -3,7 +3,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:workout_logger/item_card.dart';
+import 'package:workout_logger/inventory/item_card.dart';
 
 class FlyingCard extends StatefulWidget {
   final Map<String, dynamic> item;

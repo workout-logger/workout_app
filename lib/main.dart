@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import 'package:workout_logger/inventory_provider.dart';
+import 'package:workout_logger/inventory/inventory_provider.dart';
 import 'package:workout_logger/currency_provider.dart';
 import 'package:workout_logger/websocket_manager.dart';
 

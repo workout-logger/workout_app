@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:workout_logger/inventory_manager.dart';
+import 'package:workout_logger/inventory/inventory_manager.dart';
 import 'package:workout_logger/lottie_segment_player.dart';
 import 'package:workout_logger/websocket_manager.dart';
 import 'package:workout_logger/constants.dart';

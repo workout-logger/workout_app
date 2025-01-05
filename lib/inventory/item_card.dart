@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:workout_logger/inventory_page.dart';
+import 'package:workout_logger/inventory/inventory_page.dart';
 
 // A function that returns a perfect hexagonal path based on size.
 Path getHexPath(Size size) {

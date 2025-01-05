@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/constants.dart';
-import 'package:workout_logger/item_card.dart';
-import 'websocket_manager.dart';
+import 'package:workout_logger/inventory/item_card.dart';
+import '../websocket_manager.dart';
 import 'inventory_manager.dart'; // Import the InventoryManager
-import 'ui_view/character_stats_inv.dart';
-import 'lottie_segment_player.dart'; // Import the LottieSegmentPlayer widget
+import '../ui_view/character_stats_inv.dart';
+import '../lottie_segment_player.dart'; // Import the LottieSegmentPlayer widget
 import 'package:http/http.dart' as http;
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
