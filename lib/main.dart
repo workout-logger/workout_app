@@ -22,7 +22,7 @@ void main() async {
   WakelockPlus.enable();
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  final bool isFirstLaunch = prefs.getBool('firstLaunch') ?? true;
+  final bool isFirstLaunch = prefs.getBool('firstLaunch') ?? false;
   final String? authToken = prefs.getString('authToken');
 
   // Create providers

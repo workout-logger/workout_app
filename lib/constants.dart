@@ -16,4 +16,6 @@ class APIConstants {
   static const String equippedItems = '$baseUrl/api/inventory/get_equipped_items/';
   static const String buyChest = '$baseUrl/api/inventory/buy_chest/';
   static const String sellMarket = '$baseUrl/api/inventory/marketplace/add_listing/';
+  static const String buyMarket = '$baseUrl/api/inventory/marketplace/buy/';
+  static const String showListings = '$baseUrl/api/inventory/marketplace/';
 }

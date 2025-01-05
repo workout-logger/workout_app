@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workout_logger/constants.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -20,7 +21,7 @@ class _MarketScreenState extends State<MarketScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('https://your-backend-api.com/marketplace/'),
+        Uri.parse(APIConstants.showListings),
         headers: {'Authorization': 'Token $token'},
       );
 
@@ -50,7 +51,7 @@ class _MarketScreenState extends State<MarketScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://your-backend-api.com/marketplace/buy/'),
+        Uri.parse(APIConstants.buyMarket),
         headers: {
           'Authorization': 'Token $token',
           'Content-Type': 'application/json',
@@ -77,6 +78,29 @@ class _MarketScreenState extends State<MarketScreen> {
     }
   }
 
+  void confirmPurchase(BuildContext context, int listingId, String itemName, int price) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Confirm Purchase"),
+        content: Text("Do you want to buy $itemName for $price Coins?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+              buyItem(listingId); // Proceed with the purchase
+            },
+            child: const Text("Buy"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -101,7 +125,7 @@ class _MarketScreenState extends State<MarketScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.grey[900],
+      color: const Color.fromARGB(255, 0, 0, 0),
       child: isLoading
           ? Center(child: CircularProgressIndicator())
           : ListView.builder(
@@ -109,9 +133,8 @@ class _MarketScreenState extends State<MarketScreen> {
               itemBuilder: (context, index) {
                 final item = marketItems[index];
                 final rarityColor = _getRarityColor(item['rarity']);
-
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Card(
                     elevation: 2,
                     color: Colors.grey[850],
@@ -119,22 +142,45 @@ class _MarketScreenState extends State<MarketScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: InkWell(
-                      onTap: () => buyItem(item['id']),
+                      onTap: () {
+                        final int price;
+                        try {
+                          price = double.parse(item['price']).toInt();
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Invalid price format')),
+                          );
+                          return;
+                        }
+
+                        confirmPurchase(
+                          context,
+                          item['id'],
+                          item['itemName'],
+                          price,
+                        );
+                      },
+
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Row(
                           children: [
                             Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(6),
-                                color: Colors.grey[700],
-                              ),
-                              child: const SizedBox(
-                                height: 48,
-                                width: 48,
-                                child: Icon(Icons.image_outlined,
-                                    size: 24, color: Colors.white24),
-                              ),
+                              width: 48,
+                              height: 48,
+                              child: item['fileName'] != null
+                                  ? Image.asset(
+                                      '${item['fileName']}.png',                                      
+                                      width: 64,
+                                      height: 64,
+                                      fit: BoxFit.contain,
+                                    )
+                                  : const SizedBox(
+                                      height: 64,
+                                      width: 64,
+                                      child: Icon(Icons.image_outlined,
+                                          size: 24, color: Colors.white24),
+                                    ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(

@@ -26,7 +26,7 @@ class InventoryItemCard extends StatefulWidget {
   final bool isEquipped;
   final VoidCallback onEquipUnequip;
   final String rarity; // "common", "rare", "epic", "legendary"
-  final bool showContent; // New parameter to control content visibility
+  final bool showContent; // Controls whether to show the card's content
   final bool outOfChest;
 
   const InventoryItemCard({
@@ -96,14 +96,20 @@ class _InventoryItemCardState extends State<InventoryItemCard>
       case 'epic':
         {
           return const LinearGradient(
-            colors: [Color.fromARGB(255, 80, 76, 76), Color.fromARGB(255, 94, 2, 94)],
+            colors: [
+              Color.fromARGB(255, 80, 76, 76),
+              Color.fromARGB(255, 94, 2, 94)
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           );
         }
       case 'rare':
         return const LinearGradient(
-          colors: [Color.fromARGB(141, 23, 97, 9), Color.fromARGB(104, 27, 165, 0)],
+          colors: [
+            Color.fromARGB(141, 23, 97, 9),
+            Color.fromARGB(104, 27, 165, 0)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
@@ -111,7 +117,10 @@ class _InventoryItemCardState extends State<InventoryItemCard>
       case 'common':
       default:
         return const LinearGradient(
-          colors: [Color.fromARGB(112, 156, 156, 156), Color.fromARGB(100, 78, 78, 78)],
+          colors: [
+            Color.fromARGB(112, 156, 156, 156),
+            Color.fromARGB(100, 78, 78, 78)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         );
@@ -144,12 +153,16 @@ class _InventoryItemCardState extends State<InventoryItemCard>
           // If showContent is false, render only the gradient background
           if (!widget.showContent) {
             Widget baseContent = Container(
+              // Make the card occupy all available width
+              width: double.infinity,
               decoration: BoxDecoration(
                 gradient: _buildGradient(),
-                borderRadius: widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
+                borderRadius:
+                    widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
               ),
             );
 
+            // For legendary items, clip to a hex
             if (widget.rarity == 'legendary') {
               return ClipPath(
                 clipper: HexClipper(),
@@ -159,12 +172,14 @@ class _InventoryItemCardState extends State<InventoryItemCard>
             return baseContent;
           }
 
-                    // Existing card content
-                    // Replace the SingleChildScrollView with a simple Container
+          // Otherwise, show the entire card content
           Widget cardContent = Container(
+            // Force the card to occupy the full available width
+            width: double.infinity,
             decoration: BoxDecoration(
               gradient: _buildGradient(),
-              borderRadius: widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
+              borderRadius:
+                  widget.rarity == 'legendary' ? null : BorderRadius.circular(10),
               border: Border.all(
                 color: widget.isEquipped
                     ? const Color.fromARGB(255, 255, 255, 255).withOpacity(0.2)
@@ -184,46 +199,15 @@ class _InventoryItemCardState extends State<InventoryItemCard>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (widget.category == "legs" || widget.category == "melee")
-                  ClipRect(
-                    child: SizedBox(
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        heightFactor: 0.3,
-                        child: Image.asset(
-                          'assets/character/${widget.category}/${widget.fileName}.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.broken_image,
-                              color: Colors.redAccent,
-                              size: 60,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  )
-                else if (widget.category == "wings")
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 45.0),
+                // Keep the image at a fixed size
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(2.0, 2.0, 2.0, 1.0),
+                  child: SizedBox(
+                    width: 150,
+                    height: 150,
                     child: Image.asset(
-                      'assets/character/${widget.category}/${widget.fileName}.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.broken_image,
-                          color: Colors.redAccent,
-                          size: 40,
-                        );
-                      },
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(2.0, 2.0, 2.0, 1.0),
-                    child: Image.asset(
-                      'assets/character/${widget.category}/${widget.fileName}.png',
+                      'assets/character/${widget.category}/${widget.fileName}'
+                      '${widget.category != 'armour' ? '_inv' : ''}.png',
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return const Icon(
@@ -234,11 +218,12 @@ class _InventoryItemCardState extends State<InventoryItemCard>
                       },
                     ),
                   ),
+                ),
               ],
             ),
           );
 
-          // For legendary, clip and add a matching border + moving dot
+          // For legendary items, clip the entire card + add the animated border
           if (widget.rarity == 'legendary') {
             cardContent = Stack(
               children: [
@@ -356,7 +341,7 @@ class _InventoryItemCardState extends State<InventoryItemCard>
       case 'epic':
         return const Color.fromARGB(255, 255, 5, 201); // Purple
       case 'rare':
-        return const Color.fromARGB(255, 255, 255, 255); // Royal Blue
+        return const Color.fromARGB(255, 255, 255, 255); // White text
       case 'common':
       default:
         return const Color(0xFFBEBEBE); // Grey
@@ -419,31 +404,23 @@ class HexBorderWithDotPainter extends CustomPainter {
     PathMetric pathMetric = path.computeMetrics().first;
     double pathLength = pathMetric.length;
     double currentOffset = pathLength * animationValue;
-    double offsetDotCurrentOffset = (pathLength * animationValue + pathLength / 2) % pathLength;
+    double offsetDotCurrentOffset =
+        (pathLength * animationValue + pathLength / 2) % pathLength;
 
-    // Get dot position
+    // Get dot positions
     Tangent? tangent = pathMetric.getTangentForOffset(currentOffset);
     Tangent? offsetTangent = pathMetric.getTangentForOffset(offsetDotCurrentOffset);
     if (tangent == null || offsetTangent == null) return;
     Offset dotPosition = tangent.position;
     Offset offsetDotPosition = offsetTangent.position;
-    // Create trailing effect
-    double trailLength = pathLength * 0.2;
-    double startOffset = (currentOffset - trailLength).clamp(0.0, pathLength);
-    Path trailPath = pathMetric.extractPath(startOffset, currentOffset);
 
-    // Draw shimmering trail
-    var trailGradient = LinearGradient(
-      colors: [
-        const Color.fromARGB(255, 255, 0, 0).withOpacity(0.0),
-        Colors.cyan.withOpacity(0.3),
-        Colors.blue.withOpacity(0.5),
-        Colors.purple.withOpacity(0.8),
-      ],
-      stops: const [0.0, 0.3, 0.7, 1.0],
-    );
+    // Optionally create a trail path, but here we just have two dots
+    // double trailLength = pathLength * 0.2;
+    // double startOffset = (currentOffset - trailLength).clamp(0.0, pathLength);
+    // Path trailPath = pathMetric.extractPath(startOffset, currentOffset);
+    // Could paint the trail here...
 
-    // Draw glowing dot
+    // Draw glowing dot (primary)
     for (double i = 4; i > 0; i--) {
       var dotPaint = Paint()
         ..color = const Color.fromARGB(255, 255, 255, 255).withOpacity(0.9 / i)
@@ -453,6 +430,7 @@ class HexBorderWithDotPainter extends CustomPainter {
       canvas.drawCircle(dotPosition, 4.0 * i, dotPaint);
     }
 
+    // Draw offset dot (secondary)
     for (double i = 4; i > 0; i--) {
       var dotPaint = Paint()
         ..color = const Color.fromARGB(255, 255, 255, 255).withOpacity(0.9 / i)
