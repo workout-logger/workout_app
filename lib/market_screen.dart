@@ -78,28 +78,50 @@ class _MarketScreenState extends State<MarketScreen> {
     }
   }
 
-  void confirmPurchase(BuildContext context, int listingId, String itemName, int price) {
+  void confirmPurchase(
+    BuildContext context,
+    int listingId,
+    String itemName,
+    int price,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Confirm Purchase"),
-        content: Text("Do you want to buy $itemName for $price Coins?"),
+        backgroundColor: Colors.black87,  // Dark background
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        title: Text(
+          "Confirm Purchase",
+          style: TextStyle(color: Colors.yellow),
+        ),
+        content: Text(
+          "Do you want to buy $itemName for $price Coins?",
+          style: TextStyle(color: Colors.yellow),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text("Cancel"),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: Colors.yellow),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // Close the dialog
-              buyItem(listingId); // Proceed with the purchase
+              buyItem(listingId);         // Proceed with the purchase
             },
-            child: const Text("Buy"),
+            child: Text(
+              "Buy",
+              style: TextStyle(color: Colors.yellow),
+            ),
           ),
         ],
       ),
     );
   }
+
 
   @override
   void initState() {
