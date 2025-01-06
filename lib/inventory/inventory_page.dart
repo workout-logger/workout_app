@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/constants.dart';
@@ -9,6 +8,7 @@ import 'inventory_manager.dart'; // Import the InventoryManager
 import '../ui_view/character_stats_inv.dart';
 import '../lottie_segment_player.dart'; // Import the LottieSegmentPlayer widget
 import 'package:http/http.dart' as http;
+
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
 
@@ -18,7 +18,6 @@ class InventoryPage extends StatefulWidget {
 
 class _InventoryPageState extends State<InventoryPage> {
   bool _isRefreshing = false;
-  // Remove _isLoading variable
 
   void _refreshUI() {
     setState(() {});
@@ -50,7 +49,7 @@ class _InventoryPageState extends State<InventoryPage> {
     InventoryManager().requestInventoryUpdate();
   }
 
- Future<void> _refreshInventory() async {
+  Future<void> _refreshInventory() async {
     setState(() {
       _isRefreshing = true;
     });
@@ -68,7 +67,17 @@ class _InventoryPageState extends State<InventoryPage> {
   Widget build(BuildContext context) {
     final inventoryItems = InventoryManager().inventoryItems;
     final equippedItems = InventoryManager().equippedItems;
-    final isLoading = InventoryManager().isLoading; // Use the shared loading state
+    final isLoading = InventoryManager().isLoading;
+
+    // Separate items by rarity
+    final legendaryItems =
+        inventoryItems.where((item) => item['rarity'] == 'legendary').toList();
+    final epicItems =
+        inventoryItems.where((item) => item['rarity'] == 'epic').toList();
+    final rareItems =
+        inventoryItems.where((item) => item['rarity'] == 'rare').toList();
+    final commonItems =
+        inventoryItems.where((item) => item['rarity'] == 'common').toList();
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -99,9 +108,8 @@ class _InventoryPageState extends State<InventoryPage> {
           RefreshIndicator(
             onRefresh: _refreshInventory,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Any other widgets you might have
+                // Character stats or other top widgets
                 CharacterStatsView(
                   head: equippedItems['heads'] ?? '',
                   armour: equippedItems['armour'] ?? '',
@@ -110,44 +118,45 @@ class _InventoryPageState extends State<InventoryPage> {
                   shield: equippedItems['shield'] ?? '',
                   wings: equippedItems['wings'] ?? '',
                 ),
-                // Inventory Display
+
+                // Expanded area for the inventory sections
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: inventoryItems.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "No items in inventory",
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          )
-                        : GridView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: 0.65, // allow more vertical space
+                  child: inventoryItems.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No items in inventory",
+                            style: TextStyle(color: Colors.white),
                           ),
-                          itemCount: inventoryItems.length,
-                          itemBuilder: (context, index) {
-                            final item = inventoryItems[index];
-                            // No Flexible here:
-                            return InventoryItemCard(
-                              itemName: item['name'],
-                              category: item['category'],
-                              fileName: item['file_name'],
-                              isEquipped: item['is_equipped'],
-                              onEquipUnequip: _refreshUI,
-                              rarity: item['rarity'],
-                            );
-                          },
                         )
-                  ),
+                      : SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Common Section
+                              if (commonItems.isNotEmpty)
+                                _buildRaritySection('Common', commonItems),
+
+                              // Rare Section
+                              if (rareItems.isNotEmpty)
+                                _buildRaritySection('Rare', rareItems),
+
+                              // Epic Section
+                              if (epicItems.isNotEmpty)
+                                _buildRaritySection('Epic', epicItems),
+
+                              // Legendary Section
+                              if (legendaryItems.isNotEmpty)
+                                _buildRaritySection('Legendary', legendaryItems),
+
+                            ],
+                          ),
+                        ),
                 ),
               ],
             ),
           ),
+
           // Loading overlay
           if (isLoading)
             Positioned.fill(
@@ -157,68 +166,81 @@ class _InventoryPageState extends State<InventoryPage> {
                   child: LottieSegmentPlayer(
                     animationPath: 'assets/animations/loading.json',
                     endFraction: 0.7,
-                    width: 150, // Increase the width here
-                    height: 150, // Increase the height here
+                    width: 150,
+                    height: 150,
                   ),
                 ),
               ),
             ),
-
         ],
       ),
     );
   }
-}
 
-class ChestCard extends StatelessWidget {
-  final String chestName;
-  final int chestPrice;
-  final int chestNumber;
+  /// Builds a section heading + Wrap for a given rarity.
+  Widget _buildRaritySection(String label, List<Map<String, dynamic>> items) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 3.0), // Increased vertical padding
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          double spacing = 10.0;
+          int columns = 3;
+          double totalSpacing = (columns - 1) * spacing;
+          double baseWidth = (constraints.maxWidth - totalSpacing) / columns;
 
-  const ChestCard({
-    super.key,
-    required this.chestName,
-    required this.chestPrice,
-    required this.chestNumber,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: Colors.grey[850],
-      child: InkWell(
-        onTap: () {
-          // Handle chest purchase
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Image.asset(
-                'assets/images/Pixel_Chest_Pack/chest_$chestNumber.png',
-                height: 100,
-                width: 100,
-                fit: BoxFit.contain,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Rarity heading
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16, // Increased font size
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              chestName,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-            Text(
-              "$chestPrice Coins",
-              style: const TextStyle(color: Colors.greenAccent, fontSize: 14),
-            ),
-          ],
-        ),
+              const SizedBox(height: 16), // Increased spacing
+
+              // Wrap of items with variable widths
+              Wrap(
+                spacing: spacing,
+                runSpacing: 20.0, // Increased run spacing
+                children: items.map((item) {
+                  double cardWidth = baseWidth;
+                  if (item['rarity'] == 'legendary') {
+                    cardWidth = baseWidth * 1.3; // Increased scale factor
+                  }else if (item['rarity'] == 'epic') {
+                    cardWidth = baseWidth * 1.2; // Increased scale factor
+                  }
+                  
+
+                  // Ensure the card doesn't exceed the max width
+                  cardWidth = cardWidth.clamp(0, constraints.maxWidth);
+
+                  return SizedBox(
+                    width: cardWidth,
+                    height: cardWidth * 1.3, // Added explicit height
+                    child: InventoryItemCard(
+                      itemName: item['name'],
+                      category: item['category'],
+                      fileName: item['file_name'],
+                      isEquipped: item['is_equipped'],
+                      onEquipUnequip: _refreshUI,
+                      rarity: item['rarity'],
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 24.0), // Increased bottom spacing
+            ],
+          );
+        },
       ),
     );
   }
 }
-
-
 
 
 
@@ -229,8 +251,6 @@ class InventoryActionsDrawer extends StatelessWidget {
   final bool isEquipped;
   final VoidCallback onEquipUnequip;
 
-
-
   const InventoryActionsDrawer({
     super.key,
     required this.itemName,
@@ -238,7 +258,6 @@ class InventoryActionsDrawer extends StatelessWidget {
     required this.fileName,
     required this.isEquipped,
     required this.onEquipUnequip,
-
   });
 
   @override
@@ -339,7 +358,6 @@ class InventoryActionsDrawer extends StatelessWidget {
                   );
                 },
               ),
-
               ActionButton(
                 icon: isEquipped ? Icons.close : Icons.check,
                 label: isEquipped ? "Unequip" : "Equip",
@@ -351,7 +369,9 @@ class InventoryActionsDrawer extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        isNowEquipped ? "$itemName equipped!" : "$itemName unequipped!",
+                        isNowEquipped
+                            ? "$itemName equipped!"
+                            : "$itemName unequipped!",
                       ),
                     ),
                   );
@@ -394,7 +414,8 @@ class _SellItemDialogState extends State<SellItemDialog> {
   @override
   void initState() {
     super.initState();
-    _priceController.text = _price.toStringAsFixed(0); // Initialize text box with slider value
+    _priceController.text =
+        _price.toStringAsFixed(0); // Initialize text box with slider value
   }
 
   void _submitListing() async {
@@ -402,11 +423,10 @@ class _SellItemDialogState extends State<SellItemDialog> {
 
     if (price == null || price <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter a valid price!')),
+        const SnackBar(content: Text('Please enter a valid price!')),
       );
       return;
     }
-
 
     try {
       // Replace with your API endpoint
@@ -420,13 +440,12 @@ class _SellItemDialogState extends State<SellItemDialog> {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final String? authToken = prefs.getString('authToken');
 
-
       // Send POST request to backend
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Token $authToken', // Replace with user's token
+          'Authorization': 'Token $authToken',
         },
         body: jsonEncode(payload),
       );
@@ -438,7 +457,9 @@ class _SellItemDialogState extends State<SellItemDialog> {
         Navigator.of(context).pop(); // Close the dialog
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Item "${widget.itemName}" listed successfully!')),
+            SnackBar(
+              content: Text('Item "${widget.itemName}" listed successfully!'),
+            ),
           );
         }
       } else {
@@ -459,16 +480,13 @@ class _SellItemDialogState extends State<SellItemDialog> {
       backgroundColor: Colors.black,
       title: Text(
         'Sell ${widget.itemName}',
-        style: TextStyle(color: Colors.white),
+        style: const TextStyle(color: Colors.white),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Select Price',
-            style: TextStyle(color: Colors.white),
-          ),
-          SizedBox(height: 10),
+          const Text('Select Price', style: TextStyle(color: Colors.white)),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -492,14 +510,14 @@ class _SellItemDialogState extends State<SellItemDialog> {
           TextField(
             controller: _priceController,
             keyboardType: TextInputType.number,
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: 'Price',
-              labelStyle: TextStyle(color: Colors.yellow),
-              enabledBorder: OutlineInputBorder(
+              labelStyle: const TextStyle(color: Colors.yellow),
+              enabledBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.yellow),
               ),
-              focusedBorder: OutlineInputBorder(
+              focusedBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.yellow, width: 2),
               ),
             ),
@@ -517,19 +535,12 @@ class _SellItemDialogState extends State<SellItemDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(
-            'Cancel',
-            style: TextStyle(color: Colors.yellow),
-          ),
+          child: const Text('Cancel', style: TextStyle(color: Colors.yellow)),
         ),
         ElevatedButton(
           onPressed: _submitListing,
-          style: ElevatedButton.styleFrom(
-          ),
-          child: Text(
-            'Submit',
-            style: TextStyle(color: Colors.black),
-          ),
+          style: ElevatedButton.styleFrom(),
+          child: const Text('Submit', style: TextStyle(color: Colors.black)),
         ),
       ],
     );

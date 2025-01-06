@@ -49,6 +49,7 @@ dependencies:
   google_sign_in: ^6.2.2
   animate_do: ^3.3.4
   permission_handler: ^11.3.1
+  flutter_staggered_grid_view: ^0.7.0
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +75,7 @@ flutter:
 
   assets:
   - assets/images/
+  - assets/images/cards/
   - assets/images/chests/
   - assets/images/Pixel_Chest_Pack/
   - assets/character/
