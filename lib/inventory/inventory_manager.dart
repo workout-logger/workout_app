@@ -1,17 +1,14 @@
 import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:workout_logger/home_body.dart';
-import 'package:workout_logger/home_diary.dart';
-
 import '../websocket_manager.dart';
 
-class InventoryManager {
+class InventoryManager extends ChangeNotifier {
+  // Singleton implementation
   static final InventoryManager _instance = InventoryManager._internal();
-
   InventoryManager._internal();
-
   factory InventoryManager() => _instance;
+
   VoidCallback? onEquipmentChanged;
   final List<Map<String, dynamic>> _inventoryItems = [];
   String? bodyColor; // Store body color
@@ -46,6 +43,7 @@ class InventoryManager {
       }
     }
     onEquipmentChanged?.call();
+    notifyListeners();
   }
 
   void updateInventory(List<Map<String, dynamic>> updatedItems) {
@@ -55,6 +53,7 @@ class InventoryManager {
     if (isLoading) {
       isLoading = false; // Set loading to false when data is received
     }
+    notifyListeners();
   }
 
   void requestInventoryUpdate({bool showLoadingOverlay = true}) {
@@ -82,13 +81,14 @@ class InventoryManager {
   Future<void> requestCharacterColors() async {
     // Send a WebSocket message to fetch character colors
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString('bodyColorIndex') == null || prefs.getString('eyeColorIndex') == null){
+    if (prefs.getString('bodyColorIndex') == null || prefs.getString('eyeColorIndex') == null) {
       WebSocketManager().sendMessage({
         "action": "fetch_character_colors",
       });
-    }else{
+    } else {
       bodyColor = prefs.getString('bodyColorIndex');
-      eyeColor = prefs.getString('eyeColorIndex') ;
+      eyeColor = prefs.getString('eyeColorIndex');
+      notifyListeners();
     }
   }
 
@@ -100,6 +100,9 @@ class InventoryManager {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('bodyColorIndex', bodyColor ?? '');
     await prefs.setString('eyeColorIndex', eyeColor ?? '');
+
+    notifyListeners();
   }
 
+  bool get hasCharacterData => bodyColor != null && eyeColor != null;
 }

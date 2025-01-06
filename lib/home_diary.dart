@@ -45,9 +45,10 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
   bool isRefreshing = false;
   double _pullDistance = 0.0;
   final double _refreshTriggerPullDistance = 150.0;
-
+  
   bool get _hasRequiredData => 
-    weeklyWorkouts.isNotEmpty;
+    weeklyWorkouts.isNotEmpty && InventoryManager().hasCharacterData;
+
 
   @override
   void initState() {
@@ -95,7 +96,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
       final prefs = await SharedPreferences.getInstance();
 
       // if (prefs.getInt('bodyColorIndex') == null || prefs.getInt('eyeColorIndex') == null) {
-      InventoryManager().requestCharacterColors();
+      await InventoryManager().requestCharacterColors();
       final hasFetchedInventory = !(prefs.getBool('hasFetchedInventory') ?? false);
       if (hasFetchedInventory){
         InventoryManager().requestInventoryUpdate();
@@ -111,12 +112,10 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
       }
 
       // Check if we can show the UI yet
-      if (mounted) {
+      if (_hasRequiredData && mounted) {
         setState(() {
-          if (_hasRequiredData) {
-            _isLoading = false;
-            addAllListData();
-          }
+          _isLoading = false;
+          addAllListData();
         });
       }
 
@@ -313,18 +312,24 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color.fromARGB(255, 0, 0, 0),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: _isLoading || !_hasRequiredData
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-              ),
-            )
-          : Stack(
-              children: <Widget>[
+  return ListenableBuilder(
+    listenable: InventoryManager(),
+    builder: (context, child) {
+      final inventoryManager = InventoryManager();
+      final hasAllData = _hasRequiredData && inventoryManager.hasCharacterData;
+      
+      return Container(
+        color: const Color.fromARGB(255, 0, 0, 0),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: !hasAllData
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
+              )
+            : Stack(
+                children: <Widget>[
                 getMainListViewUI(),
                 getAppBarUI(),
                 if (_pullDistance > 0 || isRefreshing)
@@ -389,6 +394,10 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
         ),
       ),
     );
+  }
+  );
+  
+  
   }
 
   Widget getMainListViewUI() {

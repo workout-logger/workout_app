@@ -232,13 +232,32 @@ class _LoginScreenState extends State<LoginScreen> {
             MaterialPageRoute(builder: (_) => const UsernameScreen()),
           );
         } else {
-          await WebSocketManager().connectWebSocket();
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          // Show a loading indicator while connecting
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(
+              child: CircularProgressIndicator(),
+            ),
           );
+
+          try {
+            await WebSocketManager().connectWebSocket();
+            Navigator.pop(context); // Remove the loading indicator
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+          } catch (e) {
+            Navigator.pop(context); // Remove the loading indicator
+            // Show an error message to the user
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to connect: $e')),
+            );
+          }
         }
+
       } else {
         // Sign in failed
         ScaffoldMessenger.of(context).showSnackBar(
