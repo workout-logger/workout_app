@@ -11,6 +11,7 @@ import 'exercise.dart';
 import '../fitness_app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:workout_logger/constants.dart';
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart'; // Import the package
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({super.key});
@@ -27,11 +28,11 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     {'name': 'Triceps', 'color': const Color(0xFF4ECDC4), 'icon': Icons.fitness_center},
     {'name': 'Chest', 'color': const Color(0xFF45B7D1), 'icon': Icons.fitness_center},
     {'name': 'Shoulders', 'color': const Color(0xFF96CEB4), 'icon': Icons.fitness_center},
-    {'name': 'Lats', 'color': const Color(0xFFFFEEAD), 'icon': Icons.fitness_center},
-    {'name': 'Calves', 'color': const Color(0xFFD4A5A5), 'icon': Icons.fitness_center},
-    {'name': 'Abs', 'color': const Color(0xFF9B786F), 'icon': Icons.fitness_center},
-    {'name': 'Quads', 'color': const Color(0xFFA8E6CE), 'icon': Icons.fitness_center},
-    {'name': 'Hamstrings', 'color': const Color(0xFFFF8C94), 'icon': Icons.fitness_center},
+    {'name': 'Legs', 'color': const Color(0xFFD4A5A5), 'icon': Icons.fitness_center},
+    {'name': 'Core', 'color': const Color(0xFF9B786F), 'icon': Icons.fitness_center},
+    {'name': 'Back', 'color': const Color(0xFF9B786F), 'icon': Icons.fitness_center},
+    {'name': 'Lower Back', 'color': const Color(0xFFA8E6CE), 'icon': Icons.fitness_center},
+    {'name': 'Forearms', 'color': const Color(0xFFFF8C94), 'icon': Icons.fitness_center},
     {'name': 'Glutes', 'color': const Color(0xFFA6D1E6), 'icon': Icons.fitness_center},
   ];
   late StopwatchProvider stopwatchProvider;
@@ -186,7 +187,10 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                   Expanded(
                     child: TabBarView(
                       children: _muscleGroups.map((muscle) =>
-                        _buildExerciseList(muscle['name'] as String)
+                        ExerciseList(
+                          muscleType: muscle['name'] as String,
+                          fetchExercises: _fetchWorkoutExercises, // Pass the fetch function
+                        )
                       ).toList(),
                     ),
                   ),
@@ -199,192 +203,24 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildExerciseList(String muscle) {
-    return FutureBuilder<List<Exercise>>(
-      future: _fetchWorkoutExercises(muscle),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(FitnessAppTheme.white),
-            ),
-          );
-        } else if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                const SizedBox(height: 16),
-                Text(
-                  'Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.fitness_center, color: Colors.grey, size: 48),
-                SizedBox(height: 16),
-                Text(
-                  'No exercises found for this muscle group',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.75,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: snapshot.data!.length,
-          itemBuilder: (context, index) {
-            final exercise = snapshot.data![index];
-            return _buildExerciseCard(exercise);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildExerciseCard(Exercise exercise) {
-    return GestureDetector(
-      onTap: () {
-        // Create a new Exercise instance with empty sets
-        final newExercise = Exercise(
-          name: exercise.name,
-          description: exercise.description,
-          equipment: exercise.equipment,
-          images: exercise.images,
-          sets: [], // Initialize with empty sets
-        );
-        Provider.of<ExerciseModel>(context, listen: false).addExercise(newExercise);
-        Navigator.of(context).pop();
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.grey[900]!,
-              Colors.grey[850]!,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(2, 2),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                flex: 3,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: exercise.images.isNotEmpty
-                      ? Image.network(
-                          exercise.images[0],
-                          fit: BoxFit.contain,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(
-                                Icons.fitness_center,
-                                size: 48,
-                                color: Colors.grey,
-                              ),
-                            );
-                          },
-                        )
-                      : const Center(
-                          child: Icon(
-                            Icons.fitness_center,
-                            size: 48,
-                            color: Colors.grey,
-                          ),
-                        ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        exercise.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tap to add',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<List<Exercise>> _fetchWorkoutExercises(String muscleType) async {
+  // Updated to accept muscleType and page, and pass to ExerciseList
+  Future<List<Exercise>> _fetchWorkoutExercises(String muscleType, int page) async {
     const String baseUrl = APIConstants.baseUrl;
-    final response =
-        await http.get(Uri.parse('$baseUrl/exercise/?muscle_type=$muscleType'));
+    const int pageSize = 10; // Adjust the page size as needed
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/exercise/?muscle_type=$muscleType&page=$page&page_size=$pageSize'),
+    );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      final Map<String, dynamic> responseBody = json.decode(response.body);
+      
+      // Optional: Debugging - Print the response to verify structure
+      print('API Response for $muscleType, Page $page: $responseBody');
+
+      // Access the 'exercises' key instead of 'results'
+      final List<dynamic> data = responseBody['exercises'];
+
       return data.map((item) => Exercise.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load exercises: ${response.statusCode}');
@@ -570,12 +406,15 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
             if (_workoutStarted)
               FloatingActionButton.extended(
                 onPressed: _showWorkoutExercises,
-                backgroundColor: Color.fromARGB(255, 182, 176, 238),
+                backgroundColor: const Color.fromARGB(255, 182, 176, 238),
                 foregroundColor: FitnessAppTheme.background,
                 icon: _isLoading
                     ? const SizedBox(
+                        height: 20,
+                        width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
+                          color: Colors.white,
                         ),
                       )
                     : const Icon(Icons.add),
@@ -650,5 +489,245 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+}
+
+/// A separate widget to handle the exercise list with infinite scrolling
+class ExerciseList extends StatefulWidget {
+  final String muscleType;
+  final Future<List<Exercise>> Function(String muscleType, int page) fetchExercises;
+
+  const ExerciseList({
+    Key? key,
+    required this.muscleType,
+    required this.fetchExercises,
+  }) : super(key: key);
+
+  @override
+  _ExerciseListState createState() => _ExerciseListState();
+}
+
+class _ExerciseListState extends State<ExerciseList> {
+  static const _pageSize = 10;
+
+  final PagingController<int, Exercise> _pagingController =
+      PagingController(firstPageKey: 1);
+
+  @override
+  void initState() {
+    super.initState();
+    _pagingController.addPageRequestListener((pageKey) {
+      _fetchPage(pageKey);
+    });
+  }
+
+  Future<void> _fetchPage(int pageKey) async {
+    try {
+      final newItems = await widget.fetchExercises(widget.muscleType, pageKey);
+
+      final isLastPage = newItems.length < _pageSize;
+      if (isLastPage) {
+        _pagingController.appendLastPage(newItems);
+      } else {
+        final nextPageKey = pageKey + 1;
+        _pagingController.appendPage(newItems, nextPageKey);
+      }
+    } catch (error) {
+      _pagingController.error = error;
+    }
+  }
+
+  Widget _buildExerciseCard(Exercise exercise) {
+    return GestureDetector(
+      onTap: () {
+        // Create a new Exercise instance with empty sets
+        final newExercise = Exercise(
+          name: exercise.name,
+          description: exercise.description,
+          equipment: exercise.equipment,
+          images: exercise.images,
+          sets: [], // Initialize with empty sets
+        );
+        Provider.of<ExerciseModel>(context, listen: false).addExercise(newExercise);
+        Navigator.of(context).pop();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.grey[900]!,
+              Colors.grey[850]!,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(2, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: exercise.images.isNotEmpty
+                      ? Image.network(
+                          exercise.images[0],
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(
+                                Icons.fitness_center,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
+                            );
+                          },
+                        )
+                      : const Center(
+                          child: Icon(
+                            Icons.fitness_center,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
+                        ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        exercise.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tap to add',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PagedGridView<int, Exercise>(
+      pagingController: _pagingController,
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      builderDelegate: PagedChildBuilderDelegate<Exercise>(
+        itemBuilder: (context, exercise, index) => _buildExerciseCard(exercise),
+        firstPageErrorIndicatorBuilder: (context) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Error: ${_pagingController.error}',
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => _pagingController.refresh(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+        noItemsFoundIndicatorBuilder: (context) => const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.fitness_center, color: Colors.grey, size: 48),
+              SizedBox(height: 16),
+              Text(
+                'No exercises found for this muscle group',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        newPageErrorIndicatorBuilder: (context) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Error: ${_pagingController.error}',
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: () => _pagingController.retryLastFailedRequest(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pagingController.dispose();
+    super.dispose();
   }
 }

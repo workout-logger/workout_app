@@ -22,8 +22,7 @@ class Exercise {
   }) : id = id ?? _uuid.v4();
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
-    // Debugging: Print incoming JSON
-    print('Deserializing Exercise: $json');
+    // print('Deserializing Exercise: $json');
 
     return Exercise(
       id: json['id'] as String? ?? _uuid.v4(),
