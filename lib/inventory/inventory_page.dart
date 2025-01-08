@@ -70,19 +70,12 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   Widget build(BuildContext context) {
     final inventoryItems = InventoryManager().inventoryItems;
-    final equippedItems = InventoryManager().equippedItems;
+    final equippedItems = InventoryManager().inventoryItems.where((item) => item['is_equipped']).toList();
+    final otherItems = InventoryManager().inventoryItems.where((item) => !item['is_equipped']).toList();
     final isLoading = InventoryManager().isLoading;
     final stats = (InventoryManager().stats ?? {}).map((key, value) {
       return MapEntry(key, int.tryParse(value.toString()) ?? 0); // Convert to int or default to 0
     });
-
-    // Combine all rarity items into a single list
-    final allItems = [
-      ...inventoryItems.where((item) => item['rarity'] == 'common'),
-      ...inventoryItems.where((item) => item['rarity'] == 'rare'),
-      ...inventoryItems.where((item) => item['rarity'] == 'epic'),
-      ...inventoryItems.where((item) => item['rarity'] == 'legendary'),
-    ];
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -107,19 +100,18 @@ class _InventoryPageState extends State<InventoryPage> {
                   color: Color.fromARGB(255, 255, 255, 255),
                 ),
               ),
-              // Use Consumer to listen to CurrencyProvider
               Consumer<CurrencyProvider>(
                 builder: (context, currencyProvider, child) {
                   return Row(
                     children: [
                       const Icon(
-                        Icons.monetization_on, // Replace with your preferred icon
+                        Icons.monetization_on,
                         color: Colors.yellow,
                         size: 24,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        currencyProvider.currency.toStringAsFixed(0), // Replace with actual currency
+                        currencyProvider.currency.toStringAsFixed(0),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -137,37 +129,62 @@ class _InventoryPageState extends State<InventoryPage> {
       ),
       body: Stack(
         children: [
-          // Main content
           RefreshIndicator(
             onRefresh: _refreshInventory,
-            child: Column(
-              children: [
-                // Character stats or other top widgets
-                CharacterStatsView(
-                  head: equippedItems['heads'] ?? '',
-                  armour: equippedItems['armour'] ?? '',
-                  legs: equippedItems['legs'] ?? '',
-                  melee: equippedItems['melee'] ?? '',
-                  shield: equippedItems['shield'] ?? '',
-                  wings: equippedItems['wings'] ?? '',
-                  stats: stats,
-                ),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  // Character stats
+                  CharacterStatsView(
+                    head: InventoryManager().equippedItems['heads'] ?? '',
+                    armour: InventoryManager().equippedItems['armour'] ?? '',
+                    legs: InventoryManager().equippedItems['legs'] ?? '',
+                    melee: InventoryManager().equippedItems['melee'] ?? '',
+                    shield: InventoryManager().equippedItems['shield'] ?? '',
+                    wings: InventoryManager().equippedItems['wings'] ?? '',
+                    stats: stats,
+                  ),
 
-                // Expanded area for the inventory grid
-                Expanded(
-                  child: allItems.isEmpty
-                      ? const Center(
-                          child: Text(
-                            "No items in inventory",
-                            style: TextStyle(color: Colors.white),
+                  // Equipped Items Section
+                  if (equippedItems.isNotEmpty) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0, left: 10.0),  
+                        child: const Text(
+                          "Equipped Items",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                        )
-                      : SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: _buildRarityGrid(allItems),
                         ),
-                ),
-              ],
+                      ),
+                    ),
+                    _buildScrollableGrid(equippedItems),
+                  ],
+
+                  // Other Items Section
+                  if (otherItems.isNotEmpty) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 30.0, bottom: 20.0, left: 10.0),  
+                        child: const Text(
+                          "Other Items",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    _buildScrollableGrid(otherItems),
+                  ],
+                ],
+              ),
             ),
           ),
 
@@ -178,10 +195,10 @@ class _InventoryPageState extends State<InventoryPage> {
                 color: Colors.black.withOpacity(0.7),
                 child: const Center(
                   child: LottieSegmentPlayer(
-                    animationPath: 'assets/animations/loading.json',
-                    endFraction: 0.7,
-                    width: 150,
-                    height: 150,
+                    animationPath: 'assets/animations/sword.json',
+                    endFraction: 1,
+                    width: 200,
+                    height: 200,
                   ),
                 ),
               ),
@@ -191,10 +208,10 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  /// Builds a section heading + Wrap for a given rarity.
-  Widget _buildRarityGrid(List<Map<String, dynamic>> items) {
+  /// Builds a scrollable grid for equipped or other items.
+  Widget _buildScrollableGrid(List<Map<String, dynamic>> items) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+      padding: const EdgeInsets.symmetric(horizontal: 10.0),
       child: LayoutBuilder(
         builder: (context, constraints) {
           const double spacing = 10.0;
@@ -202,28 +219,33 @@ class _InventoryPageState extends State<InventoryPage> {
           final double totalSpacing = (columns - 1) * spacing;
           final double baseWidth = (constraints.maxWidth - totalSpacing) / columns;
 
-          return Wrap(
-            spacing: spacing,
-            runSpacing: spacing,
-            children: items.map((item) {
-              return SizedBox(
-                width: baseWidth,
-                height: baseWidth * 1.8, // Adjust height based on your card design
-                child: InventoryItemCard(
-                  itemName: item['name'],
-                  category: item['category'],
-                  fileName: item['file_name'],
-                  isEquipped: item['is_equipped'],
-                  onEquipUnequip: _refreshUI,
-                  rarity: item['rarity'],
-                ),
+          return GridView.builder(
+            physics: const NeverScrollableScrollPhysics(), // Disable scrolling for this grid
+            shrinkWrap: true, // Allow the grid to wrap its content
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: spacing,
+              mainAxisSpacing: spacing,
+              childAspectRatio: 1 / 1.5, // Adjust based on your card design
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return InventoryItemCard(
+                itemName: item['name'],
+                category: item['category'],
+                fileName: item['file_name'],
+                isEquipped: item['is_equipped'],
+                onEquipUnequip: _refreshUI,
+                rarity: item['rarity'],
               );
-            }).toList(),
+            },
           );
         },
       ),
     );
   }
+
 }
 
 class InventoryActionsDrawer extends StatelessWidget {

@@ -46,18 +46,26 @@ class InventoryItemCard extends StatelessWidget {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: AssetImage(_getCardBackground(rarity)),
-            fit: BoxFit.fill),
+            fit: BoxFit.fill,
+          ),
+          border: isEquipped
+              ? Border.all(
+                  color: const Color.fromARGB(117, 255, 255, 0),
+                  width: 2.0,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(8.0),
         ),
         child: Stack(
           children: [
             if (showContent) ...[
               // Item name at the very top, smaller text
               Positioned(
-                top: 13.0,
+                top: 7.0,
                 right: 0,
-                left: 0,                
+                left: 0,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal:15.0),                    
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
                   child: Text(
                     itemName,
                     textAlign: TextAlign.center,
@@ -78,14 +86,12 @@ class InventoryItemCard extends StatelessWidget {
                   ),
                 ),
               ),
-              
               Center(
                 child: SizedBox(
-                  width:  120,
-                  height: 120, 
+                  width: 120,
+                  height: 120,
                   child: Image.asset(
-                    'assets/character/$category/$fileName'
-                    '${category != 'armour' ? '_inv' : ''}.png',
+                    'assets/character/${category}/${fileName}${category != "armour" ? "_inv" : ""}.png',
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return const Icon(
@@ -101,7 +107,7 @@ class InventoryItemCard extends StatelessWidget {
               // Rarity at the very bottom
               Positioned(
                 bottom: 16.0,
-                left: 0,       
+                left: 0,
                 right: 0,
                 child: Text(
                   capitalize(rarity),
@@ -121,26 +127,6 @@ class InventoryItemCard extends StatelessWidget {
                 ),
               ),
             ],
-
-            // If the item is equipped, show a small icon in the top-left corner
-            if (isEquipped && showContent)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: const BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.star,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
           ],
         ),
       ),
