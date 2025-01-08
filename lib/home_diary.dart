@@ -205,7 +205,9 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
     final equipped = InventoryManager().equippedItems;
     final bodyColor = InventoryManager().bodyColor;
     final eyeColors = InventoryManager().eyeColor;
-    final stats = InventoryManager().stats;
+    final stats = (InventoryManager().stats ?? {}).map((key, value) {
+      return MapEntry(key, int.tryParse(value.toString()) ?? 0); // Convert to int or default to 0
+    });
     print(stats);
     
     // Check if we have all required data
@@ -232,7 +234,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
           wings: wingsFile,
           baseBody: bodyColor,
           eyeColor: eyeColors,
-          stats: stats!,
+          stats: stats,
           animation: createAnimation(0, count),
           animationController: widget.animationController!,
         ),

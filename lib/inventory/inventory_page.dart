@@ -1,5 +1,8 @@
+// lib/inventory/inventory_page.dart
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Import provider
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/constants.dart';
 import 'package:workout_logger/inventory/item_card.dart';
@@ -8,6 +11,7 @@ import 'inventory_manager.dart'; // Import the InventoryManager
 import '../ui_view/character_stats_inv.dart';
 import '../lottie_segment_player.dart'; // Import the LottieSegmentPlayer widget
 import 'package:http/http.dart' as http;
+import '../currency_provider.dart'; // Import CurrencyProvider
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -68,36 +72,65 @@ class _InventoryPageState extends State<InventoryPage> {
     final inventoryItems = InventoryManager().inventoryItems;
     final equippedItems = InventoryManager().equippedItems;
     final isLoading = InventoryManager().isLoading;
+    final stats = (InventoryManager().stats ?? {}).map((key, value) {
+      return MapEntry(key, int.tryParse(value.toString()) ?? 0); // Convert to int or default to 0
+    });
 
-    // Separate items by rarity
-    final legendaryItems =
-        inventoryItems.where((item) => item['rarity'] == 'legendary').toList();
-    final epicItems =
-        inventoryItems.where((item) => item['rarity'] == 'epic').toList();
-    final rareItems =
-        inventoryItems.where((item) => item['rarity'] == 'rare').toList();
-    final commonItems =
-        inventoryItems.where((item) => item['rarity'] == 'common').toList();
+    // Combine all rarity items into a single list
+    final allItems = [
+      ...inventoryItems.where((item) => item['rarity'] == 'common'),
+      ...inventoryItems.where((item) => item['rarity'] == 'rare'),
+      ...inventoryItems.where((item) => item['rarity'] == 'epic'),
+      ...inventoryItems.where((item) => item['rarity'] == 'legendary'),
+    ];
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Padding(
-          padding: EdgeInsets.only(
+        title: Padding(
+          padding: const EdgeInsets.only(
             left: 4,
             right: 16,
             top: 60,
             bottom: 30,
           ),
-          child: Text(
-            "Inventory",
-            textAlign: TextAlign.left,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 28,
-              letterSpacing: 1.2,
-              color: Color.fromARGB(255, 255, 255, 255),
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Inventory",
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 28,
+                  letterSpacing: 1.2,
+                  color: Color.fromARGB(255, 255, 255, 255),
+                ),
+              ),
+              // Use Consumer to listen to CurrencyProvider
+              Consumer<CurrencyProvider>(
+                builder: (context, currencyProvider, child) {
+                  return Row(
+                    children: [
+                      const Icon(
+                        Icons.monetization_on, // Replace with your preferred icon
+                        color: Colors.yellow,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        currencyProvider.currency.toStringAsFixed(0), // Replace with actual currency
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
         ),
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
@@ -117,11 +150,12 @@ class _InventoryPageState extends State<InventoryPage> {
                   melee: equippedItems['melee'] ?? '',
                   shield: equippedItems['shield'] ?? '',
                   wings: equippedItems['wings'] ?? '',
+                  stats: stats,
                 ),
 
-                // Expanded area for the inventory sections
+                // Expanded area for the inventory grid
                 Expanded(
-                  child: inventoryItems.isEmpty
+                  child: allItems.isEmpty
                       ? const Center(
                           child: Text(
                             "No items in inventory",
@@ -130,27 +164,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         )
                       : SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Common Section
-                              if (commonItems.isNotEmpty)
-                                _buildRaritySection('Common', commonItems),
-
-                              // Rare Section
-                              if (rareItems.isNotEmpty)
-                                _buildRaritySection('Rare', rareItems),
-
-                              // Epic Section
-                              if (epicItems.isNotEmpty)
-                                _buildRaritySection('Epic', epicItems),
-
-                              // Legendary Section
-                              if (legendaryItems.isNotEmpty)
-                                _buildRaritySection('Legendary', legendaryItems),
-
-                            ],
-                          ),
+                          child: _buildRarityGrid(allItems),
                         ),
                 ),
               ],
@@ -178,65 +192,39 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   /// Builds a section heading + Wrap for a given rarity.
- Widget _buildRaritySection(String label, List<Map<String, dynamic>> items) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 1.0), // Increased vertical padding
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        double spacing = 10.0;
-        int columns = 3;
-        double totalSpacing = (columns - 1) * spacing;
-        double baseWidth = (constraints.maxWidth - totalSpacing) / columns;
+  Widget _buildRarityGrid(List<Map<String, dynamic>> items) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const double spacing = 10.0;
+          const int columns = 3;
+          final double totalSpacing = (columns - 1) * spacing;
+          final double baseWidth = (constraints.maxWidth - totalSpacing) / columns;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Rarity heading
-
-            Wrap(
-              spacing: spacing,
-              runSpacing: 10.0, // Increased run spacing
-              children: items.map((item) {
-                double cardWidth = baseWidth;
-                if (item['rarity'] == 'legendary') {
-                  cardWidth = baseWidth * 1.4; // Increased scale factor
-                }
-                if (item['rarity'] == 'epic') {
-                  cardWidth = baseWidth * 1.2; // Increased scale factor
-                }
-
-                // Ensure the card doesn't exceed the max width
-                cardWidth = cardWidth.clamp(0, constraints.maxWidth);
-                double cardHeightFactor = 1.8;
-                if (item['rarity'] == 'legendary') {
-                  cardHeightFactor = 2; // Slightly taller for legendary items
-                } else if (item['rarity'] == 'epic') {
-                  cardHeightFactor = 2; // Slightly taller for epic items
-                }
-                return SizedBox(
-                  width: cardWidth,
-                  height:  cardWidth * cardHeightFactor,
-                  child: InventoryItemCard(
-                    itemName: item['name'],
-                    category: item['category'],
-                    fileName: item['file_name'],
-                    isEquipped: item['is_equipped'],
-                    onEquipUnequip: _refreshUI,
-                    rarity: item['rarity'],
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        );
-      },
-    ),
-  );
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: items.map((item) {
+              return SizedBox(
+                width: baseWidth,
+                height: baseWidth * 1.8, // Adjust height based on your card design
+                child: InventoryItemCard(
+                  itemName: item['name'],
+                  category: item['category'],
+                  fileName: item['file_name'],
+                  isEquipped: item['is_equipped'],
+                  onEquipUnequip: _refreshUI,
+                  rarity: item['rarity'],
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
+  }
 }
-
-}
-
-
 
 class InventoryActionsDrawer extends StatelessWidget {
   final String itemName;

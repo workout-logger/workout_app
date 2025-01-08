@@ -25,6 +25,8 @@ class CurrencyProvider with ChangeNotifier {
     notifyListeners();
   }
 
+
+
   @override
   void dispose() {
     WebSocketManager().closeConnection(); // Close WebSocket when disposed

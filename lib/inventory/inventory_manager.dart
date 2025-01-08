@@ -13,7 +13,7 @@ class InventoryManager extends ChangeNotifier {
   final List<Map<String, dynamic>> _inventoryItems = [];
   String? bodyColor; // Store body color
   String? eyeColor;  // Store eye color
-  Map<String, dynamic>? _stats;
+  Map<String, dynamic>? _stats = {};
   bool isLoading = true; // Loading state variable
 
   List<Map<String, dynamic>> get inventoryItems => List.unmodifiable(_inventoryItems);

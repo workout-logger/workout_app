@@ -66,6 +66,7 @@ class WebSocketManager {
           if (decodedMessage['type'] == 'currency_update') {
             final data = decodedMessage['data'];
             if (data['currency'] is num) {
+              print("Currency update received: ${data['currency']}");
               final double currencyValue = (data['currency'] as num).toDouble();
               onCurrencyUpdate?.call(currencyValue);
             }

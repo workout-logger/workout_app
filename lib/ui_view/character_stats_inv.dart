@@ -9,48 +9,9 @@ class CharacterStatsView extends StatelessWidget {
   final String melee;
   final String shield;
   final String wings;
+  final Map<String, dynamic> stats;
 
-  // List of stats with their properties
-  final List<Map<String, dynamic>> stats = [
-    {
-      'title': 'HP',
-      'value': 100,
-      'color': HexColor('#FF6B78'),
-      'icon': Icons.favorite,
-    },
-    {
-      'title': 'SPD',
-      'value': 90,
-      'color': HexColor('#738AE6'),
-      'icon': Icons.flash_on,
-    },
-    {
-      'title': 'AGI',
-      'value': 80,
-      'color': HexColor('#87A0E5'),
-      'icon': Icons.directions_walk,
-    },
-    {
-      'title': 'DEF',
-      'value': 70,
-      'color': HexColor('#FFA726'),
-      'icon': Icons.shield,
-    },
-    {
-      'title': 'INT',
-      'value': 75,
-      'color': HexColor('#FE95B6'),
-      'icon': Icons.lightbulb_outline,
-    },
-    {
-      'title': 'ATK',
-      'value': 65,
-      'color': HexColor('#8BC34A'),
-      'icon': Icons.whatshot,
-    },
-  ];
-
-  CharacterStatsView({
+  const CharacterStatsView({
     super.key,
     required this.head,
     required this.armour,
@@ -58,10 +19,57 @@ class CharacterStatsView extends StatelessWidget {
     required this.melee,
     required this.shield,
     required this.wings,
+    required this.stats,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Generate dynamic stats list using the stats parameter
+    final List<Map<String, dynamic>> dynamicStats = [
+      {
+        'title': 'STR',
+        'value': stats['strength'] ?? 0,
+        'color': HexColor('#FF6B78').withOpacity(0.85),
+        'icon': Icons.fitness_center,
+        'angle': 0.0,
+      },
+      {
+        'title': 'SPD',
+        'value': stats['speed'] ?? 0,
+        'color': HexColor('#738AE6').withOpacity(0.85),
+        'icon': Icons.flash_on,
+        'angle': 60.0,
+      },
+      {
+        'title': 'AGI',
+        'value': stats['agility'] ?? 0,
+        'color': HexColor('#87A0E5').withOpacity(0.85),
+        'icon': Icons.directions_walk,
+        'angle': 120.0,
+      },
+      {
+        'title': 'END',
+        'value': stats['defence'] ?? 0,
+        'color': HexColor('#FFA726').withOpacity(0.85),
+        'icon': Icons.shield,
+        'angle': 180.0,
+      },
+      {
+        'title': 'INT',
+        'value': stats['intelligence'] ?? 0,
+        'color': HexColor('#FE95B6').withOpacity(0.85),
+        'icon': Icons.lightbulb_outline,
+        'angle': 240.0,
+      },
+      {
+        'title': 'VIS',
+        'value': stats['stealth'] ?? 0,
+        'color': HexColor('#8BC34A').withOpacity(0.85),
+        'icon': Icons.visibility,
+        'angle': 300.0,
+      },
+    ];
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
@@ -84,7 +92,7 @@ class CharacterStatsView extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: stats.map((stat) {
+              children: dynamicStats.map((stat) {
                 return _buildStatBar(
                   stat['title'],
                   stat['value'],
@@ -161,8 +169,9 @@ class ModularCharacter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
-      future: SharedPreferences.getInstance().then((prefs) => 
-        prefs.getString('bodyColorIndex') ?? '3'),
+      future: SharedPreferences.getInstance().then(
+        (prefs) => prefs.getString('bodyColorIndex') ?? '3',
+      ),
       builder: (context, snapshot) {
         final bodyIndex = snapshot.data ?? '3';
         return Stack(
@@ -204,7 +213,7 @@ class ModularCharacter extends StatelessWidget {
               ),
           ],
         );
-      }
+      },
     );
   }
 }

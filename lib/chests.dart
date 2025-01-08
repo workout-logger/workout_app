@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/currency_provider.dart';
 import 'package:workout_logger/flying_card.dart';
 import 'package:workout_logger/inventory/item_card.dart';
+import 'package:workout_logger/websocket_manager.dart';
 import 'animated_chest.dart';
 import 'package:workout_logger/constants.dart';
 import 'package:http/http.dart' as http;
@@ -21,7 +22,9 @@ class ChestsScreen extends StatefulWidget {
 
 class _ChestsScreenState extends State<ChestsScreen> {
   final List<Map<String, dynamic>> chestData = [
-    {'name': 'Bronze Chest', 'price': 100, 'number': 0},
+    {'name': 'Common Chest', 'price': 100, 'number': 0},
+    {'name': 'Rare Chest', 'price': 500, 'number': 1},
+    {'name': 'Epic Chest', 'price': 1000, 'number': 2},
   ];
 
   OverlayEntry? _overlayEntry;
@@ -167,7 +170,8 @@ class _ChestOverlayState extends State<_ChestOverlay> {
 
       if (response.statusCode == 200) {
         final List<dynamic> items = json.decode(response.body)['items'];
-        
+        final int currency = json.decode(response.body)['currency'];
+        print("Currency: $currency");
         // Add the received items to the inventory
         setState(() {
           _inventoryItems.addAll(items.map((item) => {
@@ -179,7 +183,8 @@ class _ChestOverlayState extends State<_ChestOverlay> {
           }));
         });
         InventoryManager().requestInventoryUpdate();
-
+        final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+        currencyProvider.updateCurrency(currency.toDouble());
 
         return items;
       } else {

@@ -36,28 +36,21 @@ class CharacterStatsView extends StatefulWidget {
 
 class _CharacterStatsViewState extends State<CharacterStatsView>
     with TickerProviderStateMixin {
-  // Rotation controller to spin the stats around the character
   late AnimationController _rotationController;
   late Animation<double> _rotationAnimation;
-
-  // Tracks each stat’s final scale factor for a “fade in” effect
   final List<double> _statValues = List.filled(6, 0.0);
-
   bool _isInitialized = false;
+  
+  // Changed from late to regular List with initial empty value
+  List<Map<String, dynamic>> stats = [];
 
-  late final List<Map<String, dynamic>> stats;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Populate the stats list dynamically using widget.stats
-    stats = [
+  List<Map<String, dynamic>> _createStats() {
+    return [
       {
         'title': 'STR',
         'value': widget.stats['strength']?.toString() ?? '0',
         'color': HexColor('#FF6B78').withOpacity(0.85),
-        'icon': Icons.favorite,
+        'icon': Icons.fitness_center,
         'angle': 0.0,
       },
       {
@@ -75,7 +68,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
         'angle': 120.0,
       },
       {
-        'title': 'DEF',
+        'title': 'END',
         'value': widget.stats['defence']?.toString() ?? '0',
         'color': HexColor('#FFA726').withOpacity(0.85),
         'icon': Icons.shield,
@@ -92,15 +85,20 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
         'title': 'VIS',
         'value': widget.stats['stealth']?.toString() ?? '0',
         'color': HexColor('#8BC34A').withOpacity(0.85),
-        'icon': Icons.flash_auto,
+        'icon': Icons.visibility,
         'angle': 300.0,
       },
     ];
+  }
 
-    // Rotation Controller
+  @override
+  void initState() {
+    super.initState();
+    stats = _createStats();
+
     _rotationController = AnimationController(
       duration: const Duration(seconds: 24),
-      vsync: this, // TickerProviderStateMixin
+      vsync: this,
     );
     _rotationAnimation = CurvedAnimation(
       parent: _rotationController,
@@ -108,14 +106,31 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
     );
     _rotationController.repeat();
 
-    // Animate stats
     if (!_isInitialized) {
       _animateStatsSequentially();
     }
   }
 
+  @override
+  void didUpdateWidget(CharacterStatsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    if (widget.stats != oldWidget.stats) {
+      setState(() {
+        stats = _createStats(); // Update stats without reinitialization
+        _animateStatsSequentially();
+      });
+    }
+  }
+
   void _animateStatsSequentially() {
     _isInitialized = true;
+    // Reset all stat values first
+    for (var i = 0; i < _statValues.length; i++) {
+      _statValues[i] = 0.0;
+    }
+    
+    // Animate them in sequence
     for (var i = 0; i < stats.length; i++) {
       Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
         if (mounted) {

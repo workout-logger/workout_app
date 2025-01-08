@@ -53,11 +53,11 @@ class InventoryItemCard extends StatelessWidget {
             if (showContent) ...[
               // Item name at the very top, smaller text
               Positioned(
-                top: !outOfChest ? (rarity == 'legendary' ? 56.0 : rarity == 'epic' ? 55.0 : 13.0) : 13.0,
+                top: 13.0,
                 right: 0,
                 left: 0,                
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: rarity == 'legendary' ? 20.0 : 15.0),                    
+                  padding: EdgeInsets.symmetric(horizontal:15.0),                    
                   child: Text(
                     itemName,
                     textAlign: TextAlign.center,
@@ -81,8 +81,8 @@ class InventoryItemCard extends StatelessWidget {
               
               Center(
                 child: SizedBox(
-                  width: rarity == 'legendary' ? 140 : 120,
-                  height: rarity == 'legendary' ? 140 : 120, 
+                  width:  120,
+                  height: 120, 
                   child: Image.asset(
                     'assets/character/$category/$fileName'
                     '${category != 'armour' ? '_inv' : ''}.png',
@@ -100,7 +100,7 @@ class InventoryItemCard extends StatelessWidget {
 
               // Rarity at the very bottom
               Positioned(
-                bottom: rarity == 'legendary' ? 28.0 : 16.0,
+                bottom: 16.0,
                 left: 0,       
                 right: 0,
                 child: Text(
