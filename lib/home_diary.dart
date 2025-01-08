@@ -355,21 +355,25 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
                               right: 0,
                               child: Container(
                                 alignment: Alignment.topCenter,
-                                height: 50,
+                                height: 60,
                                 child: Container(
-                                  width: 70,
-                                  height: 70,
-                                  decoration: const BoxDecoration(
-                                    color: Color.fromARGB(255, 99, 98, 98),
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    color: Color.fromARGB(255, 0, 0, 0),
                                     shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 0.6,
+                                    ),
                                   ),
                                   child: const Padding(
                                     padding: EdgeInsets.all(8.0),
                                     child: LottieSegmentPlayer(
-                                      animationPath: 'assets/animations/loading.json',
-                                      endFraction: 0.7,
-                                      width: 64,
-                                      height: 64,
+                                      animationPath: 'assets/animations/refresh.json',
+                                      endFraction: 1,
+                                      width: 108,
+                                      height: 108,
                                     ),
                                   ),
                                 ),

@@ -46,7 +46,7 @@ class InventoryItemCard extends StatelessWidget {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: AssetImage(_getCardBackground(rarity)),
-            fit: outOfChest ? BoxFit.fill : BoxFit.cover,),
+            fit: BoxFit.fill),
         ),
         child: Stack(
           children: [
