@@ -13,14 +13,22 @@ class InventoryManager extends ChangeNotifier {
   final List<Map<String, dynamic>> _inventoryItems = [];
   String? bodyColor; // Store body color
   String? eyeColor;  // Store eye color
-
+  Map<String, dynamic>? _stats;
   bool isLoading = true; // Loading state variable
 
   List<Map<String, dynamic>> get inventoryItems => List.unmodifiable(_inventoryItems);
+  Map<String, dynamic>? get stats => _stats;
+
 
   bool isEquipped(String itemName) {
     return _inventoryItems.any((item) => item['name'] == itemName && item['is_equipped'] == true);
   }
+
+  void updateStats(Map<String, dynamic> statsData) {
+    _stats = statsData;
+    notifyListeners();
+  }
+
 
   void equipItem(String itemName, String fileName, String category) {
     final isItemEquipped = isEquipped(itemName);
@@ -56,17 +64,7 @@ class InventoryManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  void requestInventoryUpdate({bool showLoadingOverlay = true}) {
-    // Set isLoading to true only if showLoadingOverlay is true
-    if (showLoadingOverlay) {
-      isLoading = true;
-    }
 
-    // Use WebSocketManager to send the update request
-    WebSocketManager().sendMessage({
-      "action": "fetch_inventory_data",
-    });
-  }
 
   Map<String, String> get equippedItems {
     Map<String, String> equipped = {};
@@ -77,19 +75,25 @@ class InventoryManager extends ChangeNotifier {
     }
     return equipped;
   }
+  Future<void>  requestInventoryUpdate({bool showLoadingOverlay = true}) async {
+    // Set isLoading to true only if showLoadingOverlay is true
+    if (showLoadingOverlay) {
+      isLoading = true;
+    }
+
+    // Use WebSocketManager to send the update request
+    WebSocketManager().sendMessage({
+      "action": "fetch_inventory_data",
+    });
+    
+  }
 
   Future<void> requestCharacterColors() async {
     // Send a WebSocket message to fetch character colors
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString('bodyColorIndex') == null || prefs.getString('eyeColorIndex') == null) {
-      WebSocketManager().sendMessage({
-        "action": "fetch_character_colors",
-      });
-    } else {
-      bodyColor = prefs.getString('bodyColorIndex');
-      eyeColor = prefs.getString('eyeColorIndex');
-      notifyListeners();
-    }
+    WebSocketManager().sendMessage({
+      "action": "fetch_character_colors",
+    });
+    notifyListeners();
   }
 
   void updateCharacterColors(Map<String, String?> colorsData) async {
@@ -106,3 +110,5 @@ class InventoryManager extends ChangeNotifier {
 
   bool get hasCharacterData => bodyColor != null && eyeColor != null;
 }
+
+

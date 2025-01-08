@@ -1,8 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hexcolor/hexcolor.dart';
-// import '../fitness_app_theme.dart'; // Remove or adjust to your needs
-import 'package:shared_preferences/shared_preferences.dart';
 
 class CharacterStatsView extends StatefulWidget {
   final AnimationController? animationController; // can be nullable
@@ -15,6 +13,7 @@ class CharacterStatsView extends StatefulWidget {
   final String wings;
   final String baseBody;
   final String eyeColor;
+  final Map<String, dynamic> stats;
 
   const CharacterStatsView({
     super.key,
@@ -25,9 +24,10 @@ class CharacterStatsView extends StatefulWidget {
     required this.legs,
     required this.melee,
     required this.shield,
-    required this.wings, 
-    required this.baseBody, 
+    required this.wings,
+    required this.baseBody,
     required this.eyeColor,
+    required this.stats,
   });
 
   @override
@@ -40,65 +40,67 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
   late AnimationController _rotationController;
   late Animation<double> _rotationAnimation;
 
-
   // Tracks each stat’s final scale factor for a “fade in” effect
   final List<double> _statValues = List.filled(6, 0.0);
 
   bool _isInitialized = false;
 
-  final List<Map<String, dynamic>> stats = [
-    {
-      'title': 'HP',
-      'value': '100',
-      'color': HexColor('#FF6B78').withOpacity(0.85),
-      'icon': Icons.favorite,
-      'angle': 0.0,
-    },
-    {
-      'title': 'SPD',
-      'value': '90',
-      'color': HexColor('#738AE6').withOpacity(0.85),
-      'icon': Icons.flash_on,
-      'angle': 60.0,
-    },
-    {
-      'title': 'AGI',
-      'value': '80',
-      'color': HexColor('#87A0E5').withOpacity(0.85),
-      'icon': Icons.directions_walk,
-      'angle': 120.0,
-    },
-    {
-      'title': 'DEF',
-      'value': '70',
-      'color': HexColor('#FFA726').withOpacity(0.85),
-      'icon': Icons.shield,
-      'angle': 180.0,
-    },
-    {
-      'title': 'INT',
-      'value': '75',
-      'color': HexColor('#FE95B6').withOpacity(0.85),
-      'icon': Icons.lightbulb_outline,
-      'angle': 240.0,
-    },
-    {
-      'title': 'ATK',
-      'value': '65',
-      'color': HexColor('#8BC34A').withOpacity(0.85),
-      'icon': Icons.flash_auto,
-      'angle': 300.0,
-    },
-  ];
+  late final List<Map<String, dynamic>> stats;
 
   @override
   void initState() {
     super.initState();
 
-    // 1) ROTATION CONTROLLER
+    // Populate the stats list dynamically using widget.stats
+    stats = [
+      {
+        'title': 'STR',
+        'value': widget.stats['strength']?.toString() ?? '0',
+        'color': HexColor('#FF6B78').withOpacity(0.85),
+        'icon': Icons.favorite,
+        'angle': 0.0,
+      },
+      {
+        'title': 'SPD',
+        'value': widget.stats['speed']?.toString() ?? '0',
+        'color': HexColor('#738AE6').withOpacity(0.85),
+        'icon': Icons.flash_on,
+        'angle': 60.0,
+      },
+      {
+        'title': 'AGI',
+        'value': widget.stats['agility']?.toString() ?? '0',
+        'color': HexColor('#87A0E5').withOpacity(0.85),
+        'icon': Icons.directions_walk,
+        'angle': 120.0,
+      },
+      {
+        'title': 'DEF',
+        'value': widget.stats['defence']?.toString() ?? '0',
+        'color': HexColor('#FFA726').withOpacity(0.85),
+        'icon': Icons.shield,
+        'angle': 180.0,
+      },
+      {
+        'title': 'INT',
+        'value': widget.stats['intelligence']?.toString() ?? '0',
+        'color': HexColor('#FE95B6').withOpacity(0.85),
+        'icon': Icons.lightbulb_outline,
+        'angle': 240.0,
+      },
+      {
+        'title': 'VIS',
+        'value': widget.stats['stealth']?.toString() ?? '0',
+        'color': HexColor('#8BC34A').withOpacity(0.85),
+        'icon': Icons.flash_auto,
+        'angle': 300.0,
+      },
+    ];
+
+    // Rotation Controller
     _rotationController = AnimationController(
       duration: const Duration(seconds: 24),
-      vsync: this, // <-- TickerProviderStateMixin
+      vsync: this, // TickerProviderStateMixin
     );
     _rotationAnimation = CurvedAnimation(
       parent: _rotationController,
@@ -106,8 +108,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
     );
     _rotationController.repeat();
 
-
-    // Animate stats in once
+    // Animate stats
     if (!_isInitialized) {
       _animateStatsSequentially();
     }
@@ -162,7 +163,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
       double sinValue = sin(normalizedAngle * pi);
       return 0.8 + (0.2 * (1 - sinValue));
     }
-    return 1.0; 
+    return 1.0;
   }
 
   @override
@@ -176,7 +177,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
 
     // If you have a non-null widget.animation, you can fade or scale with it
     final fadeAnimation = widget.animation ?? const AlwaysStoppedAnimation(1.0);
-    
+
     return AnimatedBuilder(
       animation: Listenable.merge(controllers),
       builder: (context, child) {
@@ -208,8 +209,6 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
                         eyeColor: widget.eyeColor,
                       ),
                     ),
-
-                   
 
                     // Rotating stats
                     ...List.generate(stats.length, (index) {
@@ -287,7 +286,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
 }
 
 // Example of the ModularCharacter widget
-class ModularCharacter extends StatefulWidget {
+class ModularCharacter extends StatelessWidget {
   final String armor;
   final String head;
   final String legs;
@@ -304,66 +303,52 @@ class ModularCharacter extends StatefulWidget {
     required this.legs,
     required this.melee,
     required this.shield,
-    required this.wings, 
-    required this.baseBody, 
+    required this.wings,
+    required this.baseBody,
     required this.eyeColor,
   });
-
-  @override
-  State<ModularCharacter> createState() => _ModularCharacterState();
-}
-
-class _ModularCharacterState extends State<ModularCharacter> {
-
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
       children: [
-        if (widget.wings.isNotEmpty)
+        if (wings.isNotEmpty)
           Image.asset(
-            'assets/character/wings/${widget.wings}.png',
+            'assets/character/wings/$wings.png',
             fit: BoxFit.contain,
           ),
         Image.asset(
-          'assets/character/base_body_${widget.baseBody}.png',
+          'assets/character/base_body_$baseBody.png',
           fit: BoxFit.contain,
         ),
         Image.asset(
-          'assets/character/eye_color_${widget.eyeColor}.png',
+          'assets/character/eye_color_$eyeColor.png',
           fit: BoxFit.contain,
         ),
-        if (widget.armor.isNotEmpty)
+        if (armor.isNotEmpty)
           Image.asset(
-            'assets/character/armour/${widget.armor}.png',
+            'assets/character/armour/$armor.png',
             fit: BoxFit.contain,
           ),
-        if (widget.head.isNotEmpty)
+        if (head.isNotEmpty)
           Image.asset(
-            'assets/character/heads/${widget.head}.png',
+            'assets/character/heads/$head.png',
             fit: BoxFit.contain,
           ),
-        if (widget.legs.isNotEmpty)
+        if (legs.isNotEmpty)
           Image.asset(
-            'assets/character/legs/${widget.legs}.png',
+            'assets/character/legs/$legs.png',
             fit: BoxFit.contain,
           ),
-        if (widget.melee.isNotEmpty)
+        if (melee.isNotEmpty)
           Image.asset(
-            'assets/character/melee/${widget.melee}.png',
+            'assets/character/melee/$melee.png',
             fit: BoxFit.contain,
           ),
-        if (widget.shield.isNotEmpty)
+        if (shield.isNotEmpty)
           Image.asset(
-            'assets/character/shield/${widget.shield}.png',
+            'assets/character/shield/$shield.png',
             fit: BoxFit.contain,
           ),
       ],

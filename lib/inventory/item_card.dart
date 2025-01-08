@@ -46,19 +46,18 @@ class InventoryItemCard extends StatelessWidget {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: AssetImage(_getCardBackground(rarity)),
-            fit: BoxFit.fill,
-          ),
+            fit: outOfChest ? BoxFit.fill : BoxFit.cover,),
         ),
         child: Stack(
           children: [
             if (showContent) ...[
               // Item name at the very top, smaller text
               Positioned(
-                top: rarity == 'epic' || rarity == 'legendary' ? 30.0 : 6.0,
-                left: 0,
+                top: !outOfChest ? (rarity == 'legendary' ? 56.0 : rarity == 'epic' ? 55.0 : 13.0) : 13.0,
                 right: 0,
+                left: 0,                
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: rarity == 'legendary' ? 30.0 : rarity == 'epic' ? 20.0 : 8.0),                    
+                  padding: EdgeInsets.symmetric(horizontal: rarity == 'legendary' ? 20.0 : 15.0),                    
                   child: Text(
                     itemName,
                     textAlign: TextAlign.center,
@@ -79,12 +78,11 @@ class InventoryItemCard extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // Center the item image
+              
               Center(
                 child: SizedBox(
-                  width: 120,
-                  height: 120,
+                  width: rarity == 'legendary' ? 140 : 120,
+                  height: rarity == 'legendary' ? 140 : 120, 
                   child: Image.asset(
                     'assets/character/$category/$fileName'
                     '${category != 'armour' ? '_inv' : ''}.png',
@@ -102,8 +100,8 @@ class InventoryItemCard extends StatelessWidget {
 
               // Rarity at the very bottom
               Positioned(
-                bottom: 16.0,
-                left: 0,
+                bottom: rarity == 'legendary' ? 28.0 : 16.0,
+                left: 0,       
                 right: 0,
                 child: Text(
                   capitalize(rarity),

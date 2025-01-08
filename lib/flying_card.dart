@@ -283,7 +283,7 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
                   child: _showContent 
                     ? InventoryItemCard(
                         rarity: widget.item['rarity'],
-                        itemName: widget.item['itemName'],
+                        itemName: "",
                         category: widget.item['category'],
                         fileName: widget.item['fileName'],
                         isEquipped: widget.item['isEquipped'],
@@ -295,7 +295,7 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
                       )
                     : InventoryItemCard(
                         rarity: widget.item['rarity'],
-                        itemName: widget.item['itemName'],
+                        itemName: "",
                         category: widget.item['category'],
                         fileName: widget.item['fileName'],
                         isEquipped: widget.item['isEquipped'],

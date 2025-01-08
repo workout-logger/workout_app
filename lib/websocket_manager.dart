@@ -39,11 +39,27 @@ class WebSocketManager {
           // Inventory updates
           if (decodedMessage['type'] == 'inventory_update') {
             final data = decodedMessage['data'];
-            if (data is Map<String, dynamic> && data['items'] is List) {
-              final updatedItems = (data['items'] as List)
-                  .map((item) => item as Map<String, dynamic>)
-                  .toList();
-              onInventoryUpdate?.call(updatedItems);
+            if (data is Map<String, dynamic>) {
+              // Handle inventory items
+              if (data['items'] is List) {
+                final updatedItems = (data['items'] as List)
+                    .map((item) => item as Map<String, dynamic>)
+                    .toList();
+                onInventoryUpdate?.call(updatedItems);
+              }
+
+              // Handle stats
+              if (data['stats'] is Map<String, dynamic>) {
+                final stats = data['stats'] as Map<String, dynamic>;
+                InventoryManager().updateStats({
+                  'strength': stats['strength'] ?? 0,
+                  'agility': stats['agility'] ?? 0,
+                  'intelligence': stats['intelligence'] ?? 0,
+                  'stealth': stats['stealth'] ?? 0,
+                  'speed': stats['speed'] ?? 0,
+                  'defence': stats['defence'] ?? 0,
+                });
+              }
             }
           }
           // Currency updates

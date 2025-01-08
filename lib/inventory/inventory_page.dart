@@ -178,68 +178,62 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   /// Builds a section heading + Wrap for a given rarity.
-  Widget _buildRaritySection(String label, List<Map<String, dynamic>> items) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 3.0), // Increased vertical padding
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          double spacing = 10.0;
-          int columns = 3;
-          double totalSpacing = (columns - 1) * spacing;
-          double baseWidth = (constraints.maxWidth - totalSpacing) / columns;
+ Widget _buildRaritySection(String label, List<Map<String, dynamic>> items) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 1.0), // Increased vertical padding
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        double spacing = 10.0;
+        int columns = 3;
+        double totalSpacing = (columns - 1) * spacing;
+        double baseWidth = (constraints.maxWidth - totalSpacing) / columns;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Rarity heading
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16, // Increased font size
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 16), // Increased spacing
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Rarity heading
 
-              // Wrap of items with variable widths
-              Wrap(
-                spacing: spacing,
-                runSpacing: 20.0, // Increased run spacing
-                children: items.map((item) {
-                  double cardWidth = baseWidth;
-                  if (item['rarity'] == 'legendary') {
-                    cardWidth = baseWidth * 1.3; // Increased scale factor
-                  }else if (item['rarity'] == 'epic') {
-                    cardWidth = baseWidth * 1.2; // Increased scale factor
-                  }
-                  
+            Wrap(
+              spacing: spacing,
+              runSpacing: 10.0, // Increased run spacing
+              children: items.map((item) {
+                double cardWidth = baseWidth;
+                if (item['rarity'] == 'legendary') {
+                  cardWidth = baseWidth * 1.4; // Increased scale factor
+                }
+                if (item['rarity'] == 'epic') {
+                  cardWidth = baseWidth * 1.2; // Increased scale factor
+                }
 
-                  // Ensure the card doesn't exceed the max width
-                  cardWidth = cardWidth.clamp(0, constraints.maxWidth);
+                // Ensure the card doesn't exceed the max width
+                cardWidth = cardWidth.clamp(0, constraints.maxWidth);
+                double cardHeightFactor = 1.8;
+                if (item['rarity'] == 'legendary') {
+                  cardHeightFactor = 2; // Slightly taller for legendary items
+                } else if (item['rarity'] == 'epic') {
+                  cardHeightFactor = 2; // Slightly taller for epic items
+                }
+                return SizedBox(
+                  width: cardWidth,
+                  height:  cardWidth * cardHeightFactor,
+                  child: InventoryItemCard(
+                    itemName: item['name'],
+                    category: item['category'],
+                    fileName: item['file_name'],
+                    isEquipped: item['is_equipped'],
+                    onEquipUnequip: _refreshUI,
+                    rarity: item['rarity'],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
 
-                  return SizedBox(
-                    width: cardWidth,
-                    height: cardWidth * 1.3, // Added explicit height
-                    child: InventoryItemCard(
-                      itemName: item['name'],
-                      category: item['category'],
-                      fileName: item['file_name'],
-                      isEquipped: item['is_equipped'],
-                      onEquipUnequip: _refreshUI,
-                      rarity: item['rarity'],
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 24.0), // Increased bottom spacing
-            ],
-          );
-        },
-      ),
-    );
-  }
 }
 
 

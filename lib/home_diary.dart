@@ -47,7 +47,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
   final double _refreshTriggerPullDistance = 150.0;
   
   bool get _hasRequiredData => 
-    weeklyWorkouts.isNotEmpty && InventoryManager().hasCharacterData;
+    InventoryManager().hasCharacterData;
 
 
   @override
@@ -79,30 +79,13 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
     setState(() => _isLoading = true);
     
     try {
-      // Set up WebSocket for inventory updates first
-      WebSocketManager().setInventoryUpdateCallback((updatedItems) {
-        if (!mounted) return;
-        
-        InventoryManager().updateInventory(updatedItems);
-        setState(() {
-          if (_hasRequiredData) {
-            _isLoading = false;
-            isRefreshing = false; // Also reset refresh state here
-            _pullDistance = 0.0;
-            addAllListData();
-          }
-        });
-      });
-      final prefs = await SharedPreferences.getInstance();
 
-      // if (prefs.getInt('bodyColorIndex') == null || prefs.getInt('eyeColorIndex') == null) {
-      await InventoryManager().requestCharacterColors();
-      final hasFetchedInventory = !(prefs.getBool('hasFetchedInventory') ?? false);
-      if (hasFetchedInventory){
-        InventoryManager().requestInventoryUpdate();
-        prefs.setBool('hasFetchedInventory', true);
-      }
+      final prefs = await SharedPreferences.getInstance();
       
+      await InventoryManager().requestCharacterColors();
+      await InventoryManager().requestInventoryUpdate();
+      await _waitForDataAvailability();
+
       final cachedWorkout = prefs.getString('latestWorkoutData');
       
       if (cachedWorkout == null) {
@@ -128,6 +111,27 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
         });
       }
     }
+  }
+
+  Future<void> _waitForDataAvailability() async {
+    const int maxRetries = 20; // Maximum number of retries
+    const Duration retryInterval = Duration(milliseconds: 500); // Retry interval
+
+    int retries = 0;
+    while (retries < maxRetries) {
+      // Check if the required data is available
+      if (InventoryManager().hasCharacterData) {
+        return; // Data is ready, exit the loop
+      }
+
+      // Wait for the next retry interval
+      await Future.delayed(retryInterval);
+
+      retries++;
+    }
+
+    // If the maximum retries are exceeded, log a warning
+    debugPrint('Warning: Data not available after maximum retries.');
   }
 
   void updateStateFromData([Map<String, dynamic>? data]) {
@@ -201,6 +205,8 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
     final equipped = InventoryManager().equippedItems;
     final bodyColor = InventoryManager().bodyColor;
     final eyeColors = InventoryManager().eyeColor;
+    final stats = InventoryManager().stats;
+    print(stats);
     
     // Check if we have all required data
     if (bodyColor == null || eyeColors == null) {
@@ -226,6 +232,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
           wings: wingsFile,
           baseBody: bodyColor,
           eyeColor: eyeColors,
+          stats: stats!,
           animation: createAnimation(0, count),
           animationController: widget.animationController!,
         ),
@@ -309,95 +316,97 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
-  return ListenableBuilder(
-    listenable: InventoryManager(),
-    builder: (context, child) {
-      final inventoryManager = InventoryManager();
-      final hasAllData = _hasRequiredData && inventoryManager.hasCharacterData;
-      
-      return Container(
-        color: const Color.fromARGB(255, 0, 0, 0),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: !hasAllData
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                ),
-              )
-            : Stack(
-                children: <Widget>[
-                getMainListViewUI(),
-                getAppBarUI(),
-                if (_pullDistance > 0 || isRefreshing)
-                  Positioned(
-                    top: (_pullDistance > _refreshTriggerPullDistance
-                        ? _refreshTriggerPullDistance / 2
-                        : _pullDistance / 2) +
-                        AppBar().preferredSize.height +
-                        MediaQuery.of(context).padding.top,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      alignment: Alignment.topCenter,
-                      height: 50,
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: const BoxDecoration(
-                          color: Color.fromARGB(255, 99, 98, 98),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: LottieSegmentPlayer(
-                            animationPath: 'assets/animations/loading.json',
-                            endFraction: 0.7,
-                            width: 64,
-                            height: 64,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                SizedBox(height: MediaQuery.of(context).padding.bottom),
-              ],
+    return Scaffold(
+      backgroundColor: Colors.black, // Ensure the background is black
+      body: _isLoading
+          ? Center(
+              child: Lottie.asset(
+                'assets/animations/sword.json',
+                width: 200,
+                height: 200,
+                fit: BoxFit.contain,
+                repeat: true,
+              ),
+            )
+          : ListenableBuilder(
+              listenable: InventoryManager(),
+              builder: (context, child) {
+                final inventoryManager = InventoryManager();
+                final hasAllData = _hasRequiredData && inventoryManager.hasCharacterData;
+                
+                return !hasAllData
+                    ? Container() // Optionally, handle this case differently
+                    : Stack(
+                        children: <Widget>[
+                          getMainListViewUI(),
+                          getAppBarUI(),
+                          if (_pullDistance > 0 || isRefreshing)
+                            Positioned(
+                              top: (_pullDistance > _refreshTriggerPullDistance
+                                  ? _refreshTriggerPullDistance / 2
+                                  : _pullDistance / 2) +
+                                  AppBar().preferredSize.height +
+                                  MediaQuery.of(context).padding.top,
+                              left: 0,
+                              right: 0,
+                              child: Container(
+                                alignment: Alignment.topCenter,
+                                height: 50,
+                                child: Container(
+                                  width: 70,
+                                  height: 70,
+                                  decoration: const BoxDecoration(
+                                    color: Color.fromARGB(255, 99, 98, 98),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: LottieSegmentPlayer(
+                                      animationPath: 'assets/animations/loading.json',
+                                      endFraction: 0.7,
+                                      width: 64,
+                                      height: 64,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          SizedBox(height: MediaQuery.of(context).padding.bottom),
+                        ],
+                      );
+              },
             ),
-        floatingActionButton: Consumer<StopwatchProvider>(
-          builder: (context, stopwatchProvider, child) {
-            return FloatingActionButton.extended(
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (context) {
-                    return const Align(
-                      alignment: Alignment.bottomCenter,
-                      child: FractionallySizedBox(
-                        heightFactor: 0.95,
-                        child: WorkoutPage(),
-                      ),
+      floatingActionButton: _isLoading
+          ? null // Hide FAB while loading
+          : Consumer<StopwatchProvider>(
+              builder: (context, stopwatchProvider, child) {
+                return FloatingActionButton.extended(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) {
+                        return const Align(
+                          alignment: Alignment.bottomCenter,
+                          child: FractionallySizedBox(
+                            heightFactor: 0.95,
+                            child: WorkoutPage(),
+                          ),
+                        );
+                      },
                     );
                   },
+                  label: stopwatchProvider.isRunning
+                      ? Text(stopwatchProvider.formattedTime())
+                      : const Text('Start Workout'),
+                  icon: const Icon(Icons.fitness_center),
                 );
               },
-              label: stopwatchProvider.isRunning
-                  ? Text(stopwatchProvider.formattedTime())
-                  : const Text('Start Workout'),
-              icon: const Icon(Icons.fitness_center),
-            );
-          },
-        ),
-      ),
+            ),
     );
-  }
-  );
-  
-  
   }
 
   Widget getMainListViewUI() {
@@ -545,4 +554,5 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
       ],
     );
   }
+  
 }
