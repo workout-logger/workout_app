@@ -71,7 +71,7 @@ class CharacterStatsView extends StatelessWidget {
     ];
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.only(top: 4.0, left: 4.0, right: 4.0), 
       child: Row(
         children: [
           // Character on the left

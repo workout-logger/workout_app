@@ -50,10 +50,10 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   late Animation<Offset> _statsSlideAnimation;
   late Animation<double> _statsBarAnimation;
 
-
   late Duration pathDuration;
   late Duration flipDuration;
   late Duration skipDuration;
+
   @override
   void initState() {
     super.initState();
@@ -133,7 +133,6 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
       if (status == AnimationStatus.completed) {
         if (!_hasReachedCenter) {
           _hasReachedCenter = true;
-          
         } else if (_isMovingToFinal) {
           widget.onAnimationComplete();
         }
@@ -143,9 +142,11 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     _flipController.addStatusListener((status) {
       if (status == AnimationStatus.completed && _hasReachedCenter && !_isMovingToFinal) {
         print("Flip completed, showing content");
-        setState(() {
-          _showContent = true;
-        });
+        if (mounted) {
+          setState(() {
+            _showContent = true;
+          });
+        }
         widget.onCenterReached();
 
         if (widget.showStats) {
@@ -177,11 +178,13 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
       if (status == AnimationStatus.completed) {
         // Proceed to final animation with a slight delay for visibility
         Future.delayed(const Duration(milliseconds: 500), () {
-          setState(() {
-            _showStats = false; // Hide stats
-            print("Stats are now hidden.");
-            _isMovingToFinal = true;
-          });
+          if (mounted) {
+            setState(() {
+              _showStats = false; // Hide stats
+              print("Stats are now hidden.");
+              _isMovingToFinal = true;
+            });
+          }
 
           // Start the path animation to the final position
           _controller.duration = skipDuration;
@@ -191,18 +194,15 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     });
   }
 
-
-
-
-
   void skipAnimation() {
-    
     if (!_isMovingToFinal) {
       _flipController.stop();
-      setState(() {
-        _showContent = true;
-        _isMovingToFinal = true;
-      });
+      if (mounted) {
+        setState(() {
+          _showContent = true;
+          _isMovingToFinal = true;
+        });
+      }
       _controller.duration = skipDuration;
       _controller.forward(from: 0.0);
     }
@@ -218,7 +218,11 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     }
 
     // **Handle Changes to showStats Dynamically**
-    if (widget.showStats && !_isMovingToFinal && _hasReachedCenter && !_statsSlideController.isAnimating && !_statsBarController.isAnimating) {
+    if (widget.showStats &&
+        !_isMovingToFinal &&
+        _hasReachedCenter &&
+        !_statsSlideController.isAnimating &&
+        !_statsBarController.isAnimating) {
       _startStatsAnimations();
     }
   }
@@ -240,7 +244,12 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     return GestureDetector(
       onTapDown: (_) => skipAnimation(),
       child: AnimatedBuilder(
-        animation: Listenable.merge([_pathAnimation, _flipAnimation, _statsSlideController, _statsBarController]),
+        animation: Listenable.merge([
+          _pathAnimation,
+          _flipAnimation,
+          _statsSlideController,
+          _statsBarController
+        ]),
         builder: (context, child) {
           double currentX, currentY;
           double scale = 1.0;
@@ -280,43 +289,42 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
                     ..rotateY(_flipAnimation.value)
                     ..scale(scale),
                   alignment: Alignment.center,
-                  child: _showContent 
-                    ? InventoryItemCard(
+                  child: _showContent
+                      ? InventoryItemCard(
                         rarity: widget.item['rarity'],
-                        itemName: "",
+                        itemName: widget.item['itemName'],
                         category: widget.item['category'],
                         fileName: widget.item['fileName'],
                         isEquipped: widget.item['isEquipped'],
-                        onEquipUnequip: () {
-                          // Your equip/unequip logic here
-                        },
-                        showContent: true, 
+                          onEquipUnequip: () {
+                            // Your equip/unequip logic here
+                          },
+                          showContent: true,
                         outOfChest: true,// Explicitly showing content
-                      )
-                    : InventoryItemCard(
+                        )
+                      : InventoryItemCard(
                         rarity: widget.item['rarity'],
-                        itemName: "",
+                        itemName: widget.item['itemName'],
                         category: widget.item['category'],
                         fileName: widget.item['fileName'],
                         isEquipped: widget.item['isEquipped'],
-                        onEquipUnequip: () {}, // Empty callback
-                        showContent: false, // Hiding content
-                        outOfChest: true,
-                      ),
+                          onEquipUnequip: () {}, // Empty callback
+                          showContent: false, // Hiding content
+                          outOfChest: true,
+                        ),
                 ),
               ),
 
               // **Stats Display Positioned Relative to Card**
-              if (_showStats)
+              if (_showStats && widget.item.containsKey('stats') && (widget.item['stats'] as Map).isNotEmpty)
                 Positioned(
-                  left: currentX + widget.cardWidth + 10,  // Added 10 for padding
+                  left: currentX + widget.cardWidth + 10, // Added 10 for padding
                   top: currentY,
                   child: SlideTransition(
                     position: _statsSlideAnimation,
                     child: _buildStatsWidget(widget.item),
                   ),
                 ),
-
             ],
           );
         },
@@ -338,11 +346,15 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   }
 
   Widget _buildStatsWidget(Map<String, dynamic> item) {
-    Color backgroundColor = widget.item['rarity']?.toLowerCase() == 'common' ? Color.fromARGB(111, 68, 68, 68) :
-                          widget.item['rarity']?.toLowerCase() == 'rare' ? Color.fromARGB(141, 62, 92, 56) :
-                          widget.item['rarity']?.toLowerCase() == 'epic' ? Color.fromARGB(255, 80, 76, 76) :
-                          Color.fromARGB(255, 146, 226, 250);
-    
+    // Determine background color based on rarity
+    Color backgroundColor = widget.item['rarity']?.toString().toLowerCase() == 'common'
+        ? const Color.fromARGB(111, 68, 68, 68)
+        : widget.item['rarity']?.toString().toLowerCase() == 'rare'
+            ? const Color.fromARGB(141, 62, 92, 56)
+            : widget.item['rarity']?.toString().toLowerCase() == 'epic'
+                ? const Color.fromARGB(255, 80, 76, 76)
+                : const Color.fromARGB(255, 146, 226, 250);
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -355,18 +367,32 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildStatBar("Strength", "+4", 0.8),
-          const SizedBox(height: 12.0),
-          _buildStatBar("Agility", "+2", 0.4),
-          const SizedBox(height: 12.0),
-          _buildStatBar("Vitality", "+3", 0.6),
-        ],
+        children: _buildDynamicStats(item),
       ),
     );
   }
 
-  Widget _buildStatBar(String statName, String bonus, double value) {
+  List<Widget> _buildDynamicStats(Map<String, dynamic> item) {
+    List<Widget> statsWidgets = [];
+    Map<String, dynamic> stats = Map<String, dynamic>.from(item['stats']);
+
+    stats.forEach((statName, statValue) {
+      // Determine bar fill based on stat value (assuming max value is 10 for normalization)
+      double normalizedValue = (statValue.toDouble() / 10).clamp(0.0, 1.0);
+
+      statsWidgets.add(_buildStatBar(statName, statValue, normalizedValue));
+      statsWidgets.add(const SizedBox(height: 12.0));
+    });
+
+    // Remove the last SizedBox for cleaner UI
+    if (statsWidgets.isNotEmpty) {
+      statsWidgets.removeLast();
+    }
+
+    return statsWidgets;
+  }
+
+  Widget _buildStatBar(String statName, dynamic statValue, double normalizedValue) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -375,7 +401,7 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
             SizedBox(
               width: 80.0,
               child: Text(
-                statName,
+                _capitalize(statName),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -384,7 +410,7 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
               ),
             ),
             Text(
-              bonus,
+              '+${statValue.toString()}',
               style: TextStyle(
                 color: Colors.green[400],
                 fontSize: 16,
@@ -399,15 +425,30 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
           height: 12.0,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: widget.item['rarity']?.toLowerCase() == 'common' ? [Color.fromARGB(112, 156, 156, 156), Color.fromARGB(100, 78, 78, 78)] :
-                     widget.item['rarity']?.toLowerCase() == 'rare' ? [Color.fromARGB(141, 42, 61, 38), Color.fromARGB(104, 15, 92, 0)] :
-                     widget.item['rarity']?.toLowerCase() == 'epic' ? [Color.fromARGB(255, 80, 76, 76), Color.fromARGB(255, 94, 2, 94)] :
-                     [Color.fromARGB(255, 146, 226, 250), Color.fromARGB(255, 228, 236, 113)],
+              colors: widget.item['rarity']?.toString().toLowerCase() == 'common'
+                  ? [
+                      const Color.fromARGB(112, 156, 156, 156),
+                      const Color.fromARGB(100, 78, 78, 78)
+                    ]
+                  : widget.item['rarity']?.toString().toLowerCase() == 'rare'
+                      ? [
+                          const Color.fromARGB(141, 42, 61, 38),
+                          const Color.fromARGB(104, 15, 92, 0)
+                        ]
+                      : widget.item['rarity']?.toString().toLowerCase() == 'epic'
+                          ? [
+                              const Color.fromARGB(255, 80, 76, 76),
+                              const Color.fromARGB(255, 94, 2, 94)
+                            ]
+                          : [
+                              const Color.fromARGB(255, 146, 226, 250),
+                              const Color.fromARGB(255, 228, 236, 113)
+                            ],
             ),
             borderRadius: BorderRadius.circular(6.0),
           ),
           child: FractionallySizedBox(
-            widthFactor: value * _statsBarAnimation.value, // Animate width based on controller
+            widthFactor: normalizedValue * _statsBarAnimation.value, // Animate width based on controller
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -432,5 +473,5 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
     );
   }
 
-
+  String _capitalize(String s) => s[0].toUpperCase() + s.substring(1);
 }

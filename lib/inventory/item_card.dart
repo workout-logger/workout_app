@@ -20,7 +20,7 @@ class InventoryItemCard extends StatelessWidget {
     required this.onEquipUnequip,
     required this.rarity,
     this.showContent = true,
-    this.outOfChest = false,
+    this.outOfChest = true,
   });
 
   @override
@@ -91,15 +91,8 @@ class InventoryItemCard extends StatelessWidget {
                   width: 120,
                   height: 120,
                   child: Image.asset(
-                    'assets/character/${category}/${fileName}${category != "armour" ? "_inv" : ""}.png',
+                    'assets/character/${category}/${fileName}${category != "armour" && category != "coins" ? "_inv" : ""}.png',
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.broken_image,
-                        color: Colors.redAccent,
-                        size: 40,
-                      );
-                    },
                   ),
                 ),
               ),

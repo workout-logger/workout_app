@@ -75,6 +75,9 @@ flutter:
   uses-material-design: true
 
   assets:
+  - assets/images/chests/common/
+  - assets/images/chests/rare/
+  - assets/images/chests/epic/
   - assets/images/
   - assets/images/cards/
   - assets/images/chests/
@@ -85,5 +88,6 @@ flutter:
   - assets/character/legs/
   - assets/character/melee/
   - assets/character/wings/
+  - assets/character/coins/
   - assets/animations/
 

@@ -1,3 +1,5 @@
+// animated_chest.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 
@@ -5,14 +7,14 @@ class AnimatedChest extends StatefulWidget {
   final bool open;
   final VoidCallback? onAnimationComplete;
   final VoidCallback? onPreloadError;
-  final String basePath;
+  final int chestNumber; // 0: Common, 1: Rare, 2: Epic
 
   const AnimatedChest({
     Key? key,
     required this.open,
     this.onAnimationComplete,
     this.onPreloadError,
-    this.basePath = 'assets/images/chests',
+    required this.chestNumber, // Required to determine chest type
   }) : super(key: key);
 
   @override
@@ -29,9 +31,9 @@ class AnimatedChest extends StatefulWidget {
 
 class _AnimatedChestState extends State<AnimatedChest>
     with SingleTickerProviderStateMixin {
-  static const int totalFrames = 20;
+  late final String chestType; // common, rare, epic
+  late final int totalFrames;
   Timer? _timer;
-  Future<void>? _preloadFuture;
 
   // Added state variable to track the current frame
   int _currentFrame = 0;
@@ -40,60 +42,46 @@ class _AnimatedChestState extends State<AnimatedChest>
   @override
   void initState() {
     super.initState();
+    chestType = _determineChestType(widget.chestNumber);
+    totalFrames = _getTotalFrames(chestType);
+
     if (!AnimatedChest.hasPreloaded) {
-      _preloadFuture = _preloadImages();
+      _preloadImages();
     } else if (widget.open && !AnimatedChest.hasAnimated) {
       // Only start animation if it hasn't played before
       WidgetsBinding.instance.addPostFrameCallback((_) => _startAnimation());
     }
   }
 
-  String _getFramePath(int index) {
-    return '${widget.basePath}/tile${index.toString().padLeft(3, '0')}.png';
+  String _determineChestType(int chestNumber) {
+    switch (chestNumber) {
+      case 1:
+        return 'common';
+      case 2:
+        return 'rare';
+      case 3:
+        return 'epic';
+      default:
+        return 'common';
+    }
   }
 
-  Future<bool> _tryPreloadImage(String path) async {
-    try {
-      final image = AssetImage(path);
-      final ImageStream stream = image.resolve(ImageConfiguration.empty);
-
-      final completer = Completer<bool>();
-
-      final listener = ImageStreamListener(
-        (ImageInfo info, bool _) {
-          if (!completer.isCompleted) completer.complete(true);
-        },
-        onError: (exception, stackTrace) {
-          if (!completer.isCompleted) completer.complete(false);
-        },
-      );
-
-      stream.addListener(listener);
-
-      // Handle timeout
-      Timer(const Duration(seconds: 5), () {
-        if (!completer.isCompleted) {
-          print('Timeout loading image: $path');
-          completer.complete(false);
-        }
-      });
-
-      final success = await completer.future;
-
-      // Remove listener to prevent memory leaks
-      stream.removeListener(listener);
-
-      if (success) {
-        await precacheImage(image, context);
-        AnimatedChest.preloadedImages.add(image);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Exception loading image: $path');
-      print(e);
-      return false;
+  int _getTotalFrames(String chestType) {
+    switch (chestType) {
+      case 'common':
+        return 4; // common-1.png to common-4.png
+      case 'rare':
+        return 5; // rare-1.png to rare-5.png
+      case 'epic':
+        return 10; // epic-1.png to epic-10.png
+      default:
+        return 4;
     }
+  }
+
+  String _getFramePath(int index) {
+    // Frame index starts from 1
+    return '$chestType/${chestType}-${index}.png';
   }
 
   Future<void> _preloadImages() async {
@@ -102,13 +90,13 @@ class _AnimatedChestState extends State<AnimatedChest>
       return;
     }
 
-    print('Starting initial image preload...');
+    print('Starting initial image preload for $chestType...');
     List<String> failedImages = [];
 
-    for (int i = 0; i < totalFrames; i++) {
+    for (int i = 1; i <= totalFrames; i++) {
       final path = _getFramePath(i);
       final success = await _tryPreloadImage(path);
-
+      print(path);
       if (!success) {
         failedImages.add(path);
       }
@@ -128,6 +116,50 @@ class _AnimatedChestState extends State<AnimatedChest>
     }
   }
 
+  Future<bool> _tryPreloadImage(String path) async {
+    try {
+      final image = AssetImage('assets/images/chests/$path');
+      final ImageStream stream = image.resolve(ImageConfiguration.empty);
+
+      final completer = Completer<bool>();
+
+      final listener = ImageStreamListener(
+        (ImageInfo info, bool _) {
+          if (!completer.isCompleted) completer.complete(true);
+        },
+        onError: (exception, stackTrace) {
+          if (!completer.isCompleted) completer.complete(false);
+        },
+      );
+
+      stream.addListener(listener);
+
+      // Handle timeout
+      Timer(const Duration(seconds: 5), () {
+        if (!completer.isCompleted) {
+          print('Timeout loading image: assets/images/chests/$path');
+          completer.complete(false);
+        }
+      });
+
+      final success = await completer.future;
+
+      // Remove listener to prevent memory leaks
+      stream.removeListener(listener);
+
+      if (success) {
+        await precacheImage(image, context);
+        AnimatedChest.preloadedImages.add(image);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Exception loading image: assets/images/chests/$path');
+      print(e);
+      return false;
+    }
+  }
+
   void _startAnimation() {
     if (AnimatedChest.hasAnimated ||
         !AnimatedChest.hasPreloaded ||
@@ -137,11 +169,11 @@ class _AnimatedChestState extends State<AnimatedChest>
       return;
     }
 
-    print('Starting chest animation');
+    print('Starting chest animation for $chestType');
     AnimatedChest.hasAnimated = true; // Mark as animated globally
     setState(() {
       _isAnimating = true;
-      _currentFrame = 0;
+      _currentFrame = 1; // Start from frame 2 for animation
     });
 
     _timer?.cancel();
@@ -161,7 +193,7 @@ class _AnimatedChestState extends State<AnimatedChest>
   }
 
   @override
-  void didUpdateWidget(AnimatedChest oldWidget) {
+  void didUpdateWidget(covariant AnimatedChest oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.open && widget.open && !AnimatedChest.hasAnimated && AnimatedChest.hasPreloaded) {
       _startAnimation();
@@ -189,20 +221,21 @@ class _AnimatedChestState extends State<AnimatedChest>
     // Determine the frame to display
     int frameIndex;
     if (_isAnimating) {
-      frameIndex = _currentFrame.clamp(0, totalFrames - 1);
+      frameIndex = _currentFrame;
     } else if (AnimatedChest.hasAnimated) {
-      frameIndex = totalFrames - 1;
+      frameIndex = totalFrames; // Display the last frame after animation
     } else {
-      frameIndex = 0;
+      frameIndex = 1; // Display the first frame if not animating
     }
+
+    // Adjust frameIndex for one-based indexing
+    frameIndex = frameIndex.clamp(1, totalFrames);
 
     return SizedBox(
       width: 200,
       height: 200,
-      child: Image(
-        image: AnimatedChest.preloadedImages.isNotEmpty
-            ? AnimatedChest.preloadedImages[frameIndex]
-            : AssetImage('${widget.basePath}/tile000.png'),
+      child: Image.asset(
+        'assets/images/chests/${_getFramePath(frameIndex)}',
         fit: BoxFit.fill,
         errorBuilder: (context, error, stackTrace) {
           print('Error rendering frame $frameIndex: $error');

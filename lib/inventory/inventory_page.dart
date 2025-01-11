@@ -126,6 +126,10 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
         ),
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(20),
+          child: Container(),
+        ),
       ),
       body: Stack(
         children: [
@@ -151,7 +155,7 @@ class _InventoryPageState extends State<InventoryPage> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 20.0, left: 10.0),  
+                        padding: const EdgeInsets.only(bottom: 20.0, left: 10.0, top: 0.0),  
                         child: const Text(
                           "Equipped Items",
                           style: TextStyle(
@@ -238,6 +242,7 @@ class _InventoryPageState extends State<InventoryPage> {
                 isEquipped: item['is_equipped'],
                 onEquipUnequip: _refreshUI,
                 rarity: item['rarity'],
+                outOfChest: false,
               );
             },
           );
