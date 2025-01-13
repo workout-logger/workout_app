@@ -118,8 +118,6 @@ class _ChatPageState extends State<ChatPage> {
             _error = decodedData['message'];
             _isLoading = false;
             break;
-          default:
-            print('Unknown message type: ${decodedData['type']}');
         }
       });
     } catch (e) {
