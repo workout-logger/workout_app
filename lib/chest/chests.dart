@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/currency_provider.dart';
-import 'package:workout_logger/flying_card.dart';
+import 'package:workout_logger/chest/flying_card.dart';
 import 'package:workout_logger/inventory/item_card.dart';
 import 'package:workout_logger/inventory/inventory_manager.dart';
 import 'package:workout_logger/websocket_manager.dart';
@@ -94,36 +94,85 @@ class _ChestsScreenState extends State<ChestsScreen> {
 
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color.fromARGB(255, 0, 0, 0),
-      child: Padding(
-        padding: const EdgeInsets.all(2.0),
-        child: Center(
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.5,
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 1,
-                mainAxisSpacing: 16.0,
+Widget build(BuildContext context) {
+  return Container(
+    color: const Color.fromARGB(255, 0, 0, 0),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0), // Reduced padding
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+
+          // Currency Display at the Top
+          Consumer<CurrencyProvider>(
+            builder: (context, currencyProvider, child) {
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white,
+                      width: 1.0,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start, // Align row to the left
+                  children: [
+                    const Icon(
+                      Icons.monetization_on,
+                      color: Colors.yellow, 
+                      size: 24,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      currencyProvider.currency.toStringAsFixed(0),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          // Chest GridView with Single Column and Reduced Spacing
+          Expanded(
+            child: Center(
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.8, // Adjusted width for better fit
+                child: GridView.builder(
+                  physics: const BouncingScrollPhysics(), // Optional: Adds a bounce effect
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 1, // Single column
+                    mainAxisSpacing: 14.0, // Reduced vertical spacing
+                    crossAxisSpacing: 2.0, // No horizontal spacing needed for single column
+                    childAspectRatio: 2, // Adjusted to make cards taller
+                  ),
+                  itemCount: chestData.length,
+                  itemBuilder: (context, index) {
+                    final chest = chestData[index];
+                    return ChestCard(
+                      key: _chestKeys[index],
+                      chestName: chest['name'],
+                      chestPrice: chest['price'], 
+                      chestNumber: chest['number'],
+                      onChestTap: () => _onChestTap(index),
+                    );
+                  },
+                ),
               ),
-              itemCount: chestData.length,
-              itemBuilder: (context, index) {
-                final chest = chestData[index];
-                return ChestCard(
-                  key: _chestKeys[index],
-                  chestName: chest['name'],
-                  chestPrice: chest['price'], 
-                  chestNumber: chest['number'],
-                  onChestTap: () => _onChestTap(index),
-                );
-              },
             ),
           ),
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 }
 
 // _ChestOverlay Widget

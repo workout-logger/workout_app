@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:workout_logger/chests.dart';
+import 'package:workout_logger/chest/chests.dart';
 import 'package:workout_logger/constants.dart';
 import 'package:workout_logger/market_screen.dart';
 import 'package:workout_logger/trading_page.dart';
