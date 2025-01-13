@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workout_logger/home_diary.dart';
+import 'package:workout_logger/workout_tracking/workout_summary.dart';
 import 'exercise_tile.dart';
 import 'exercise_model.dart';
 import 'stopwatch_provider.dart';
@@ -11,7 +13,7 @@ import 'exercise.dart';
 import '../fitness_app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:workout_logger/constants.dart';
-import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart'; // Import the package
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({super.key});
@@ -215,10 +217,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     if (response.statusCode == 200) {
       final Map<String, dynamic> responseBody = json.decode(response.body);
       
-      // Optional: Debugging - Print the response to verify structure
-      print('API Response for $muscleType, Page $page: $responseBody');
 
-      // Access the 'exercises' key instead of 'results'
       final List<dynamic> data = responseBody['exercises'];
 
       return data.map((item) => Exercise.fromJson(item)).toList();
@@ -311,8 +310,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     await prefs.remove('elapsedMilliseconds');
     await prefs.remove('selectedExercises');
 
-    // Optionally close the workout page
-    Navigator.of(context).pop();
+    // Do not pop the page here
   }
 
   Future<void> _endWorkout() async {
@@ -345,25 +343,28 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
       );
 
       if (response.statusCode == 201) {
-        await _performDiscardWorkout(); // Directly discard without confirmation
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: FitnessAppTheme.background,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            title: const Text('Workout Complete', style: TextStyle(color: Colors.white)),
-            content: const Text(
-              'Your workout has been saved!',
-              style: TextStyle(color: Colors.white70),
+        final responseBody = json.decode(response.body);
+        final message = responseBody['message'];
+        final totalCalories = (responseBody['total_calories'] as num).toInt();
+        final strengthGained = (responseBody['strength_gained'] as num).toInt();
+        final agilityGained = (responseBody['agility_gained'] as num).toInt();
+        final speedGained = (responseBody['speed_gained'] as num).toInt();
+
+        await _performDiscardWorkout(); // Reset the state without popping
+
+        // Navigate to WorkoutSummaryPage and await the result
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => WorkoutSummaryPage(
+              strengthGained: strengthGained,
+              agilityGained: agilityGained,
+              speedGained: speedGained,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
           ),
-        ).then((_) => Navigator.of(context).pop());
+        );
+
+        // Pop the modal bottom sheet with the result
+        Navigator.of(context).pop(result); // Pass the result back to MyDiaryScreen
       } else {
         throw Exception('Failed to save workout: ${response.statusCode}');
       }
@@ -376,116 +377,123 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: FitnessAppTheme.background,
+      resizeToAvoidBottomInset: true, // Allow resizing when keyboard is shown
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-        decoration: BoxDecoration(
-          color: FitnessAppTheme.background,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            if (_workoutStarted)
-              FloatingActionButton(
-                onPressed: _discardWorkout,
-                backgroundColor: Colors.red,
-                child: const Icon(Icons.delete),
-              ),
-            if (_workoutStarted)
-              FloatingActionButton.extended(
-                onPressed: _showWorkoutExercises,
-                backgroundColor: const Color.fromARGB(255, 182, 176, 238),
-                foregroundColor: FitnessAppTheme.background,
-                icon: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.add),
-                label: const Text('Add Exercise'),
-              ),
-            if (_workoutStarted)
-              FloatingActionButton.extended(
-                onPressed: _endWorkout,
-                backgroundColor: Colors.green,
-                icon: const Icon(Icons.check),
-                label: const Text('End'),
-              ),
-          ],
-        ),
-      ),
+      floatingActionButton: _buildFloatingActionButtons(),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Consumer<StopwatchProvider>(
-                    builder: (context, stopwatchProvider, child) {
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'Workout Time: ${_formattedTime(stopwatchProvider.elapsedMilliseconds)}',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  Expanded(
-                    child: Consumer<ExerciseModel>(
-                      builder: (context, model, child) {
-                        return model.selectedExercises.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'No exercises selected',
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.onPrimary,
-                                  ),
-                                ),
-                              )
-                            : ListView.builder(
-                                itemCount: model.selectedExercises.length,
-                                itemBuilder: (context, index) {
-                                  final exercise = model.selectedExercises[index];
-                                  return ExerciseTile(
-                                    exercise: exercise,
-                                    exerciseIndex: index,
-                                    onSetsChanged: (exerciseIndex, updatedSets) {
-                                      model.updateExerciseSets(
-                                          exerciseIndex, updatedSets);
-                                    },
-                                  );
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(), // Dismiss the keyboard
+          child: Column(
+            children: [
+              _buildStopwatchDisplay(),
+              Expanded(
+                child: Consumer<ExerciseModel>(
+                  builder: (context, model, child) {
+                    return model.selectedExercises.isEmpty
+                        ? _buildNoExercisesMessage()
+                        : ListView.builder(
+                            itemCount: model.selectedExercises.length,
+                            padding: const EdgeInsets.only(bottom: 100), // Extra padding for floating action buttons
+                            itemBuilder: (context, index) {
+                              final exercise = model.selectedExercises[index];
+                              return ExerciseTile(
+                                exercise: exercise,
+                                exerciseIndex: index,
+                                onSetsChanged: (exerciseIndex, updatedSets) {
+                                  model.updateExerciseSets(exerciseIndex, updatedSets);
                                 },
                               );
-                      },
-                    ),
-                  ),
-                ],
+                            },
+                          );
+                  },
+                ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButtons() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+      decoration: BoxDecoration(
+        color: FitnessAppTheme.background,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          if (_workoutStarted)
+            FloatingActionButton(
+              onPressed: _discardWorkout,
+              backgroundColor: Colors.red,
+              child: const Icon(Icons.delete),
             ),
-          ],
+          if (_workoutStarted)
+            FloatingActionButton.extended(
+              onPressed: _showWorkoutExercises,
+              backgroundColor: const Color.fromARGB(255, 182, 176, 238),
+              foregroundColor: FitnessAppTheme.background,
+              icon: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.add),
+              label: const Text('Add Exercise'),
+            ),
+          if (_workoutStarted)
+            FloatingActionButton.extended(
+              onPressed: _endWorkout,
+              backgroundColor: Colors.green,
+              icon: const Icon(Icons.check),
+              label: const Text('End'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStopwatchDisplay() {
+    return Consumer<StopwatchProvider>(
+      builder: (context, stopwatchProvider, child) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Workout Time: ${_formattedTime(stopwatchProvider.elapsedMilliseconds)}',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNoExercisesMessage() {
+    return Center(
+      child: Text(
+        'No exercises selected',
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimary,
         ),
       ),
     );
@@ -525,6 +533,8 @@ class _ExerciseListState extends State<ExerciseList> {
     try {
       final newItems = await widget.fetchExercises(widget.muscleType, pageKey);
 
+      if (!mounted) return; // Check if widget is still mounted
+
       final isLastPage = newItems.length < _pageSize;
       if (isLastPage) {
         _pagingController.appendLastPage(newItems);
@@ -533,9 +543,11 @@ class _ExerciseListState extends State<ExerciseList> {
         _pagingController.appendPage(newItems, nextPageKey);
       }
     } catch (error) {
+      if (!mounted) return; // Check if widget is still mounted
       _pagingController.error = error;
     }
   }
+
 
   Widget _buildExerciseCard(Exercise exercise) {
     return GestureDetector(
