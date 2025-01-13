@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/inventory/inventory_manager.dart';
 import 'package:workout_logger/lottie_segment_player.dart';
+import 'package:workout_logger/refresh_notifier.dart';
 import 'package:workout_logger/websocket_manager.dart';
 import 'package:workout_logger/constants.dart';
 import 'ui_view/last_workout.dart';
@@ -38,7 +39,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
   int duration = 0;
   int averageHeartRate = 0;
   double energyBurned = 0.0;
-  int mood = 1;
+  String stats_gained = '';
   String muscleGroups = '';
 
   // Refresh / Pull-to-refresh state
@@ -72,8 +73,18 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
         topBarOpacity = offset >= 24 ? 1.0 : offset / 24;
       });
     });
+
+    final refreshNotifier = Provider.of<RefreshNotifier>(context, listen: false);
+    refreshNotifier.addListener(_onExternalRefresh);
   }
 
+  @override
+  void dispose() {
+    final refreshNotifier = Provider.of<RefreshNotifier>(context, listen: false);
+    refreshNotifier.removeListener(_onExternalRefresh);
+    super.dispose();
+  }
+  
   Future<void> _initializeData() async {
     
     setState(() => _isLoading = true);
@@ -86,13 +97,9 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
       await InventoryManager().requestInventoryUpdate();
       await _waitForDataAvailability();
 
-      final cachedWorkout = prefs.getString('latestWorkoutData');
       
-      if (cachedWorkout == null) {
-        await fetchLatestWorkoutData();
-      } else {
-        updateStateFromData(json.decode(cachedWorkout));
-      }
+      await fetchLatestWorkoutData();
+
 
       // Check if we can show the UI yet
       if (_hasRequiredData && mounted) {
@@ -145,8 +152,14 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
       duration = data?['duration'] ?? 0;
       averageHeartRate = data?['average_heart_rate'] ?? 0;
       energyBurned = data?['totalEnergyBurned'] ?? 0.0;
-      mood = data?['mood'] ?? 1;
-      muscleGroups = data?['muscleGroups'] ?? '';
+      stats_gained = data?['stats'] ?? '';
+      
+      // Get muscle groups and show only first 2 with ellipsis
+      String fullMuscleGroups = data?['muscleGroups'] ?? '';
+      List<String> muscles = fullMuscleGroups.split(',');
+      muscleGroups = muscles.length <= 2 
+          ? fullMuscleGroups 
+          : '${muscles.take(2).join(',')}...';
       
       // Only call addAllListData if we have character data
       if (_hasRequiredData) {
@@ -166,15 +179,6 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
   Future<void> fetchLatestWorkoutData({bool forceRefresh = false}) async {
     final prefs = await SharedPreferences.getInstance();
 
-    if (!forceRefresh) {
-      final cachedData = prefs.getString('latestWorkoutData');
-      if (cachedData != null) {
-        final data = json.decode(cachedData);
-        updateStateFromData(data);
-        return;
-      }
-    }
-
     const String apiUrl = APIConstants.lastWorkout;
     final String? authToken = prefs.getString('authToken');
 
@@ -185,7 +189,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        await prefs.setString('latestWorkoutData', response.body);
+        print(data);
         updateStateFromData(data);
       } else {
         updateStateFromData();
@@ -250,7 +254,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
           duration: duration,
           averageHeartRate: averageHeartRate,
           energyBurned: energyBurned,
-          mood: mood,
+          stats: stats_gained,
           muscleGroups: muscleGroups,
         ),
         TitleView(
@@ -282,6 +286,10 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
   Future<bool> getData() async {
     await Future.delayed(const Duration(milliseconds: 10));
     return true;
+  }
+
+  void _onExternalRefresh() {
+    _startRefresh();
   }
 
   Future<void> handleRefresh() async {
@@ -389,8 +397,8 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
           : Consumer<StopwatchProvider>(
               builder: (context, stopwatchProvider, child) {
                 return FloatingActionButton.extended(
-                  onPressed: () {
-                    showModalBottomSheet(
+                  onPressed: () async {
+                    final result =showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
@@ -404,6 +412,13 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
                         );
                       },
                     );
+                    print("Printing");
+                    print(result);
+                    print("Printing");
+
+                    if (result == true) {
+                      _startRefresh();
+                    }
                   },
                   label: stopwatchProvider.isRunning
                       ? Text(stopwatchProvider.formattedTime())

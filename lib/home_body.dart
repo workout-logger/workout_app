@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:workout_logger/dungeon_page.dart';
 import 'package:workout_logger/inventory/inventory_manager.dart';
 import 'home_diary.dart';
 import 'profile_page.dart';
@@ -33,7 +34,7 @@ class _HomeBodyState extends State<HomeBody> {
       MyDiaryScreen(key: _diaryScreenKey, animationController: widget.animationController),
       InventoryPage(),
       MMORPGMainScreen(),
-      const ProfilePage(),
+      DungeonPage(),
     ];
   }
 

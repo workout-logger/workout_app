@@ -1,6 +1,8 @@
 // workout_summary_page.dart
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart'; // Add lottie package
+import 'package:provider/provider.dart';
+import 'package:workout_logger/refresh_notifier.dart';
 import '../fitness_app_theme.dart';
 
 class WorkoutSummaryPage extends StatelessWidget {
@@ -53,6 +55,7 @@ class WorkoutSummaryPage extends StatelessWidget {
               const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () {
+                  Provider.of<RefreshNotifier>(context, listen: false).requestRefresh();
                   Navigator.of(context).pop(true);
                 },
                 style: ElevatedButton.styleFrom(

@@ -6,7 +6,7 @@ class FitnessAppTheme {
   static const Color white = Color(0xFF2C2C2C);
   static const Color background = Color.fromARGB(255, 0, 0, 0);
   static const Color nearlyDarkBlue = Color.fromARGB(255, 255, 255, 255);
-
+  static const Color cardBackground = Color(0xFF2C2C2C);
   static const Color nearlyBlue = Color.fromARGB(255, 255, 255, 255);
   static const Color nearlyBlack = Color(0xFF121212);
   static const Color grey = Color.fromARGB(255, 199, 197, 197);

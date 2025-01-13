@@ -7,6 +7,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:workout_logger/inventory/inventory_provider.dart';
 import 'package:workout_logger/currency_provider.dart';
+import 'package:workout_logger/refresh_notifier.dart';
 import 'package:workout_logger/websocket_manager.dart';
 
 import 'package:workout_logger/workout_tracking/exercise_model.dart';
@@ -52,6 +53,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ExerciseModel()),
         ChangeNotifierProvider.value(value: currencyProvider),
         ChangeNotifierProvider.value(value: inventoryProvider),
+        ChangeNotifierProvider(create: (_) => RefreshNotifier()),
       ],
       child: MyApp(
         isFirstLaunch: isFirstLaunch,
