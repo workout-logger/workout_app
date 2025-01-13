@@ -7,7 +7,7 @@ class AnimatedChest extends StatefulWidget {
   final bool open;
   final VoidCallback? onAnimationComplete;
   final VoidCallback? onPreloadError;
-  final int chestNumber; // 0: Common, 1: Rare, 2: Epic
+  final int chestNumber; // 1: Common, 2: Rare, 3: Epic
 
   const AnimatedChest({
     Key? key,
@@ -21,9 +21,9 @@ class AnimatedChest extends StatefulWidget {
   _AnimatedChestState createState() => _AnimatedChestState();
 
   // Static variables to maintain state across instances and rebuilds
-  static bool hasPreloaded = false;
   static bool hasAnimated = false;
-  static final List<ImageProvider> preloadedImages = [];
+  static final Map<String, List<ImageProvider>> preloadedImages = {};
+  static final Map<String, bool> hasPreloaded = {};
 
   // Public static setter for hasAnimated
   static void setHasAnimated(bool value) => hasAnimated = value;
@@ -45,7 +45,7 @@ class _AnimatedChestState extends State<AnimatedChest>
     chestType = _determineChestType(widget.chestNumber);
     totalFrames = _getTotalFrames(chestType);
 
-    if (!AnimatedChest.hasPreloaded) {
+    if (!(AnimatedChest.hasPreloaded[chestType] ?? false)) {
       _preloadImages();
     } else if (widget.open && !AnimatedChest.hasAnimated) {
       // Only start animation if it hasn't played before
@@ -81,22 +81,19 @@ class _AnimatedChestState extends State<AnimatedChest>
 
   String _getFramePath(int index) {
     // Frame index starts from 1
-    return '$chestType/${chestType}-${index}.png';
+    return '$chestType/${chestType}-$index.png';
   }
 
   Future<void> _preloadImages() async {
-    if (AnimatedChest.hasPreloaded) {
-      print('Images already preloaded, skipping...');
+    if (AnimatedChest.hasPreloaded[chestType] ?? false) {
       return;
     }
 
-    print('Starting initial image preload for $chestType...');
     List<String> failedImages = [];
 
     for (int i = 1; i <= totalFrames; i++) {
       final path = _getFramePath(i);
       final success = await _tryPreloadImage(path);
-      print(path);
       if (!success) {
         failedImages.add(path);
       }
@@ -105,7 +102,7 @@ class _AnimatedChestState extends State<AnimatedChest>
     if (mounted) {
       setState(() {
         if (failedImages.isEmpty) {
-          AnimatedChest.hasPreloaded = true;
+          AnimatedChest.hasPreloaded[chestType] = true;
           if (widget.open && !AnimatedChest.hasAnimated) {
             _startAnimation();
           }
@@ -137,7 +134,6 @@ class _AnimatedChestState extends State<AnimatedChest>
       // Handle timeout
       Timer(const Duration(seconds: 5), () {
         if (!completer.isCompleted) {
-          print('Timeout loading image: assets/images/chests/$path');
           completer.complete(false);
         }
       });
@@ -149,27 +145,25 @@ class _AnimatedChestState extends State<AnimatedChest>
 
       if (success) {
         await precacheImage(image, context);
-        AnimatedChest.preloadedImages.add(image);
+        // Initialize the list for this chestType if not already
+        AnimatedChest.preloadedImages.putIfAbsent(chestType, () => []);
+        AnimatedChest.preloadedImages[chestType]!.add(image);
         return true;
       }
       return false;
     } catch (e) {
-      print('Exception loading image: assets/images/chests/$path');
-      print(e);
       return false;
     }
   }
 
   void _startAnimation() {
+
     if (AnimatedChest.hasAnimated ||
-        !AnimatedChest.hasPreloaded ||
-        AnimatedChest.preloadedImages.length < totalFrames) {
-      print(
-          'Animation blocked: animated=${AnimatedChest.hasAnimated}, preloaded=${AnimatedChest.hasPreloaded}, images=${AnimatedChest.preloadedImages.length}');
+        !(AnimatedChest.hasPreloaded[chestType] ?? false) ||
+        (AnimatedChest.preloadedImages[chestType]?.length ?? 0) < totalFrames) {
       return;
     }
 
-    print('Starting chest animation for $chestType');
     AnimatedChest.hasAnimated = true; // Mark as animated globally
     setState(() {
       _isAnimating = true;
@@ -195,7 +189,7 @@ class _AnimatedChestState extends State<AnimatedChest>
   @override
   void didUpdateWidget(covariant AnimatedChest oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!oldWidget.open && widget.open && !AnimatedChest.hasAnimated && AnimatedChest.hasPreloaded) {
+    if (!oldWidget.open && widget.open && !AnimatedChest.hasAnimated && (AnimatedChest.hasPreloaded[chestType] ?? false)) {
       _startAnimation();
     }
   }
@@ -208,7 +202,7 @@ class _AnimatedChestState extends State<AnimatedChest>
 
   @override
   Widget build(BuildContext context) {
-    if (!AnimatedChest.hasPreloaded) {
+    if (!(AnimatedChest.hasPreloaded[chestType] ?? false)) {
       return const SizedBox(
         width: 200,
         height: 200,
@@ -238,7 +232,6 @@ class _AnimatedChestState extends State<AnimatedChest>
         'assets/images/chests/${_getFramePath(frameIndex)}',
         fit: BoxFit.fill,
         errorBuilder: (context, error, stackTrace) {
-          print('Error rendering frame $frameIndex: $error');
           return Icon(Icons.broken_image, size: 48, color: Colors.red[300]);
         },
       ),

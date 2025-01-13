@@ -37,66 +37,61 @@ class _ChestsScreenState extends State<ChestsScreen> {
     // Initialize a GlobalKey for each chest
     _chestKeys.addAll(List.generate(chestData.length, (_) => GlobalKey()));
   }
-void _onChestTap(int index) async {
-  final chest = chestData[index];
-  final chestKey = _chestKeys[index];
+  
+  void _onChestTap(int index) async {
+    final chest = chestData[index];
+    final chestKey = _chestKeys[index];
 
-  // Access the current currency from the provider
-  final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
-  final double chestCost = chest['price'].toDouble();
+    // Access the current currency from the provider
+    final currencyProvider = Provider.of<CurrencyProvider>(context, listen: false);
+    final double chestCost = chest['price'].toDouble();
 
-  if (currencyProvider.currency < chestCost) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Not enough currency to open the ${chest['name']}!'),
-        duration: Duration(seconds: 2),
+    if (currencyProvider.currency < chestCost) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Not enough currency to open the ${chest['name']}!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Deduct chest cost from currency
+    currencyProvider.updateCurrency(currencyProvider.currency - chestCost);
+
+    // Proceed with opening the chest
+    AnimatedChest.setHasAnimated(false);
+
+    final RenderBox? box = chestKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) {
+      return;
+    }
+
+    final Offset position = box.localToGlobal(Offset.zero);
+    final Size chestSize = box.size;
+    final Size size = MediaQuery.of(context).size;
+
+    // Remove existing overlay
+    _overlayEntry?.remove();
+    _overlayEntry = OverlayEntry(
+      builder: (context) => _ChestOverlay(
+        // Adjust position to center of the chest card
+        initialX: position.dx + (chestSize.width - 120) / 2,  // 100 is the initial chest width
+        initialY: position.dy + (chestSize.height - 151) / 2, // 100 is the initial chest height
+        screenWidth: size.width,
+        screenHeight: size.height,
+        onClose: () {
+          _overlayEntry?.remove();
+          _overlayEntry = null;
+        },
+        chestNumber: chest['number'],
       ),
     );
-    return;
+
+    Overlay.of(context)?.insert(_overlayEntry!);
   }
 
-  // Deduct chest cost from currency
-  currencyProvider.updateCurrency(currencyProvider.currency - chestCost);
-
-  // Proceed with opening the chest
-  AnimatedChest.setHasAnimated(false);
-  print("${chest['name']} tapped!");
-
-  final RenderBox? box = chestKey.currentContext?.findRenderObject() as RenderBox?;
-  if (box == null) {
-    print("Error: Couldn't find chest position");
-    return;
-  }
-
-  final Offset position = box.localToGlobal(Offset.zero);
-  final Size chestSize = box.size;
-  final Size size = MediaQuery.of(context).size;
-
-  // Remove existing overlay
-  _overlayEntry?.remove();
-  _overlayEntry = OverlayEntry(
-    builder: (context) => _ChestOverlay(
-      // Adjust position to center of the chest card
-      initialX: position.dx + (chestSize.width - 120) / 2,  // 100 is the initial chest width
-      initialY: position.dy + (chestSize.height - 151) / 2, // 100 is the initial chest height
-      screenWidth: size.width,
-      screenHeight: size.height,
-      onClose: () {
-        _overlayEntry?.remove();
-        _overlayEntry = null;
-      },
-      chestNumber: chest['number'],
-    ),
-  );
-
-  Overlay.of(context)?.insert(_overlayEntry!);
-}
-
-  late final double _centerDisplayX;
-  final double _cardWidth = 120.0;
-  final double _cardHeight = 150.0;
-  final double _statsOffset = 200.0;
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +193,6 @@ class _ChestOverlayState extends State<_ChestOverlay> {
         final Map<String, dynamic> data = json.decode(response.body);
         final List<dynamic> items = data['items'];
         final int currency = data['currency'];
-        print(items);
 
         // Manually extract non-zero stats for each item
         List<Map<String, dynamic>> processedItems = items.map((item) {
@@ -254,8 +248,6 @@ class _ChestOverlayState extends State<_ChestOverlay> {
         currencyProvider.updateCurrency(currency.toDouble());
 
         // Debug logging
-        print("Items loaded: ${_inventoryItems.length}");
-        print("Animation state reset");
         
         return items;
       } else {
@@ -315,22 +307,18 @@ class _ChestOverlayState extends State<_ChestOverlay> {
   }
 
   void _startNextCardAnimation() {
-    print("Attempting to start card animation. Current index: $_currentCardIndex, Total items: ${_inventoryItems.length}");
     if (_currentCardIndex < _inventoryItems.length - 1 && _currentCardAnimationComplete) {
       setState(() {
         _currentCardIndex++;
         if (_currentCardIndex < _inventoryItems.length) {
           _currentlyFlyingCard = _inventoryItems[_currentCardIndex];
-          print("Flying card: ${_currentlyFlyingCard?['itemName']}");
         } else {
           _currentlyFlyingCard = null;
-          print("No more cards to fly.");
         }
         _currentCardAnimationComplete = false;
         _showingStats = false;
       });
     } else {
-      print("Cannot start next card animation. Either no more cards or animation not complete.");
     }
   }
   
@@ -341,19 +329,16 @@ class _ChestOverlayState extends State<_ChestOverlay> {
         _currentlyFlyingCard = null;
         _currentCardAnimationComplete = true;
       });
-      print("Card animation complete. Ready to start next card.");
       // Trigger next animation only if there are more cards
       if (_currentCardIndex < _inventoryItems.length - 1) {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
-            print("Starting next card animation.");
             _startNextCardAnimation();
           }
         });
       } else {
         setState(() {
           _animating = false;
-          print("All cards have been animated.");
         });
       }
     }
@@ -492,14 +477,12 @@ class _ChestOverlayState extends State<_ChestOverlay> {
               open: _opened,
               onAnimationComplete: () {
                 if (!_cardsDealt && _inventoryItems.isNotEmpty) {
-                  print("Chest animation complete, starting card animations");
                   setState(() {
                     _cardsDealt = true;
                   });
                   // Add a small delay before starting card animations
                   Future.delayed(Duration(milliseconds: 200), () {
                     if (mounted && _currentCardIndex == -1) {
-                      print("Starting first card animation");
                       _startNextCardAnimation();
                     }
                   });
@@ -654,7 +637,6 @@ class ChestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String imagePath = _getDisplayImagePath(chestNumber);
-    print("ChestCard: Loading image at $imagePath for chestNumber $chestNumber");
 
     return Card(
       color: const Color.fromARGB(0, 48, 48, 48),
@@ -676,7 +658,6 @@ class ChestCard extends StatelessWidget {
                   width: 120,  // Adjusted width
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
-                    print('Error loading image for $chestName: $error');
                     return Icon(Icons.broken_image, size: 48, color: Colors.red[300]);
                   },
                 ),

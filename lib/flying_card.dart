@@ -141,7 +141,6 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
 
     _flipController.addStatusListener((status) {
       if (status == AnimationStatus.completed && _hasReachedCenter && !_isMovingToFinal) {
-        print("Flip completed, showing content");
         if (mounted) {
           setState(() {
             _showContent = true;
@@ -166,7 +165,6 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
   void _startStatsAnimations() {
     setState(() {
       _showStats = true; // Ensure stats visibility
-      print("Stats are now visible.");
     });
 
     // Start the stats slide and bar animations
@@ -181,7 +179,6 @@ class FlyingCardState extends State<FlyingCard> with TickerProviderStateMixin {
           if (mounted) {
             setState(() {
               _showStats = false; // Hide stats
-              print("Stats are now hidden.");
               _isMovingToFinal = true;
             });
           }
