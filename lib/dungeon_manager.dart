@@ -13,11 +13,16 @@ class DungeonManager {
   /// Indicates if a dungeon is currently running for this user.
   bool isDungeonRunning = false;
 
+  int currentHealth = 100;
+
+  int maxHealth = 100;
+
   /// Whether we're in the process of loading/fetching data (e.g., show overlay).
   bool isLoading = false;
 
   /// Whether we've at least loaded some data from the server once.
   bool isLoaded = false;
+  bool deathScreen = false;
 
   /// Dungeon items the user currently sees (e.g., items in the dungeon).
   List<Map<String, dynamic>> dungeonItems = [];
@@ -25,7 +30,8 @@ class DungeonManager {
   /// Current dialogue text from NPC events.
   String dungeonDialogue = "";
 
-  /// The choice options available for the current dialogue.
+  List<Map<String, dynamic>> dungeonLogs = [];
+
   List<String> dialogueOptions = [];
 
   /// (Optional) Store a reference to equipped items or other data.
@@ -51,6 +57,18 @@ class DungeonManager {
     }
   }
 
+
+  void updateHealth(int newHealth) {
+    currentHealth = newHealth.clamp(0, maxHealth); // Ensure health is within bounds
+    _notifyUI({"type": "health_updated"});
+  }
+
+  void onHealthUpdate(Map<String, dynamic> data) {
+    if (data.containsKey('current_health')) {
+      currentHealth = data['current_health'];
+      _notifyUI({"type": "health_updated"});
+    }
+  }
   // -------------------------------------------------------------------
   // Fetch Dungeon Data from the Server
   // -------------------------------------------------------------------
@@ -85,11 +103,20 @@ class DungeonManager {
       //   "end_time": "2023-01-01T01:00:00Z", // Optional end time
       //   "message": "Dungeon data fetched."
       // }
+      if (data.containsKey('current_health')) {
+        onHealthUpdate(data);
+      }
 
       // Check for end time
       final hasEndTime = data.containsKey('end_time');
       if (hasEndTime) {
         isDungeonRunning = true;
+      }
+      print(data['death']);
+      if (data['death'] == true) {
+        deathScreen = true;
+      }else{
+        deathScreen = false;
       }
 
       // Extract items
@@ -101,6 +128,12 @@ class DungeonManager {
         dungeonItems = [];
       }
 
+      if (data['logs'] is List) {
+        dungeonLogs = (data['logs'] as List)
+            .map((logEntry) => logEntry as Map<String, dynamic>)
+            .toList();
+      }
+      
       // If there's an npc_event, parse out the dialogue + choices
       final npcEvent = data['npc_event'] ?? {};
       if (npcEvent is Map<String, dynamic>) {
@@ -204,8 +237,10 @@ class DungeonManager {
   // Called by WebSocketManager for {"type":"dungeon_reward","data":{...}}
   void onDungeonReward(Map<String, dynamic> message) {
     final data = message['data'];
+    print(data);
     if (data is Map<String, dynamic>) {
       dungeonItems.add(data);
+      print(data);
       print("onDungeonReward: Received item ${data['name']}");
       _notifyUI({"type": "dungeon_reward", "item": data});
     }
