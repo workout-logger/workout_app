@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workout_logger/chest/chests.dart';
 import 'package:workout_logger/constants.dart';
-import 'package:workout_logger/market_screen.dart';
-import 'package:workout_logger/trading_page.dart';
-import 'package:animate_do/animate_do.dart'; // Import animate_do
+import 'package:workout_logger/trading/market_screen.dart';
+import 'package:workout_logger/trading/trading_page.dart';
 
 
 class MMORPGMainScreen extends StatelessWidget {
@@ -13,7 +12,7 @@ class MMORPGMainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4, // Updated to 4 tabs
+      length: 3, // Updated to 4 tabs
       child: Scaffold(
         backgroundColor: Color.fromARGB(255, 0, 0, 0),
         appBar: PreferredSize(
@@ -39,10 +38,7 @@ class MMORPGMainScreen extends StatelessWidget {
                   icon: Icon(Icons.chat_bubble_outline),
                   text: 'Chat',
                 ),
-                Tab(
-                  icon: Icon(Icons.people_outline),
-                  text: 'Friends',
-                ),
+
               ],
             ),
           ),
@@ -60,7 +56,6 @@ class MMORPGMainScreen extends StatelessWidget {
                     websocketUrl: '${APIConstants.socketUrl}/ws/chat/?token=$token',
                     token:token,
                   ),
-                  FriendsScreen(),
                 ],
               );
             }
@@ -175,28 +170,6 @@ class GlobalChatScreen extends StatelessWidget {
       child: Center(
         child: Text(
           'Global Chat',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontFamily: 'RobotoMono',
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class FriendsScreen extends StatelessWidget {
-  const FriendsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Color.fromARGB(255, 0, 0, 0),
-      child: Center(
-        child: Text(
-          'Friends List',
           style: TextStyle(
             color: Colors.white,
             fontSize: 24,

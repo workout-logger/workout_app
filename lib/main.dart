@@ -156,9 +156,13 @@ class _HomeScreenState extends State<HomeScreen>
             icon: Icon(Icons.sync_alt),
             label: 'Trading',
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.account_circle),
-            label: 'Profile',
+          BottomNavigationBarItem(
+            icon: SvgPicture.asset(
+              'assets/images/dungeon.svg',
+              height: 24,
+              color: Colors.white,
+            ),
+            label: 'Dungeon',
           ),
         ],
       ),

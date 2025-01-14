@@ -3,11 +3,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Add this import for date formatting
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:workout_logger/currency_provider.dart';
 import 'package:workout_logger/inventory/inventory_manager.dart';
 import 'package:workout_logger/inventory/item_card.dart';
-import '../ui_view/character_stats_dungeon.dart';
+import '../../ui_view/character_stats_dungeon.dart';
 import 'dungeon_manager.dart';
 
 class DungeonPage extends StatefulWidget {
@@ -326,67 +327,65 @@ class _DungeonPageState extends State<DungeonPage> with SingleTickerProviderStat
     );
   }
 
-Widget _buildCharacterAndLogs(List<Map<String, dynamic>> logs) {
-  final currentHealth = DungeonManager().currentHealth;
-  final maxHealth = 100;
-  final healthPercentage = currentHealth / maxHealth;
+  Widget _buildCharacterAndLogs(List<Map<String, dynamic>> logs) {
+    final currentHealth = DungeonManager().currentHealth;
+    final maxHealth = 100;
+    final healthPercentage = currentHealth / maxHealth;
 
-  return Column(
-    mainAxisSize: MainAxisSize.min, // Prevent expansion to infinite height
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: CharacterStatsView(
-              head: InventoryManager().equippedItems['heads'] ?? '',
-              armour: InventoryManager().equippedItems['armour'] ?? '',
-              legs: InventoryManager().equippedItems['legs'] ?? '',
-              melee: InventoryManager().equippedItems['melee'] ?? '',
-              shield: InventoryManager().equippedItems['shield'] ?? '',
-              wings: InventoryManager().equippedItems['wings'] ?? '',
-            ),
-          ),
-          const SizedBox(width: 2),
-          Flexible(
-            fit: FlexFit.loose, // Allows flexible sizing within the available height
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 300), // Set max height
-              child: _buildLogSection(logs),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 2),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
+    return Column(
+      mainAxisSize: MainAxisSize.min, // Prevent expansion to infinite height
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Health: $currentHealth / $maxHealth",
-              style: const TextStyle(color: Colors.white, fontSize: 12),
+            Expanded(
+              child: CharacterStatsView(
+                head: InventoryManager().equippedItems['heads'] ?? '',
+                armour: InventoryManager().equippedItems['armour'] ?? '',
+                legs: InventoryManager().equippedItems['legs'] ?? '',
+                melee: InventoryManager().equippedItems['melee'] ?? '',
+                arms: InventoryManager().equippedItems['arm'] ?? '',
+                wings: InventoryManager().equippedItems['wings'] ?? '',
+              ),
             ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: healthPercentage.clamp(0.0, 1.0),
-                backgroundColor: Colors.red.shade900,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.redAccent,
-                ),
-                minHeight: 10,
+            const SizedBox(width: 2),
+            Flexible(
+              fit: FlexFit.loose, // Allows flexible sizing within the available height
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 300), // Set max height
+                child: _buildLogSection(logs),
               ),
             ),
           ],
         ),
-      ),
-    ],
-  );
-}
-
-
+        const SizedBox(height: 2),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Health: $currentHealth / $maxHealth",
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: healthPercentage.clamp(0.0, 1.0),
+                  backgroundColor: Colors.red.shade900,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.redAccent,
+                  ),
+                  minHeight: 10,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   /// Builds the "Found Items" section on a new line
   Widget _buildFoundItemsSection(List<Map<String, dynamic>> dungeonItems) {
@@ -450,7 +449,7 @@ Widget _buildCharacterAndLogs(List<Map<String, dynamic>> logs) {
     );
   }
 
-
+  /// Builds the dialogue popup
   Widget _buildDialoguePopup(String mainDialogue, List<String> options) {
     return Positioned.fill(
       child: Container(
@@ -551,8 +550,97 @@ Widget _buildCharacterAndLogs(List<Map<String, dynamic>> logs) {
     );
   }
 
-
-
+  /// Builds the Death Screen overlay
+Widget _buildDeathScreen() {
+  return Positioned.fill(
+    child: Container(
+      color: Colors.black.withOpacity(0.95), // Darker background
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          margin: const EdgeInsets.symmetric(horizontal: 32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E), // Dark gray background
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.red[900]!, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red[900]!.withOpacity(0.3),
+                blurRadius: 20,
+                spreadRadius: 5,
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.asset(
+                'assets/animations/coffin.json',
+                width: 100,
+                height: 100,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 24),
+              ShaderMask(
+                shaderCallback: (bounds) => LinearGradient(
+                  colors: [Colors.red[700]!, Colors.red[900]!],
+                ).createShader(bounds),
+                child: const Text(
+                  "YOU DIED",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 3,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Your journey in the dungeon has ended.",
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 18,
+                  letterSpacing: 0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[900],
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 8,
+                ),
+                onPressed: () {
+                  // Exit Dungeon
+                  DungeonManager().stopDungeon();
+                  setState(() {
+                    DungeonManager().deathScreen = false;
+                    _selectedDungeonIndex = null;
+                  });
+                },
+                child: const Text(
+                  "RETURN TO SAFETY",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+  /// Builds the Exit button
   Widget _buildExitButton(bool isRunning) {
     return Center(
       child: Padding(
@@ -590,6 +678,7 @@ Widget _buildCharacterAndLogs(List<Map<String, dynamic>> logs) {
     final dialogueOptions = manager.dialogueOptions;
     final isRunning = manager.isDungeonRunning;   
     final dungeonLogs = manager.dungeonLogs;      
+    final isDeath = manager.deathScreen; // Get death flag
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -658,6 +747,10 @@ Widget _buildCharacterAndLogs(List<Map<String, dynamic>> logs) {
           // If we have dialogue, show it as a center popup
           if (dialogue.isNotEmpty)
             _buildDialoguePopup(dialogue, dialogueOptions),
+
+          // If death flag is true, show death screen
+          if (isDeath)
+            _buildDeathScreen(),
         ],
       ),
     );

@@ -7,9 +7,7 @@ class CurrencyProvider with ChangeNotifier {
   double get currency => _currency;
 
   CurrencyProvider() {
-    print("CurrencyProvider initialized");
     WebSocketManager().setCurrencyUpdateCallback((double newCurrency) {
-      print('CurrencyProvider: Updating currency to: $newCurrency');
       updateCurrency(newCurrency);
     });
 
@@ -20,12 +18,15 @@ class CurrencyProvider with ChangeNotifier {
   }
 
   void updateCurrency(double newCurrency) {
-    print('CurrencyProvider: Updating currency to $newCurrency');
     _currency = newCurrency;
     notifyListeners();
   }
 
-
+  Future<void> refreshCurrencyFromBackend() async {
+    WebSocketManager().sendMessage({
+      'action': 'fetch_currency_data',
+    });
+  }
 
   @override
   void dispose() {

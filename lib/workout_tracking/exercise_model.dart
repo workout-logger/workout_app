@@ -14,6 +14,10 @@ class ExerciseModel extends ChangeNotifier {
   }
 
   void addExercise(Exercise exercise) {
+    // Ensure the new exercise starts with one set by default if it has no sets
+    if (exercise.sets.isEmpty) {
+      exercise.sets.add(WorkoutSet(reps: '', weight: ''));
+    }
     _selectedExercises.add(exercise);
     notifyListeners();
   }
@@ -24,6 +28,15 @@ class ExerciseModel extends ChangeNotifier {
       notifyListeners();
     } else {
       print('Invalid exercise index: $exerciseIndex');
+    }
+  }
+
+  void deleteExercise(int exerciseIndex) {
+    if (exerciseIndex >= 0 && exerciseIndex < _selectedExercises.length) {
+      _selectedExercises.removeAt(exerciseIndex);
+      notifyListeners();
+    } else {
+      print('Invalid exercise index for deletion: $exerciseIndex');
     }
   }
 

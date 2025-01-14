@@ -377,6 +377,53 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _deleteExercise(int exerciseIndex) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: FitnessAppTheme.background,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text(
+          'Delete Exercise',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Are you sure you want to delete this exercise?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete ?? false) {
+      setState(() {
+        exerciseModel.deleteExercise(exerciseIndex);
+      });
+
+      // Optionally, show a snackbar or confirmation message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Exercise deleted'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -406,6 +453,7 @@ class _WorkoutPageState extends State<WorkoutPage> with WidgetsBindingObserver {
                                 onSetsChanged: (exerciseIndex, updatedSets) {
                                   model.updateExerciseSets(exerciseIndex, updatedSets);
                                 },
+                                onExerciseDeleted: _deleteExercise, // Handle exercise deletion
                               );
                             },
                           );

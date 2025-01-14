@@ -7,7 +7,7 @@ class CharacterStatsView extends StatelessWidget {
   final String armour;
   final String legs;
   final String melee;
-  final String shield;
+  final String arms;
   final String wings;
 
   const CharacterStatsView({
@@ -16,7 +16,7 @@ class CharacterStatsView extends StatelessWidget {
     required this.armour,
     required this.legs,
     required this.melee,
-    required this.shield,
+    required this.arms,
     required this.wings,
   });
 
@@ -40,7 +40,7 @@ class CharacterStatsView extends StatelessWidget {
                   head: head,
                   legs: legs,
                   melee: melee,
-                  shield: shield,
+                  arms: arms,
                   wings: wings,
                 ),
               ),
@@ -57,7 +57,7 @@ class ModularCharacter extends StatelessWidget {
   final String head;
   final String legs;
   final String melee;
-  final String shield;
+  final String arms;
   final String wings;
 
   const ModularCharacter({
@@ -66,7 +66,7 @@ class ModularCharacter extends StatelessWidget {
     required this.head,
     required this.legs,
     required this.melee,
-    required this.shield,
+    required this.arms,
     required this.wings,
   });
 
@@ -110,9 +110,9 @@ class ModularCharacter extends StatelessWidget {
                 'assets/character/melee/$melee.png',
                 fit: BoxFit.contain,
               ),
-            if (shield.isNotEmpty)
+            if (arms.isNotEmpty)
               Image.asset(
-                'assets/character/shield/$shield.png',
+                'assets/character/arm/$arms.png',
                 fit: BoxFit.contain,
               ),
           ],

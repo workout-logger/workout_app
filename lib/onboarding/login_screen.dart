@@ -38,9 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // For showing progress messages
   String? _loadingMessage;
 
-  // Text controllers
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+
 
   /// We add this to configure the health plugin on app startup.
   @override
@@ -129,67 +127,54 @@ class _LoginScreenState extends State<LoginScreen> {
     return healthData;
   }
 
-  /// Completes the sign-in process by fetching health data and syncing to your server.
-  Future<void> _completeSignIn(BuildContext context) async {
+
+  Future<void> _handleGuestSignIn(BuildContext context) async {
+    setState(() => _loadingMessage = "Creating guest account...");
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      // await prefs.setBool('firstLaunch', false);
-
-      // 1. Fetch health data
-      List<HealthDataPoint> healthData = await fetchHealthData();
-      
-      // 2. Prepare data for your backend
-      final String? authToken = prefs.getString('authToken');
-
-      final workoutData = healthData
-          .where((dp) => dp.type == HealthDataType.WORKOUT)
-          .map((dp) => {
-                'value': dp.value,
-                'start_date': dp.dateFrom.toIso8601String(),
-                'end_date': dp.dateTo.toIso8601String(),
-              })
-          .toList();
-
-      final heartRateData = healthData
-          .where((dp) => dp.type == HealthDataType.HEART_RATE)
-          .map((dp) => {
-                'value': dp.value,
-                'start_date': dp.dateFrom.toIso8601String(),
-                'end_date': dp.dateTo.toIso8601String(),
-              })
-          .toList();
-
-      final dataToSend = {
-        'authToken': authToken,
-        'workout_data': workoutData,
-        'heartrate_data': heartRateData,
-      };
-
-      // 3. POST data to your server
-      await http.post(
-        Uri.parse(APIConstants.syncWorkouts),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Token $authToken',
-        },
-        body: jsonEncode(dataToSend),
+      // Send a request to the guest signup endpoint
+      final response = await http.post(
+        Uri.parse(APIConstants.guestSignIn),
+        headers: {'Content-Type': 'application/json'},
       );
 
-      // 4. Go to home screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      if (response.statusCode == 201) {
+        final responseBody = jsonDecode(response.body);
+
+        // Example: Save auth token and other details locally
+        final String authToken = responseBody['token'];
+        final bool isNewUser = responseBody['is_new_user'] ?? true;
+        // Save token in SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('authToken', authToken);
+
+        // If the guest is considered a new user, navigate to the profile screen
+        if (isNewUser) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const UsernameScreen()),
+          );
+        } else {
+          // Navigate to the home screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
+      } else {
+        // Handle guest signup failure
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Guest signup failed: ${response.body}')),
+        );
+      }
     } catch (error) {
-      debugPrint("Error during completion: $error");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to complete sign-in: $error')),
+        SnackBar(content: Text('Error: $error')),
       );
-      setState(() {
-        _loadingMessage = null;
-      });
+    } finally {
+      setState(() => _loadingMessage = null);
     }
   }
+
 
   /// Google Sign In logic
   Future<void> _handleGoogleSignIn(BuildContext context) async {
@@ -222,7 +207,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Save token in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        print(authToken);
         await prefs.setString('authToken', authToken);
 
         // If new user or profile not done, show the profile creation
@@ -274,60 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
 
-  /// Sign in with email
-  Future<void> _signInWithEmail() async {
-    setState(() {
-      _loadingMessage = "Signing in";
-    });
-
-    try {
-      final response = await http.post(
-        Uri.parse(APIConstants.emailSignIn),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': _emailController.text.trim(),
-          'password': _passwordController.text.trim(),
-        }),
-      );
-
-      final responseBody = jsonDecode(response.body);
-      debugPrint("Server Response: $responseBody");
-
-      if (response.statusCode == 200) {
-        final String? authToken = responseBody['token'] as String?;
-        if (authToken == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Authentication failed: Invalid response')),
-          );
-          setState(() {
-            _loadingMessage = null;
-          });
-          return;
-        }
-
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('authToken', authToken);
-        await _completeSignIn(context);
-      } else {
-        final error = responseBody['error'] ?? 'Unknown error';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign in failed: $error')),
-        );
-        setState(() {
-          _loadingMessage = null;
-        });
-      }
-
-    } catch (e) {
-      debugPrint("Error during sign-in: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sign in failed: $e')),
-      );
-      setState(() {
-        _loadingMessage = null;
-      });
-    }
-  }
+ 
 
   /// Builds the UI
   @override
@@ -352,7 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Column(
                         children: [
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 100),
                           Image.asset(
                             'assets/images/fitquest_logo.png',
                             height: 100,
@@ -360,60 +291,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 10),
                         ],
                       ),
-                      const SizedBox(height: 40),
-                      TextField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          labelText: 'Email or Username',
-                          labelStyle: const TextStyle(color: Colors.white),
-                          hintText: 'email@gmail.com',
-                          hintStyle: const TextStyle(color: Colors.grey),
-                          filled: true,
-                          fillColor: Colors.grey[850],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          labelStyle: const TextStyle(color: Colors.white),
-                          filled: true,
-                          fillColor: Colors.grey[850],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                            borderSide: BorderSide.none,
-                          ),
-                          suffixText: 'Forgot?',
-                          suffixStyle: const TextStyle(color: Colors.yellow),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      const SizedBox(height: 30),
-                      ElevatedButton(
-                        onPressed: _signInWithEmail,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.yellow,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                        ),
-                        child: const Text(
-                          'Log In',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 60),
+                      
                       OutlinedButton(
-                        onPressed: () {
-                          // If you want to allow users as "guests," handle that logic here.
+                        onPressed: () async {
+                          await _handleGuestSignIn(context);
                         },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.yellow),
@@ -465,30 +347,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Google',
                           style: TextStyle(color: Colors.white),
                         ),
-                      ),
-                      const SizedBox(height: 30),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Don't have an account?",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        const SignUpScreen()),
-                              );
-                            },
-                            child: const Text(
-                              'Create now',
-                              style: TextStyle(color: Colors.yellow),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),

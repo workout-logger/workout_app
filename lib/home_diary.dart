@@ -157,9 +157,9 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
       // Get muscle groups and show only first 2 with ellipsis
       String fullMuscleGroups = data?['muscleGroups'] ?? '';
       List<String> muscles = fullMuscleGroups.split(',');
-      muscleGroups = muscles.length <= 2 
-          ? fullMuscleGroups 
-          : '${muscles.take(2).join(',')}...';
+      muscleGroups = fullMuscleGroups.length <= 15
+          ? fullMuscleGroups
+          : '${fullMuscleGroups.substring(0,15)}...';
       
       // Only call addAllListData if we have character data
       if (_hasRequiredData) {
@@ -189,7 +189,6 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print(data);
         updateStateFromData(data);
       } else {
         updateStateFromData();
@@ -212,11 +211,9 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
     final stats = (InventoryManager().stats ?? {}).map((key, value) {
       return MapEntry(key, int.tryParse(value.toString()) ?? 0); // Convert to int or default to 0
     });
-    print(stats);
     
     // Check if we have all required data
     if (bodyColor == null || eyeColors == null) {
-      print('Missing required character data');
       return;
     }
     
@@ -224,7 +221,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
     final headFile = equipped['heads'] ?? '';
     final legsFile = equipped['legs'] ?? '';
     final meleeFile = equipped['melee'] ?? '';
-    final shieldFile = equipped['shield'] ?? '';
+    final armsFile = equipped['arm'] ?? '';
     final wingsFile = equipped['wings'] ?? '';
 
     setState(() {
@@ -234,7 +231,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
           head: headFile,
           legs: legsFile,
           melee: meleeFile,
-          shield: shieldFile,
+          arms: armsFile,
           wings: wingsFile,
           baseBody: bodyColor,
           eyeColor: eyeColors,
@@ -252,7 +249,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
           animationController: widget.animationController!,
           workoutDate: workoutDate,
           duration: duration,
-          averageHeartRate: averageHeartRate,
+          averageHeartRate: "NA",
           energyBurned: energyBurned,
           stats: stats_gained,
           muscleGroups: muscleGroups,
@@ -412,9 +409,6 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
                         );
                       },
                     );
-                    print("Printing");
-                    print(result);
-                    print("Printing");
 
                     if (result == true) {
                       _startRefresh();
@@ -559,7 +553,17 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
                                 icon: const Icon(Icons.account_circle, size: 30),
                                 color: Colors.white,
                                 onPressed: () {
-                                  // Profile button logic here
+                                  // Show a Snackbar to indicate the feature is not implemented
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'This feature is not implemented yet.',
+                                        style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                                      ),
+                                      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
                                 },
                               ),
                             ],

@@ -142,7 +142,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (response.statusCode == 201) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         final String authToken = jsonDecode(response.body)['token'];
-        print(authToken);
         await prefs.setString('authToken', authToken);
 
         Navigator.pushReplacement(

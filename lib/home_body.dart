@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:workout_logger/dungeon_page.dart';
+import 'package:workout_logger/dungeon/dungeon_page.dart';
 import 'package:workout_logger/inventory/inventory_manager.dart';
 import 'home_diary.dart';
 import 'profile_page.dart';
 import 'inventory/inventory_page.dart';
-import 'marketplace.dart';
+import 'trading/marketplace.dart';
 
 class HomeBody extends StatefulWidget {
   const HomeBody({

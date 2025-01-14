@@ -15,7 +15,7 @@ class LastWorkoutView extends StatefulWidget {
   final Animation<double>? animation;
   final String workoutDate;
   final int duration;
-  final int averageHeartRate;
+  final String averageHeartRate;
   final double energyBurned;
   final String muscleGroups;
   final String stats;
@@ -47,7 +47,7 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
   Widget build(BuildContext context) {
     // Dynamically check if all values are zero
     bool isAllZero = (widget.duration == 0 &&
-        widget.averageHeartRate == 0 &&
+        widget.averageHeartRate == "0" &&
         widget.energyBurned == 0);
 
     return AnimatedBuilder(
@@ -169,7 +169,7 @@ class _LastWorkoutViewState extends State<LastWorkoutView> {
                                   children: <Widget>[
                                     _buildInfoRow('Duration', Icons.timer, '${widget.duration} mins'),
                                     const SizedBox(height: 8),
-                                    _buildInfoRow('Avg Heart Rate', Icons.favorite, '${widget.averageHeartRate} bpm'),
+                                    _buildInfoRow('Avg Heart Rate', Icons.favorite, widget.averageHeartRate),
                                     const SizedBox(height: 8),
                                     _buildInfoRow('Stats Gained', Icons.info, widget.stats),
                                   ],

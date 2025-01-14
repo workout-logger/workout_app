@@ -116,7 +116,7 @@ class _UsernameScreenState extends State<UsernameScreen> {
                     data.username = username;
 
                     // Navigate to the body color screen
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                         builder: (_) => BodyColorScreen(profileData: data),
@@ -182,7 +182,7 @@ class _BodyColorScreenState extends State<BodyColorScreen> {
           child: Column(
             children: [
               const Text(
-                'Select a Body Color:',
+                'Customize your character:',
                 style: TextStyle(color: Colors.yellow, fontSize: 18),
               ),
               const SizedBox(height: 16),
@@ -230,7 +230,7 @@ class _BodyColorScreenState extends State<BodyColorScreen> {
                 onPressed: () {
                   widget.profileData.bodyColorIndex = _selectedBodyIndex;
 
-                  Navigator.push(
+                  Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
                       builder: (_) => EyeColorScreen(profileData: widget.profileData),

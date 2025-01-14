@@ -1,5 +1,6 @@
 import '../fitness_app_theme.dart';
 import 'package:flutter/material.dart';
+import 'history_page.dart'; // Import the HistoryPage
 
 class TitleView extends StatelessWidget {
   final String titleTxt;
@@ -52,7 +53,18 @@ class TitleView extends StatelessWidget {
                   InkWell(
                     highlightColor: Colors.transparent,
                     borderRadius: const BorderRadius.all(Radius.circular(4.0)),
-                    onTap: () {},
+                    onTap: () {
+                      if (subTxt.toLowerCase() == 'history') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>  PastWorkoutsScreen(),
+                          ),
+                        );
+                      } else {
+                        // Handle other subTxt actions or leave empty
+                      }
+                    },
                     child: Padding(
                       padding: const EdgeInsets.only(left: 8),
                       child: Row(

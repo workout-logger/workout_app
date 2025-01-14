@@ -8,12 +8,14 @@ class ExerciseTile extends StatefulWidget {
   final Exercise exercise;
   final int exerciseIndex;
   final Function(int, List<WorkoutSet>) onSetsChanged;
+  final Function(int) onExerciseDeleted; // New callback
 
   const ExerciseTile({
     super.key,
     required this.exercise,
     required this.exerciseIndex,
     required this.onSetsChanged,
+    required this.onExerciseDeleted, // Initialize the new callback
   });
 
   @override
@@ -28,7 +30,10 @@ class _ExerciseTileState extends State<ExerciseTile> {
   @override
   void initState() {
     super.initState();
-    _sets = List<WorkoutSet>.from(widget.exercise.sets);
+    // Ensure there's at least one set
+    _sets = widget.exercise.sets.isNotEmpty
+        ? List<WorkoutSet>.from(widget.exercise.sets)
+        : [WorkoutSet(reps: '', weight: '')];
     _repsControllers = _sets
         .map((set) => TextEditingController(text: set.reps))
         .toList();
@@ -59,15 +64,19 @@ class _ExerciseTileState extends State<ExerciseTile> {
 
   void _removeSet(int index) {
     setState(() {
-      if (_sets.length > 1) {
-        _sets.removeAt(index);
-        _repsControllers[index].dispose();
-        _weightControllers[index].dispose();
-        _repsControllers.removeAt(index);
-        _weightControllers.removeAt(index);
-      }
+      _sets.removeAt(index);
+      _repsControllers[index].dispose();
+      _weightControllers[index].dispose();
+      _repsControllers.removeAt(index);
+      _weightControllers.removeAt(index);
     });
-    widget.onSetsChanged(widget.exerciseIndex, _sets);
+
+    if (_sets.isEmpty) {
+      // If no sets remain, notify the parent to delete the exercise
+      widget.onExerciseDeleted(widget.exerciseIndex);
+    } else {
+      widget.onSetsChanged(widget.exerciseIndex, _sets);
+    }
   }
 
   void _updateSet(int index, String reps, String weight) {
@@ -96,7 +105,9 @@ class _ExerciseTileState extends State<ExerciseTile> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.exercise.name,
+                  widget.exercise.name.length > 25
+                      ? '${widget.exercise.name.substring(0, 25)}...'
+                      : widget.exercise.name,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -111,67 +122,64 @@ class _ExerciseTileState extends State<ExerciseTile> {
             ),
             const SizedBox(height: 8),
             // Sets List
-            Flexible(
-              fit: FlexFit.loose,
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _sets.length,
-                itemBuilder: (context, index) {
-                  return Row(
-                    children: [
-                      // Reps TextField
-                      Expanded(
-                        child: TextField(
-                          controller: _repsControllers[index],
-                          decoration: const InputDecoration(
-                            labelText: 'Reps',
-                            labelStyle: TextStyle(color: Colors.white), // White label
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white), // White border
-                            ),
-                            focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white), // White border on focus
-                            ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _sets.length,
+              itemBuilder: (context, index) {
+                return Row(
+                  children: [
+                    // Reps TextField
+                    Expanded(
+                      child: TextField(
+                        controller: _repsControllers[index],
+                        decoration: const InputDecoration(
+                          labelText: 'Reps',
+                          labelStyle: TextStyle(color: Colors.white), // White label
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white), // White border
                           ),
-                          style: const TextStyle(color: Colors.white), // White input text
-                          keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            _updateSet(index, value, _sets[index].weight);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Weight TextField
-                      Expanded(
-                        child: TextField(
-                          controller: _weightControllers[index],
-                          decoration: const InputDecoration(
-                            labelText: 'Weight',
-                            labelStyle: TextStyle(color: Colors.white), // White label
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white), // White border
-                            ),
-                            focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white), // White border on focus
-                            ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white), // White border on focus
                           ),
-                          style: const TextStyle(color: Colors.white), // White input text
-                          keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            _updateSet(index, _sets[index].reps, value);
-                          },
                         ),
+                        style: const TextStyle(color: Colors.white), // White input text
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          _updateSet(index, value, _sets[index].weight);
+                        },
                       ),
-                      // Delete Button
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Color.fromARGB(255, 240, 142, 142)), // White icon
-                        onPressed: () => _removeSet(index),
+                    ),
+                    const SizedBox(width: 16),
+                    // Weight TextField
+                    Expanded(
+                      child: TextField(
+                        controller: _weightControllers[index],
+                        decoration: const InputDecoration(
+                          labelText: 'Weight',
+                          labelStyle: TextStyle(color: Colors.white), // White label
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white), // White border
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white), // White border on focus
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.white), // White input text
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          _updateSet(index, _sets[index].reps, value);
+                        },
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                    // Delete Button
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Color.fromARGB(255, 240, 142, 142)), // Colored icon
+                      onPressed: () => _removeSet(index),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),

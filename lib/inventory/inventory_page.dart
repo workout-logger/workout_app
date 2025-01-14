@@ -22,6 +22,8 @@ class InventoryPage extends StatefulWidget {
 
 class _InventoryPageState extends State<InventoryPage> {
   bool _isRefreshing = false;
+  double _pullDistance = 0.0;
+  final double _refreshTriggerPullDistance = 40.0;
 
   void _refreshUI() {
     setState(() {});
@@ -33,7 +35,6 @@ class _InventoryPageState extends State<InventoryPage> {
 
     // Check if data is already loaded
     if (!InventoryManager().isLoading) {
-      // Data is already loaded, no need to set up the WebSocket callback again
       return;
     }
 
@@ -43,9 +44,11 @@ class _InventoryPageState extends State<InventoryPage> {
       if (mounted) {
         setState(() {});
       }
-      // If we're refreshing, stop the refresh indicator
       if (_isRefreshing) {
-        _isRefreshing = false;
+        setState(() {
+          _isRefreshing = false;
+          _pullDistance = 0.0;
+        });
       }
     });
 
@@ -53,18 +56,55 @@ class _InventoryPageState extends State<InventoryPage> {
     InventoryManager().requestInventoryUpdate();
   }
 
-  Future<void> _refreshInventory() async {
+  Future<void> handleRefresh() async {
+    if (_isRefreshing) return;
+
     setState(() {
       _isRefreshing = true;
     });
 
-    // Request the latest inventory data without showing the loading overlay
-    InventoryManager().requestInventoryUpdate(showLoadingOverlay: false);
-
-    // Wait until the inventory is updated via the callback
-    while (_isRefreshing) {
-      await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      // Request the latest inventory data without showing the loading overlay
+      InventoryManager().requestInventoryUpdate(showLoadingOverlay: false);
+      
+      // The WebSocket callback will handle setting isRefreshing to false
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+          _pullDistance = 0.0;
+        });
+      }
     }
+  }
+
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      if (notification.metrics.pixels < 0) {
+        setState(() {
+          _pullDistance = -notification.metrics.pixels;
+        });
+      } else if (notification.metrics.pixels >= 0 && _pullDistance != 0.0) {
+        setState(() {
+          _pullDistance = 0.0;
+        });
+      }
+    } else if (notification is OverscrollNotification) {
+      if (notification.overscroll < 0) {
+        setState(() {
+          _pullDistance += -notification.overscroll;
+        });
+      }
+    } else if (notification is ScrollEndNotification) {
+      if (_pullDistance >= _refreshTriggerPullDistance && !_isRefreshing) {
+        handleRefresh();
+      } else {
+        setState(() {
+          _pullDistance = 0.0;
+        });
+      }
+    }
+    return false;
   }
 
   @override
@@ -74,12 +114,13 @@ class _InventoryPageState extends State<InventoryPage> {
     final otherItems = InventoryManager().inventoryItems.where((item) => !item['is_equipped']).toList();
     final isLoading = InventoryManager().isLoading;
     final stats = (InventoryManager().stats ?? {}).map((key, value) {
-      return MapEntry(key, int.tryParse(value.toString()) ?? 0); // Convert to int or default to 0
+      return MapEntry(key, int.tryParse(value.toString()) ?? 0);
     });
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Padding(
           padding: const EdgeInsets.only(
             left: 4,
@@ -133,29 +174,26 @@ class _InventoryPageState extends State<InventoryPage> {
       ),
       body: Stack(
         children: [
-          RefreshIndicator(
-            onRefresh: _refreshInventory,
+          NotificationListener<ScrollNotification>(
+            onNotification: _onScrollNotification,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 children: [
-                  // Character stats
                   CharacterStatsView(
                     head: InventoryManager().equippedItems['heads'] ?? '',
                     armour: InventoryManager().equippedItems['armour'] ?? '',
                     legs: InventoryManager().equippedItems['legs'] ?? '',
                     melee: InventoryManager().equippedItems['melee'] ?? '',
-                    shield: InventoryManager().equippedItems['shield'] ?? '',
+                    arms: InventoryManager().equippedItems['arm'] ?? '',
                     wings: InventoryManager().equippedItems['wings'] ?? '',
                     stats: stats,
                   ),
-
-                  // Equipped Items Section
                   if (equippedItems.isNotEmpty) ...[
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 20.0, left: 10.0, top: 0.0),  
+                        padding: const EdgeInsets.only(bottom: 20.0, left: 10.0, top: 0.0),
                         child: const Text(
                           "Equipped Items",
                           style: TextStyle(
@@ -168,13 +206,11 @@ class _InventoryPageState extends State<InventoryPage> {
                     ),
                     _buildScrollableGrid(equippedItems),
                   ],
-
-                  // Other Items Section
                   if (otherItems.isNotEmpty) ...[
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
-                        padding: const EdgeInsets.only(top: 30.0, bottom: 20.0, left: 10.0),  
+                        padding: const EdgeInsets.only(top: 30.0, bottom: 20.0, left: 10.0),
                         child: const Text(
                           "Other Items",
                           style: TextStyle(
@@ -203,6 +239,43 @@ class _InventoryPageState extends State<InventoryPage> {
                     endFraction: 1,
                     width: 200,
                     height: 200,
+                  ),
+                ),
+              ),
+            ),
+
+          // Refresh indicator
+          if (_pullDistance > 0 || _isRefreshing)
+            Positioned(
+              top: (_pullDistance > _refreshTriggerPullDistance
+                      ? _refreshTriggerPullDistance / 2
+                      : _pullDistance / 2) +
+                  AppBar().preferredSize.height +
+                  MediaQuery.of(context).padding.top-60,
+              left: 0,
+              right: 0,
+              child: Container(
+                alignment: Alignment.topCenter,
+                height: 60,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 0, 0, 0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 0.6,
+                    ),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: LottieSegmentPlayer(
+                      animationPath: 'assets/animations/refresh.json',
+                      endFraction: 1,
+                      width: 108,
+                      height: 108,
+                    ),
                   ),
                 ),
               ),

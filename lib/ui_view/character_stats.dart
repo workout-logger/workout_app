@@ -9,7 +9,7 @@ class CharacterStatsView extends StatefulWidget {
   final String armor;
   final String legs;
   final String melee;
-  final String shield;
+  final String arms;
   final String wings;
   final String baseBody;
   final String eyeColor;
@@ -23,7 +23,7 @@ class CharacterStatsView extends StatefulWidget {
     required this.armor,
     required this.legs,
     required this.melee,
-    required this.shield,
+    required this.arms,
     required this.wings,
     required this.baseBody,
     required this.eyeColor,
@@ -218,7 +218,7 @@ class _CharacterStatsViewState extends State<CharacterStatsView>
                         head: widget.head,
                         legs: widget.legs,
                         melee: widget.melee,
-                        shield: widget.shield,
+                        arms: widget.arms,
                         wings: widget.wings,
                         baseBody: widget.baseBody,
                         eyeColor: widget.eyeColor,
@@ -306,7 +306,7 @@ class ModularCharacter extends StatelessWidget {
   final String head;
   final String legs;
   final String melee;
-  final String shield;
+  final String arms;
   final String wings;
   final String baseBody;
   final String eyeColor;
@@ -317,7 +317,7 @@ class ModularCharacter extends StatelessWidget {
     required this.head,
     required this.legs,
     required this.melee,
-    required this.shield,
+    required this.arms,
     required this.wings,
     required this.baseBody,
     required this.eyeColor,
@@ -341,9 +341,15 @@ class ModularCharacter extends StatelessWidget {
           'assets/character/eye_color_$eyeColor.png',
           fit: BoxFit.contain,
         ),
+
         if (armor.isNotEmpty)
           Image.asset(
             'assets/character/armour/$armor.png',
+            fit: BoxFit.contain,
+          ),
+        if (arms.isNotEmpty)
+          Image.asset(
+            'assets/character/arm/$arms.png',
             fit: BoxFit.contain,
           ),
         if (head.isNotEmpty)
@@ -361,11 +367,7 @@ class ModularCharacter extends StatelessWidget {
             'assets/character/melee/$melee.png',
             fit: BoxFit.contain,
           ),
-        if (shield.isNotEmpty)
-          Image.asset(
-            'assets/character/shield/$shield.png',
-            fit: BoxFit.contain,
-          ),
+
       ],
     );
   }
