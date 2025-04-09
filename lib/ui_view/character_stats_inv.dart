@@ -179,36 +179,36 @@ class ModularCharacter extends StatelessWidget {
           children: [
             if (wings.isNotEmpty)
               Image.asset(
-                'assets/character/wings/$wings.png',
+                'assets/images/character/wings/$wings.png',
                 fit: BoxFit.contain,
               ),
             Image.asset(
-              'assets/character/base_body_$bodyIndex.png',
+              'assets/images/character/base_body_$bodyIndex.png',
               fit: BoxFit.contain,
             ),
             if (armour.isNotEmpty)
               Image.asset(
-                'assets/character/armour/$armour.png',
+                'assets/images/character/armour/$armour.png',
                 fit: BoxFit.contain,
               ),
             if (head.isNotEmpty)
               Image.asset(
-                'assets/character/heads/$head.png',
+                'assets/images/character/heads/$head.png',
                 fit: BoxFit.contain,
               ),
             if (legs.isNotEmpty)
               Image.asset(
-                'assets/character/legs/$legs.png',
+                'assets/images/character/legs/$legs.png',
                 fit: BoxFit.contain,
               ),
             if (melee.isNotEmpty)
               Image.asset(
-                'assets/character/melee/$melee.png',
+                'assets/images/character/melee/$melee.png',
                 fit: BoxFit.contain,
               ),
             if (arms.isNotEmpty)
               Image.asset(
-                'assets/character/arm/$arms.png',
+                'assets/images/character/arm/$arms.png',
                 fit: BoxFit.contain,
               ),
           ],

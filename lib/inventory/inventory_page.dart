@@ -372,7 +372,7 @@ class InventoryActionsDrawer extends StatelessWidget {
           Row(
             children: [
               Image.asset(
-                'assets/character/$category/$fileName.png',
+                'assets/images/character/$category/$fileName.png',
                 height: 80,
                 width: 80,
                 errorBuilder: (context, error, stackTrace) {

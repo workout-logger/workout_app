@@ -95,8 +95,7 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _animationController;
   int _currentPageIndex = 0;
 
@@ -108,11 +107,10 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
     );
 
-    // Example: if you want the current currency
+    // Example usage of Providers (if needed)
     final currencyProv = Provider.of<CurrencyProvider>(context, listen: false);
     final inventoryProv = Provider.of<InventoryProvider>(context, listen: false);
-
-    // Now currencyProv.currentValue or inventoryProv.items is accessible
+    // currencyProv.currentValue, inventoryProv.items, etc.
   }
 
   @override
@@ -123,46 +121,285 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Constants for layout
+    const double navBarHeight = 55.0;
+    const double inactiveIconHeight = 35.0;
+    const double activeIconWidth = 75.0;
+    const double activeIconHeight = 66.0;
+    const double activeIconTranslateY = -9.0;
+    const double containerTopPosition = 15.0;
+    const double containerBottomPosition = -25.0;
+    const double iconTopPosition = 2.0;
+    const double labelBottomPosition = -2.0;
+    const double activeIconSize = 40.0;
+    const double labelFontSize = 12.0;
+    const Color labelColor = Color(0xFFADFF2F);
+    final LinearGradient activeBackgroundColor = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Color.fromARGB(255, 23, 138, 0),
+        Color.fromARGB(45, 17, 109, 1),
+      ],
+    );
+    const BorderRadius containerBorderRadius = BorderRadius.all(Radius.circular(10.0));
+
     return Scaffold(
       body: HomeBody(
         currentPageIndex: _currentPageIndex,
         animationController: _animationController,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentPageIndex,
-        onTap: (index) {
-          setState(() {
-            _currentPageIndex = index;
-          });
-        },
-        backgroundColor: FitnessAppTheme.background,
-        selectedItemColor: FitnessAppTheme.darkText,
-        unselectedItemColor: FitnessAppTheme.deactivatedText,
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+      // ---------------------------------------------------------
+      // 1) Wrap in a Stack so icons can overflow upward
+      // 2) The Container enforces a 60px bar, but the child (bar)
+      //    is transparent + iconSize=0 so it won't fight us on height.
+      // ---------------------------------------------------------
+      bottomNavigationBar: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // The colored area at the bottom with nominal 60px height
+          Container(
+            height: navBarHeight,
+            color: FitnessAppTheme.background,
           ),
-          BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/images/inventory_icon.svg',
-              height: 24,
-              color: Colors.white,
+          // Position the real bottom nav on top of that Container
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: BottomNavigationBar(
+              backgroundColor: Colors.transparent,
+              type: BottomNavigationBarType.fixed,
+
+              // -----------------------------
+              // The KEY to removing overflow:
+              // Turn off default icon/label sizing entirely,
+              // then do all custom icon/label layout in the items.
+              // -----------------------------
+              iconSize: 0, // Let your custom stack icons handle sizing
+              selectedFontSize: 0,
+              unselectedFontSize: 0,
+              selectedLabelStyle: const TextStyle(fontSize: 0),
+              unselectedLabelStyle: const TextStyle(fontSize: 0),
+              showSelectedLabels: false,
+              showUnselectedLabels: false,
+
+              currentIndex: _currentPageIndex,
+              onTap: (index) {
+                setState(() {
+                  _currentPageIndex = index;
+                });
+              },
+
+              // Provide custom icons inside each item:
+              items: [
+                BottomNavigationBarItem(
+                  label: '', // No built-in label
+                  // This is the "inactive" icon
+                  icon: Image.asset(
+                    'assets/images/icons/neon_green_home_deactivated.png',
+                    height: inactiveIconHeight,
+                  ),
+                  // This is the "active" icon with custom layout
+                  activeIcon: Transform.translate(
+                    offset: const Offset(0, activeIconTranslateY),
+                    child: SizedBox(
+                      width: activeIconWidth,
+                      height: activeIconHeight,
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                          // A negative top pushes the container up above the parent's top edge
+                          top: containerTopPosition, 
+                          left: 0,
+                          right: 0,
+                          bottom: containerBottomPosition,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: activeBackgroundColor,
+                              borderRadius: containerBorderRadius,
+                            ),
+                          ),
+                        ),
+
+                          Positioned(
+                            top: iconTopPosition,
+                            child: Image.asset(
+                              'assets/images/icons/neon_green_home.png',
+                              height: activeIconSize,
+                              width: 45,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: labelBottomPosition,
+                            child: const Text(
+                              'Home',
+                              style: TextStyle(
+                                fontSize: labelFontSize,
+                                color: labelColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                BottomNavigationBarItem(
+                  label: '',
+                  icon: Image.asset(
+                    'assets/images/icons/inventory.png',
+                    height: inactiveIconHeight,
+                  ),
+                  activeIcon: Transform.translate(
+                    offset: const Offset(0, activeIconTranslateY),
+                    child: SizedBox(
+                      width: activeIconWidth,
+                      height: activeIconHeight,
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            top: containerTopPosition,
+                            left: 0,
+                            right: 0,
+                            bottom: containerBottomPosition,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: activeBackgroundColor,
+                                borderRadius: containerBorderRadius,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: iconTopPosition,
+                            child: Image.asset(
+                              'assets/images/icons/inventory_activated.png',
+                              height: activeIconSize,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: labelBottomPosition,
+                            child: const Text(
+                              'Inventory',
+                              style: TextStyle(
+                                fontSize: labelFontSize,
+                                color: labelColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                BottomNavigationBarItem(
+                  label: '',
+                  icon: Image.asset(
+                    'assets/images/icons/chest.png',
+                    height: inactiveIconHeight,
+                  ),
+                  activeIcon: Transform.translate(
+                    offset: const Offset(0, activeIconTranslateY),
+                    child: SizedBox(
+                      width: activeIconWidth,
+                      height: activeIconHeight,
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            top: containerTopPosition,
+                            left: 0,
+                            right: 0,
+                            bottom: containerBottomPosition,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: activeBackgroundColor,
+                                borderRadius: containerBorderRadius,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: iconTopPosition,
+                            child: Image.asset(
+                              'assets/images/icons/chest_activated.png',
+                              height: activeIconSize,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: labelBottomPosition,
+                            child: const Text(
+                              'Trading',
+                              style: TextStyle(
+                                fontSize: labelFontSize,
+                                color: labelColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                BottomNavigationBarItem(
+                  label: '',
+                  icon: Image.asset(
+                    'assets/images/icons/dungeon.png',
+                    height: inactiveIconHeight,
+                  ),
+                  activeIcon: Transform.translate(
+                    offset: const Offset(0, activeIconTranslateY),
+                    child: SizedBox(
+                      width: activeIconWidth,
+                      height: activeIconHeight,
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            top: containerTopPosition,
+                            left: 0,
+                            right: 0,
+                            bottom:containerBottomPosition,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: activeBackgroundColor,
+                                borderRadius: containerBorderRadius,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: iconTopPosition,
+                            child: Image.asset(
+                              'assets/images/icons/dungeon_activated.png',
+                              height: activeIconSize,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: labelBottomPosition,
+                            child: const Text(
+                              'Dungeon',
+                              style: TextStyle(
+                                fontSize: labelFontSize,
+                                color: labelColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            label: 'Inventory',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.sync_alt),
-            label: 'Trading',
-          ),
-          BottomNavigationBarItem(
-            icon: SvgPicture.asset(
-              'assets/images/dungeon.svg',
-              height: 24,
-              color: Colors.white,
-            ),
-            label: 'Dungeon',
           ),
         ],
       ),

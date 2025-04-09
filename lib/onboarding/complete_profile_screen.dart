@@ -156,11 +156,11 @@ class _BodyColorScreenState extends State<BodyColorScreen> {
   ];
 
   final List<String> _bodyColorImages = [
-    'assets/character/base_body_1.png',
-    'assets/character/base_body_2.png',
-    'assets/character/base_body_3.png',
-    'assets/character/base_body_4.png',
-    'assets/character/base_body_5.png',
+    'assets/images/character/base_body_1.png',
+    'assets/images/character/base_body_2.png',
+    'assets/images/character/base_body_3.png',
+    'assets/images/character/base_body_4.png',
+    'assets/images/character/base_body_5.png',
   ];
 
   int _selectedBodyIndex = 0;
@@ -259,11 +259,11 @@ class EyeColorScreen extends StatefulWidget {
 class _EyeColorScreenState extends State<EyeColorScreen>
     with SingleTickerProviderStateMixin {
   final List<String> _eyeColorOptions = [
-    'assets/character/eye_color_1.png',
-    'assets/character/eye_color_2.png',
-    'assets/character/eye_color_3.png',
-    'assets/character/eye_color_4.png',
-    'assets/character/eye_color_5.png',
+    'assets/images/character/eye_color_1.png',
+    'assets/images/character/eye_color_2.png',
+    'assets/images/character/eye_color_3.png',
+    'assets/images/character/eye_color_4.png',
+    'assets/images/character/eye_color_5.png',
   ];
 
   final List<Color> _eyeColorBackgrounds = [
@@ -358,7 +358,7 @@ class _EyeColorScreenState extends State<EyeColorScreen>
   Widget build(BuildContext context) {
     final int? bodyColorIndex = widget.profileData.bodyColorIndex;
     final String? chosenBodyImage =
-        bodyColorIndex != null ? 'assets/character/base_body_${bodyColorIndex + 1}.png' : null;
+        bodyColorIndex != null ? 'assets/images/character/base_body_${bodyColorIndex + 1}.png' : null;
 
     final String selectedEyeImage = _eyeColorOptions[_selectedEyeIndex];
 

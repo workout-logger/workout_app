@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+import 'package:workout_logger/ui_view/current_dungeon.dart';
 
 class MyDiaryScreen extends StatefulWidget {
   const MyDiaryScreen({super.key, this.animationController});
@@ -50,6 +51,9 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
   bool get _hasRequiredData => 
     InventoryManager().hasCharacterData;
 
+  // Placeholder variables for user info - replace with actual data fetching
+  String userName = "Alex Pltnkov"; 
+  int userCoins = 500;
 
   @override
   void initState() {
@@ -239,13 +243,8 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
           animation: createAnimation(0, count),
           animationController: widget.animationController!,
         ),
-        TitleView(
-          titleTxt: 'Last Workout',
-          animation: createAnimation(1, count),
-          animationController: widget.animationController!,
-        ),
         LastWorkoutView(
-          animation: createAnimation(2, count),
+          animation: createAnimation(1, count),
           animationController: widget.animationController!,
           workoutDate: workoutDate,
           duration: duration,
@@ -254,19 +253,23 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
           stats: stats_gained,
           muscleGroups: muscleGroups,
         ),
-        TitleView(
-          titleTxt: 'Workout Duration',
-          subTxt: 'History',
-          animation: createAnimation(3, count),
-          animationController: widget.animationController!,
-        ),
+        _buildSectionHeader('Current Dungeon'),
+        CurrentDungeonView(
+           animation: createAnimation(2, count),
+           animationController: widget.animationController!,
+           distanceRun: 23, // Example data
+           recentEvent: "Killed a Goblin!", // Example data
+           currentHealth: 75, // Example data
+           maxHealth: 100,
+         ),
+        _buildSectionHeader('Workout Streak', showHistory: true),
         WorkoutDurationChart(
           durations: weeklyWorkouts,
-          streakCount: 7,
         ),
       ]);
     });
   }
+
   Animation<double> createAnimation(int index, int count) {
     return Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -323,6 +326,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -348,7 +352,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
                     : Stack(
                         children: <Widget>[
                           getMainListViewUI(),
-                          getAppBarUI(),
+                          // getAppBarUI(),
                           if (_pullDistance > 0 || isRefreshing)
                             Positioned(
                               top: (_pullDistance > _refreshTriggerPullDistance
@@ -391,35 +395,31 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
             ),
       floatingActionButton: _isLoading
           ? null // Hide FAB while loading
-          : Consumer<StopwatchProvider>(
-              builder: (context, stopwatchProvider, child) {
-                return FloatingActionButton.extended(
-                  onPressed: () async {
-                    final result =showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) {
-                        return const Align(
-                          alignment: Alignment.bottomCenter,
-                          child: FractionallySizedBox(
-                            heightFactor: 0.95,
-                            child: WorkoutPage(),
-                          ),
-                        );
-                      },
+          : FloatingActionButton.extended(
+              onPressed: () async {
+                final result = await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) {
+                    return const Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FractionallySizedBox(
+                        heightFactor: 0.95,
+                        child: WorkoutPage(),
+                      ),
                     );
-
-                    if (result == true) {
-                      _startRefresh();
-                    }
                   },
-                  label: stopwatchProvider.isRunning
-                      ? Text(stopwatchProvider.formattedTime())
-                      : const Text('Start Workout'),
-                  icon: const Icon(Icons.fitness_center),
                 );
+
+                if (result == true) {
+                  _startRefresh();
+                }
               },
+              label: const Text('Start Workout'),
+              icon: const Icon(Icons.fitness_center),
+              backgroundColor: const Color(0xFFADFF2F),
+              foregroundColor: Colors.black,
             ),
     );
   }
@@ -437,9 +437,7 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
               controller: scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.only(
-                top: AppBar().preferredSize.height +
-                    MediaQuery.of(context).padding.top +
-                    24,
+                top: AppBar().preferredSize.height,
                 bottom: 62 + MediaQuery.of(context).padding.bottom,
               ),
               itemCount: listViews.length,
@@ -488,96 +486,168 @@ class MyDiaryScreenState extends State<MyDiaryScreen> with TickerProviderStateMi
     handleRefresh();
   }
 
-
-  /// Simple AppBar with fade animation
-  Widget getAppBarUI() {
-    return Column(
-      children: <Widget>[
-        if (widget.animationController != null)
-          AnimatedBuilder(
-            animation: widget.animationController!,
-            builder: (BuildContext context, Widget? child) {
-              return FadeTransition(
-                opacity: topBarAnimation,
-                child: Transform(
-                  transform: Matrix4.translationValues(
-                    0.0,
-                    30 * (1.0 - topBarAnimation.value),
-                    0.0,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 0, 0, 0)
-                          .withOpacity(topBarOpacity),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(32.0),
-                      ),
-                      boxShadow: <BoxShadow>[
-                        BoxShadow(
-                          color: const Color.fromARGB(255, 68, 68, 68)
-                              .withOpacity(0.4 * topBarOpacity),
-                          offset: const Offset(1.1, 1.1),
-                          blurRadius: 10.0,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: <Widget>[
-                        SizedBox(height: MediaQuery.of(context).padding.top),
-                        Padding(
-                          padding: EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            top: 16 - 8.0 * topBarOpacity,
-                            bottom: 12 - 8.0 * topBarOpacity,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    'Home',
-                                    textAlign: TextAlign.left,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 22 + 6 - 6 * topBarOpacity,
-                                      letterSpacing: 1.2,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.account_circle, size: 30),
-                                color: Colors.white,
-                                onPressed: () {
-                                  // Show a Snackbar to indicate the feature is not implemented
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        'This feature is not implemented yet.',
-                                        style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
-                                      ),
-                                      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+  Widget _buildSectionHeader(String title, {bool showHistory = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0, left: 16, right: 16, bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-      ],
+          if (showHistory)
+            InkWell(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('History navigation not implemented yet.')),
+                );
+              },
+              child: const Row(
+                children: [
+                  Text(
+                    'History',
+                    style: TextStyle(
+                      color: Color(0xFFADFF2F),
+                      fontSize: 14,
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Color(0xFFADFF2F), size: 20),
+                  Icon(Icons.chevron_right, color: Color(0xFFADFF2F), size: 20),
+                  Icon(Icons.chevron_right, color: Color(0xFFADFF2F), size: 20),
+                ],
+              ),
+            )
+          else
+           InkWell(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$title navigation not implemented yet.')),
+                );
+              },
+             child: const Row(
+               children: [
+                 Icon(Icons.chevron_right, color: Color(0xFFADFF2F), size: 20),
+                 Icon(Icons.chevron_right, color: Color(0xFFADFF2F), size: 20),
+                 Icon(Icons.chevron_right, color: Color(0xFFADFF2F), size: 20),
+               ],
+             ),
+           ),
+        ],
+      ),
     );
   }
+
+  /// Simple AppBar with fade animation
+  // Widget getAppBarUI() {
+  //   return Column(
+  //     children: <Widget>[
+  //       if (widget.animationController != null)
+  //         AnimatedBuilder(
+  //           animation: widget.animationController!,
+  //           builder: (BuildContext context, Widget? child) {
+  //             return FadeTransition(
+  //               opacity: topBarAnimation,
+  //               child: Transform(
+  //                 transform: Matrix4.translationValues(
+  //                   0.0,
+  //                   30 * (1.0 - topBarAnimation.value),
+  //                   0.0,
+  //                 ),
+  //                 child: Container(
+  //                   decoration: BoxDecoration(
+  //                     color: const Color.fromARGB(255, 0, 0, 0)
+  //                         .withOpacity(1.0),
+  //                   ),
+  //                   child: Column(
+  //                     children: <Widget>[
+  //                       SizedBox(height: MediaQuery.of(context).padding.top),
+  //                       Padding(
+  //                         padding: const EdgeInsets.only(
+  //                           left: 16,
+  //                           right: 16,
+  //                           top: 8,
+  //                           bottom: 8,
+  //                         ),
+  //                         child: Row(
+  //                           children: <Widget>[
+  //                             Row(
+  //                               children: [
+  //                                 const CircleAvatar(
+  //                                   radius: 18,
+  //                                   backgroundColor: Colors.grey,
+  //                                   child: Icon(Icons.person, size: 20, color: Colors.white),
+  //                                 ),
+  //                                 const SizedBox(width: 8),
+  //                                 Column(
+  //                                   crossAxisAlignment: CrossAxisAlignment.start,
+  //                                   children: [
+  //                                     Text(
+  //                                       userName,
+  //                                       style: const TextStyle(
+  //                                         color: Colors.white,
+  //                                         fontWeight: FontWeight.bold,
+  //                                         fontSize: 14,
+  //                                       ),
+  //                                     ),
+  //                                     Row(
+  //                                       children: [
+  //                                         const Icon(Icons.monetization_on, color: Colors.orangeAccent, size: 16),
+  //                                         const SizedBox(width: 4),
+  //                                         Text(
+  //                                           '$userCoins Coins',
+  //                                           style: const TextStyle(
+  //                                             color: Colors.orangeAccent,
+  //                                             fontSize: 12,
+  //                                           ),
+  //                                         ),
+  //                                       ],
+  //                                     ),
+  //                                   ],
+  //                                 ),
+  //                               ],
+  //                             ),
+  //                             Expanded(
+  //                               child: Text(
+  //                                 'Fitquest',
+  //                                 textAlign: TextAlign.center,
+  //                                 style: TextStyle(
+  //                                   fontWeight: FontWeight.bold,
+  //                                   fontSize: 20,
+  //                                   letterSpacing: 1.0,
+  //                                   color: Colors.white,
+  //                                 ),
+  //                               ),
+  //                             ),
+  //                             IconButton(
+  //                               icon: const Icon(Icons.more_vert, size: 28),
+  //                               color: Colors.white,
+  //                               onPressed: () {
+  //                                 ScaffoldMessenger.of(context).showSnackBar(
+  //                                   const SnackBar(
+  //                                     content: Text('Menu not implemented yet.'),
+  //                                     backgroundColor: Colors.black,
+  //                                     duration: Duration(seconds: 2),
+  //                                   ),
+  //                                 );
+  //                               },
+  //                             ),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ),
+  //             );
+  //           },
+  //         ),
+  //     ],
+  //   );
+  // }
   
 }

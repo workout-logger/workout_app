@@ -91,7 +91,7 @@ class InventoryItemCard extends StatelessWidget {
                   width: 120,
                   height: 120,
                   child: Image.asset(
-                    'assets/character/${category}/${fileName}${category != "armour" && category != "coins" ? "_inv" : ""}.png',
+                    'assets/images/character/${category}/${fileName}${category != "armour" && category != "coins" ? "_inv" : ""}.png',
                     fit: BoxFit.contain,
                   ),
                 ),

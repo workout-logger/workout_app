@@ -51,6 +51,7 @@ dependencies:
   permission_handler: ^11.3.1
   flutter_staggered_grid_view: ^0.7.0
   infinite_scroll_pagination: ^4.1.0
+  flame: ^1.17.0
 
 dev_dependencies:
   flutter_test:
@@ -79,16 +80,18 @@ flutter:
   - assets/images/chests/rare/
   - assets/images/chests/epic/
   - assets/images/
+  - assets/images/icons/
   - assets/images/cards/
   - assets/images/chests/
-  - assets/images/Pixel_Chest_Pack/
-  - assets/character/
-  - assets/character/armour/
-  - assets/character/heads/
-  - assets/character/legs/
-  - assets/character/melee/
-  - assets/character/wings/
-  - assets/character/arm/
-  - assets/character/coins/
+  - assets/images/character/
+  - assets/images/character/idle/
+  - assets/images/character/fall/
+  - assets/images/character/armour/
+  - assets/images/character/heads/
+  - assets/images/character/legs/
+  - assets/images/character/melee/
+  - assets/images/character/wings/
+  - assets/images/character/arm/
+  - assets/images/character/coins/
   - assets/animations/
 

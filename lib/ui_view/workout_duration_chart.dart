@@ -1,233 +1,127 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import '../fitness_app_theme.dart';
-import 'package:hexcolor/hexcolor.dart';
+// Remove unused theme import if FitnessAppTheme specific colors/fonts aren't needed
+// import '../fitness_app_theme.dart'; 
 
 class WorkoutDurationChart extends StatelessWidget {
-  final List<int> durations; // List of durations over the last 10 days
-  final int streakCount; // Streak count to display
+  final List<int> durations; // List of durations for the last 7 days (Mon-Sun)
+  // streakCount is no longer used here
 
   const WorkoutDurationChart({
     super.key,
     required this.durations,
-    required this.streakCount,
+    // Removed streakCount parameter
   });
+
+  // Define colors based on the new design
+  static const Color barColor = Color(0xFFADFF2F); // Bright green
+  static const Color textColor = Colors.grey; // Grey for axis labels
+  static const Color backgroundColor = Colors.transparent; // Or match theme background
 
   @override
   Widget build(BuildContext context) {
-    // Check if the durations list is empty or all values are zero
-    bool isAllZero = durations.isEmpty || durations.every((duration) => duration == 0);
+    // Ensure we have exactly 7 days of data, padding with 0 if necessary
+    List<double> weeklyData = List.generate(7, (index) {
+      if (index < durations.length && durations[index] > 0) {
+        return 1.0; // Represents a workout occurred
+      } else {
+        return 0.0; // Represents no workout
+      }
+    });
 
     return Padding(
-      padding: const EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 16,
-        bottom: 18,
-      ),
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: FitnessAppTheme.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8.0),
-                bottomLeft: Radius.circular(8.0),
-                bottomRight: Radius.circular(8.0),
-                topRight: Radius.circular(68.0),
-              ),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: FitnessAppTheme.grey.withOpacity(0.2),
-                  offset: const Offset(1.1, 1.1),
-                  blurRadius: 10.0,
+      // Adjusted padding to better fit the new design without the old container
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+      child: AspectRatio(
+        // Adjust aspect ratio if needed for the new look
+        aspectRatio: 1.8, 
+        child: BarChart(
+          BarChartData(
+            backgroundColor: backgroundColor,
+            gridData: const FlGridData(show: false), // Hide grid lines
+            titlesData: FlTitlesData(
+              show: true,
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 30, // Space for labels
+                  getTitlesWidget: _getBottomTitles,
                 ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.only(
-                top: 20.0,
               ),
-              child: Column(
-                children: <Widget>[
-                  // Display Streak Count
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0, right: 36.0, bottom: 16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: <Widget>[
-                        Text(
-                          'Workout Streak',
-                          style: TextStyle(
-                            fontFamily: FitnessAppTheme.fontName,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                            color: FitnessAppTheme.grey.withOpacity(0.5),
-                          ),
-                        ),
-                        Text(
-                          '$streakCount Days',
-                          style: const TextStyle(
-                            fontFamily: FitnessAppTheme.fontName,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: FitnessAppTheme.deactivatedText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // The Bar Chart
-                  AspectRatio(
-                    aspectRatio: 1.7,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(0, 0, 0, 0), // Transparent background color
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: BarChart(
-                          BarChartData(
-                            backgroundColor: const Color.fromARGB(0, 0, 0, 0), // Transparent background color
-                            gridData: const FlGridData(show: false), // Hide grid lines
-                            titlesData: FlTitlesData(
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (value, _) {
-                                    switch (value.toInt()) {
-                                      case 0:
-                                        return const Text('Mon', style: TextStyle(color: FitnessAppTheme.deactivatedText));
-                                      case 1:
-                                        return const Text('Tue', style: TextStyle(color: FitnessAppTheme.deactivatedText));
-                                      case 2:
-                                        return const Text('Wed', style: TextStyle(color: FitnessAppTheme.deactivatedText));
-                                      case 3:
-                                        return const Text('Thu', style: TextStyle(color: FitnessAppTheme.deactivatedText));
-                                      case 4:
-                                        return const Text('Fri', style: TextStyle(color: FitnessAppTheme.deactivatedText));
-                                      case 5:
-                                        return const Text('Sat', style: TextStyle(color: FitnessAppTheme.deactivatedText));
-                                      case 6:
-                                        return const Text('Sun', style: TextStyle(color: FitnessAppTheme.deactivatedText));
-                                      default:
-                                        return const Text('', style: TextStyle(color: FitnessAppTheme.deactivatedText));
-                                    }
-                                  },
-                                ),
-                              ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 14,
-                                  getTitlesWidget: (value, _) {
-                                    return Text(
-                                      '${value.toInt()}',
-                                      style: const TextStyle(
-                                        color: Colors.white, // White text color
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 10, // Smaller font size
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              rightTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false), // Hide right titles
-                              ),
-                              topTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false), // Hide top titles
-                              ),
-                            ),
-                            borderData: FlBorderData(
-                              show: false, // Hide borders
-                            ),
-                            barTouchData: BarTouchData(
-                              touchTooltipData: BarTouchTooltipData(
-                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                  return BarTooltipItem(
-                                    '${rod.toY.toInt()} mins',
-                                    const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    children: [
-                                      TextSpan(
-                                        text: '',
-                                        style: TextStyle(
-                                          color: Colors.grey[200],
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                              touchCallback: (FlTouchEvent event, barTouchResponse) {
-                                if (event.isInterestedForInteractions &&
-                                    barTouchResponse != null &&
-                                    barTouchResponse.spot != null) {
-                                  final touchedSpot = barTouchResponse.spot!;
-                                  final x = touchedSpot.touchedBarGroup.x;
-                                  final y = touchedSpot.touchedBarGroup.barRods[0].toY;
-                                }
-                              },
-                            ),
-                            barGroups: List.generate(durations.length, (index) {
-                              return BarChartGroupData(
-                                x: index,
-                                barRods: [
-                                  BarChartRodData(
-                                    toY: durations[index].toDouble(),
-                                    color: HexColor('#fdfd96'),
-                                    width: 16,
-                                    borderRadius: BorderRadius.circular(4),
-                                    backDrawRodData: BackgroundBarChartRodData(
-                                      show: true,
-                                      color: Colors.white.withOpacity(0.2),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 28, // Space for labels 0 and 1
+                  interval: 1, // Show labels for 0 and 1
+                  getTitlesWidget: _getLeftTitles,
+                ),
               ),
+              // Hide top and right titles
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
+            borderData: FlBorderData(show: false), // Hide chart border
+            barTouchData: BarTouchData(enabled: false), // Disable touch interactions
+            barGroups: _generateBarGroups(weeklyData),
+            alignment: BarChartAlignment.spaceAround, // Distribute bars
+             maxY: 1.2, // Set slightly higher than max value (1) for padding
           ),
-          // Overlay for "No Data"
-          if (isAllZero)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7), // Semi-transparent overlay
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(8.0),
-                    bottomLeft: Radius.circular(8.0),
-                    bottomRight: Radius.circular(8.0),
-                    topRight: Radius.circular(68.0),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    'No Workout History',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: FitnessAppTheme.fontName,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
+  }
+
+  // Helper to generate bar groups from processed data
+  List<BarChartGroupData> _generateBarGroups(List<double> data) {
+    return List.generate(data.length, (index) {
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: data[index], // Use 0.0 or 1.0
+            color: barColor,
+            width: 18, // Adjust bar width as needed
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)), // Round top corners
+            // Removed backDrawRodData
+          ),
+        ],
+         showingTooltipIndicators: [], // Ensure no tooltips are shown initially
+      );
+    });
+  }
+
+  // Helper for bottom axis titles (Days of Week)
+  Widget _getBottomTitles(double value, TitleMeta meta) {
+    String text;
+    switch (value.toInt()) {
+      case 0: text = 'Mon'; break;
+      case 1: text = 'Tue'; break;
+      case 2: text = 'Wed'; break;
+      case 3: text = 'Thu'; break;
+      case 4: text = 'Fri'; break;
+      case 5: text = 'Sat'; break;
+      case 6: text = 'Sun'; break;
+      default: text = ''; break;
+    }
+    return SideTitleWidget(
+      axisSide: meta.axisSide,
+      space: 4, // Space between bar and label
+      child: Text(text, style: const TextStyle(color: textColor, fontSize: 12)),
+    );
+  }
+
+  // Helper for left axis titles (0 and 1)
+  Widget _getLeftTitles(double value, TitleMeta meta) {
+     if (value == 0 || value == 1) {
+      return SideTitleWidget(
+        axisSide: meta.axisSide,
+        space: 4, // Space between axis line and label
+        child: Text(
+          value.toInt().toString(),
+           style: const TextStyle(color: textColor, fontSize: 12)
+        ),
+      );
+    } 
+    return Container(); // Return empty for other values
   }
 }
